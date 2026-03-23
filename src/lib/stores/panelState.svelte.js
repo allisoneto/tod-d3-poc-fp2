@@ -38,8 +38,9 @@ export function createPanelState(id) {
 		// ── Overall census tract universe ───────────────────────
 		minStopsPerSqMi = $state(0);
 		minPopulation = $state(0);
-		minPopDensity = $state(0);
-		minHuChange = $state(0);
+		// Tract-universe defaults (same floors as Policy Insights).
+		minPopDensity = $state(200);
+		minHuChange = $state(20);
 
 		// ── Development filters ────────────────────────────────
 		minUnitsPerProject = $state(0);

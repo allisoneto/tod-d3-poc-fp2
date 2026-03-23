@@ -846,6 +846,56 @@ export function computeRegression(points) {
 }
 
 /**
+ * Weighted least-squares line ``y ≈ slope * x + intercept`` and weighted R².
+ * Matches tract-level weights used in cohort means and binned bars (e.g. population
+ * at period start).
+ *
+ * Parameters
+ * ----------
+ * points : Array<{ x: number, y: number, w?: number }>
+ *     Non-finite or non-positive ``w`` defaults to ``1``.
+ *
+ * Returns
+ * -------
+ * { slope: number, intercept: number, r2: number }
+ */
+export function computeWeightedRegression(points) {
+	const n = points.length;
+	if (n < 2) return { slope: 0, intercept: 0, r2: 0 };
+
+	const ws = points.map((p) => {
+		const w = Number(p.w);
+		return Number.isFinite(w) && w > 0 ? w : 1;
+	});
+	const sumW = d3.sum(ws);
+	if (!(sumW > 0)) return { slope: 0, intercept: 0, r2: 0 };
+
+	const xwMean = d3.sum(points, (p, i) => ws[i] * p.x) / sumW;
+	const ywMean = d3.sum(points, (p, i) => ws[i] * p.y) / sumW;
+
+	let num = 0;
+	let den = 0;
+	for (let i = 0; i < n; i++) {
+		const dx = points[i].x - xwMean;
+		num += ws[i] * dx * (points[i].y - ywMean);
+		den += ws[i] * dx * dx;
+	}
+	const slope = den === 0 ? 0 : num / den;
+	const intercept = ywMean - slope * xwMean;
+
+	let ssTot = 0;
+	let ssRes = 0;
+	for (let i = 0; i < n; i++) {
+		const pred = slope * points[i].x + intercept;
+		ssTot += ws[i] * (points[i].y - ywMean) ** 2;
+		ssRes += ws[i] * (points[i].y - pred) ** 2;
+	}
+	const r2 = ssTot === 0 ? 0 : 1 - ssRes / ssTot;
+
+	return { slope, intercept, r2 };
+}
+
+/**
  * Quantile bins on X with population-weighted Y moments per bin.
  *
  * Each row may carry a ``w`` weight (e.g. population). When weights are present,

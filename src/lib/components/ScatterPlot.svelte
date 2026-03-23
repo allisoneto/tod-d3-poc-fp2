@@ -5,11 +5,13 @@
 	import {
 		buildFilteredData,
 		getScatterXValue,
-		computeRegression,
+		computeWeightedRegression,
 		filterPointsTenSigmaMarginals,
 		getNonTodTracts,
-		getTodTracts
+		getTodTracts,
+		popWeightKey
 	} from '$lib/utils/derived.js';
+	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import { splitChartTitle } from '$lib/utils/chartTitles.js';
 
 	let { panelState, domainOverride = null } = $props();
@@ -60,7 +62,10 @@
 
 	function styleDots(root, hoveredId, selectedSet) {
 		root.selectAll('circle.scatter-dot')
-			.attr('r', (d) => (d.tract.gisjoin === hoveredId ? 7 : 4))
+			.attr('r', (d) => {
+				const base = d.dotR ?? 4;
+				return d.tract.gisjoin === hoveredId ? Math.min(base * 1.38, 9) : base;
+			})
 			.attr('fill', (d) =>
 				selectedSet.has(d.tract.gisjoin) ? 'var(--cat-a)' : 'var(--accent)'
 			)
@@ -73,7 +78,10 @@
 
 	function styleNonTodDots(root, hoveredId) {
 		root.selectAll('circle.scatter-dot-nontod')
-			.attr('r', (d) => (d.tract.gisjoin === hoveredId ? 5.5 : 3.5))
+			.attr('r', (d) => {
+				const base = d.dotR ?? 3.5;
+				return d.tract.gisjoin === hoveredId ? Math.min(base * 1.32, 8) : base;
+			})
 			.attr('opacity', (d) => (d.tract.gisjoin === hoveredId ? 0.92 : 0.5))
 			.attr('stroke', (d) => (d.tract.gisjoin === hoveredId ? 'var(--text)' : 'none'))
 			.attr('stroke-width', (d) => (d.tract.gisjoin === hoveredId ? 1.25 : 0));
@@ -91,6 +99,7 @@
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
 		const yKey = `${yBase}_${tp}`;
+		const wKey = popWeightKey(tp);
 
 		const root = d3.select(containerEl);
 		root.selectAll('*').remove();
@@ -105,7 +114,8 @@
 			const xVal = getScatterXValue(t, t.gisjoin, xBase, devAgg, tp);
 			const yVal = Number(rawY);
 			if (Number.isFinite(xVal) && Number.isFinite(yVal)) {
-				points.push({ tract: t, x: xVal, y: yVal });
+				const w = Math.max(Number(t[wKey]) || 0, 1);
+				points.push({ tract: t, x: xVal, y: yVal, w });
 			}
 		}
 
@@ -118,16 +128,17 @@
 			const xVal = getScatterXValue(t, t.gisjoin, xBase, devAgg, tp);
 			const yVal = Number(rawY);
 			if (Number.isFinite(xVal) && Number.isFinite(yVal)) {
-				nonTodPoints.push({ tract: t, x: xVal, y: yVal });
+				const w = Math.max(Number(t[wKey]) || 0, 1);
+				nonTodPoints.push({ tract: t, x: xVal, y: yVal, w });
 			}
 		}
 
-		// OLS lines use ±10σ marginal outlier screen; all TOD / non-TOD points stay plotted.
+		// WLS uses ±10σ marginal outlier screen; all TOD / non-TOD points stay plotted (weights preserved).
 		const pointsForReg = filterPointsTenSigmaMarginals(points);
 		const nonTodPointsForReg = filterPointsTenSigmaMarginals(nonTodPoints);
 		const nonTodReg =
 			nonTodPointsForReg.length >= 2
-				? computeRegression(nonTodPointsForReg)
+				? computeWeightedRegression(nonTodPointsForReg)
 				: { slope: NaN, intercept: NaN, r2: 0 };
 
 		if (points.length === 0) {
@@ -139,6 +150,20 @@
 			);
 			return;
 		}
+
+		// Sqrt scale so dot *area* scales ~linearly with population (subtle radius range).
+		const wAll = [...points, ...nonTodPoints].map((d) => d.w);
+		const wMin = d3.min(wAll) ?? 1;
+		const wMax = d3.max(wAll) ?? 1;
+		const rScale = d3
+			.scaleSqrt()
+			.domain(wMin === wMax ? [Math.max(wMin * 0.9, 1), wMax * 1.1 + 1] : [wMin, wMax])
+			.range([2.7, 5.4]);
+		for (const p of points) p.dotR = rScale(p.w);
+		for (const p of nonTodPoints) p.dotR = rScale(p.w);
+
+		const { startY } = periodCensusBounds(tp);
+		const popFmt = d3.format(',.0f');
 
 		const xLabel = meta.xVariables?.find((v) => v.key === xBase)?.label ?? xBase;
 		const yLabel = meta.yVariables?.find((v) => v.key === yBase)?.label ?? yBase;
@@ -171,7 +196,9 @@
 			.range([innerHeight, 0]);
 
 		const { slope, intercept, r2 } =
-			pointsForReg.length >= 2 ? computeRegression(pointsForReg) : { slope: NaN, intercept: NaN, r2: 0 };
+			pointsForReg.length >= 2
+				? computeWeightedRegression(pointsForReg)
+				: { slope: NaN, intercept: NaN, r2: 0 };
 
 		const showNonTodReg =
 			panelState.showNonTodScatter &&
@@ -183,13 +210,18 @@
 		const scatterTitleLines = splitChartTitle(titleFull, 44);
 		const titleAnchorX = marginLeft + innerWidth / 2;
 		const firstTitleBaseline = 22;
-		let legendBlockH = 8;
-		if (pointsForReg.length >= 2 && Number.isFinite(slope) && Number.isFinite(intercept)) {
-			legendBlockH += 42;
-		}
-		if (showNonTodReg) legendBlockH += 42;
+		// Legend block: caption row, then pop + regression side-by-side (two reg columns if TOD + non-TOD).
+		const legendCaptionH = 22;
+		const popLegendRowH = 28;
+		const regLegendColH = 10 + 4 * 12 + 6;
+		const hasTodReg =
+			pointsForReg.length >= 2 && Number.isFinite(slope) && Number.isFinite(intercept);
+		const nRegCols = (hasTodReg ? 1 : 0) + (showNonTodReg ? 1 : 0);
+		const regBlockH = nRegCols > 0 ? regLegendColH : 0;
+		const legendBlockH = legendCaptionH + Math.max(popLegendRowH, regBlockH) + 8;
 		const titleBlockBottom = firstTitleBaseline + 8 + scatterTitleLines.length * 16;
 		const legendY0 = titleBlockBottom + 6;
+		const legendContentY = legendY0 + legendCaptionH;
 		const chartOffsetTop = legendY0 + legendBlockH + 6;
 		const width = marginLeft + innerWidth + marginRight;
 		const height = chartOffsetTop + innerHeight + marginBottom;
@@ -213,11 +245,63 @@
 			if (i > 0) ts.attr('dy', '1.15em');
 		});
 
-		// OLS legend: top-right of the SVG (directly under the HTML checkbox row).
+		// Full-width caption above the side-by-side legend row (keeps plot area left-aligned, not clipped right).
+		svg
+			.append('text')
+			.attr('class', 'scatter-legend-caption')
+			.attr('x', marginLeft)
+			.attr('y', legendY0 + 10)
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '9px')
+			.text(`Tract population (${startY}): dot area ∝ pop; fit = pop-weighted WLS`);
+
+		// Population / dot-size legend (left column; regression legend(s) to the right, same row).
+		const rLo = rScale(wMin);
+		const rHi = rScale(wMax);
+		const popLeg = svg
+			.append('g')
+			.attr('class', 'scatter-pop-legend')
+			.attr('transform', `translate(${marginLeft}, ${legendContentY})`)
+			.attr('pointer-events', 'none');
+		const cyPop = 14;
+		popLeg
+			.append('circle')
+			.attr('cx', rLo)
+			.attr('cy', cyPop)
+			.attr('r', rLo)
+			.attr('fill', '#94a3b8')
+			.attr('opacity', 0.55);
+		popLeg
+			.append('text')
+			.attr('x', rLo * 2 + 8)
+			.attr('y', cyPop + 3)
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '9px')
+			.text(popFmt(wMin));
+		const xHi = 108;
+		popLeg
+			.append('circle')
+			.attr('cx', xHi + rHi)
+			.attr('cy', cyPop)
+			.attr('r', rHi)
+			.attr('fill', '#94a3b8')
+			.attr('opacity', 0.55);
+		popLeg
+			.append('text')
+			.attr('x', xHi + rHi * 2 + 8)
+			.attr('y', cyPop + 3)
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '9px')
+			.text(popFmt(wMax));
+
+		// Regression legend sits to the right of the dot-size swatches (fits viewBox width 580).
+		const regLegendColW = 158;
+		const popLegendReserve = 186;
+		const legendRegX = marginLeft + popLegendReserve;
 		const legRoot = svg
 			.append('g')
 			.attr('class', 'scatter-reg-legend')
-			.attr('transform', `translate(${width - 8}, ${legendY0})`)
+			.attr('transform', `translate(${legendRegX}, ${legendContentY})`)
 			.attr('pointer-events', 'none');
 
 		const chart = svg.append('g')
@@ -309,7 +393,7 @@
 				.attr('class', 'scatter-dot-nontod')
 				.attr('cx', (d) => xScale(d.x))
 				.attr('cy', (d) => yScale(d.y))
-				.attr('r', 3.5)
+				.attr('r', (d) => d.dotR ?? 3.5)
 				.attr('fill', '#94a3b8')
 				.attr('opacity', 0.5)
 				.style('cursor', 'pointer')
@@ -328,7 +412,8 @@
 							{ bold: true, text: name },
 							{ bold: false, text: 'non-TOD (control)' },
 							{ bold: false, text: `${xLabel}: ${fmt(d.x)}` },
-							{ bold: false, text: `${yLabel}: ${fmt(d.y)}` }
+							{ bold: false, text: `${yLabel}: ${fmt(d.y)}` },
+							{ bold: false, text: `Pop (${startY}): ${popFmt(d.w)}` }
 						]
 					};
 				})
@@ -352,6 +437,7 @@
 			.attr('class', 'scatter-dot')
 			.attr('cx', (d) => xScale(d.x))
 			.attr('cy', (d) => yScale(d.y))
+			.attr('r', (d) => d.dotR ?? 4)
 			.style('cursor', 'pointer')
 			.on('mouseenter', function (event, d) {
 				panelState.setHovered(d.tract.gisjoin);
@@ -363,7 +449,8 @@
 					lines: [
 						{ bold: true, text: name },
 						{ bold: false, text: `${xLabel}: ${fmt(d.x)}` },
-						{ bold: false, text: `${yLabel}: ${fmt(d.y)}` }
+						{ bold: false, text: `${yLabel}: ${fmt(d.y)}` },
+						{ bold: false, text: `Pop (${startY}): ${popFmt(d.w)}` }
 					]
 				};
 			})
@@ -379,51 +466,65 @@
 				panelState.toggleTract(d.tract.gisjoin);
 			});
 
-		const legLineW = 24;
-		let legYOffset = 0;
-		function addRegLegendEntry(stroke, dash, lines) {
-			const g = legRoot.append('g').attr('transform', `translate(0, ${legYOffset})`);
+		const slopeFmt = d3.format('.4f');
+		/**
+		 * Regression legend column: swatch left of left-aligned text. ``colIndex`` places
+		 * TOD and non-TOD columns side-by-side when both are shown (shorter overall height).
+		 */
+		function addRegLegendEntry(stroke, dash, lines, colIndex) {
+			const g = legRoot
+				.append('g')
+				.attr('transform', `translate(${colIndex * regLegendColW}, 0)`);
+			const midY = 11;
+			const swatchX1 = 0;
+			const swatchX2 = 22;
+			const textX = 30;
+
 			const ln = g
 				.append('line')
-				.attr('x1', -118)
-				.attr('y1', 6)
-				.attr('x2', -118 + legLineW)
-				.attr('y2', 6)
+				.attr('x1', swatchX1)
+				.attr('y1', midY)
+				.attr('x2', swatchX2)
+				.attr('y2', midY)
 				.attr('stroke', stroke)
 				.attr('stroke-width', 2.5)
 				.attr('stroke-linecap', 'round');
 			if (dash) ln.attr('stroke-dasharray', dash);
+
 			const tx = g
 				.append('text')
-				.attr('x', -6)
-				.attr('y', 6)
-				.attr('text-anchor', 'end')
+				.attr('x', textX)
+				.attr('y', midY)
+				.attr('text-anchor', 'start')
+				.attr('dominant-baseline', 'middle')
 				.attr('fill', 'var(--text)')
 				.attr('font-size', '10px')
 				.attr('font-weight', '600');
 			lines.forEach((line, i) => {
 				tx.append('tspan')
-					.attr('x', -6)
-					.attr('dy', i === 0 ? '0.32em' : '1.12em')
+					.attr('x', textX)
+					.attr('dy', i === 0 ? 0 : '1.14em')
 					.text(line);
 			});
-			legYOffset += 8 + lines.length * 11 + 2;
 		}
 
-		if (pointsForReg.length >= 2 && Number.isFinite(slope) && Number.isFinite(intercept)) {
+		let regCol = 0;
+		if (hasTodReg) {
 			const nLines = [
-				'TOD OLS',
+				'TOD WLS (pop-weighted)',
+				`slope = ${slopeFmt(slope)} (\u0394y / \u0394x)`,
 				`R\u00b2 ${d3.format('.2f')(r2)}`,
 				`n = ${pointsForReg.length}${pointsForReg.length < points.length ? ` (\u226410\u03c3 of ${points.length})` : ''}`
 			];
-			addRegLegendEntry('var(--accent)', null, nLines);
+			addRegLegendEntry('var(--accent)', null, nLines, regCol++);
 		}
 		if (showNonTodReg) {
 			addRegLegendEntry(REG_NON_TOD_STROKE, '10 5', [
-				'non-TOD OLS',
+				'non-TOD WLS (pop-weighted)',
+				`slope = ${slopeFmt(nonTodReg.slope)} (\u0394y / \u0394x)`,
 				`R\u00b2 ${d3.format('.2f')(nonTodReg.r2)}`,
 				`n = ${nonTodPointsForReg.length}${nonTodPointsForReg.length < nonTodPoints.length ? ` (\u226410\u03c3 of ${nonTodPoints.length})` : ''}`
-			]);
+			], regCol++);
 		}
 
 		styleDots(root, hoveredId, selectedSet);
@@ -448,9 +549,9 @@
 
 <div class="scatter-wrap">
 	<div class="scatter-controls">
-		<label class="trim-toggle" title="Axes: when on, exclude &gt;10σ on each margin from domain. OLS lines always fit after the same ±10σ screen on X and Y.">
+		<label class="trim-toggle" title="Axes: when on, exclude &gt;10σ on each margin from domain. WLS lines use the same ±10σ screen on X and Y (population-weighted).">
 			<input type="checkbox" bind:checked={panelState.trimOutliers} />
-			<span>Trim axis to exclude &gt;10&sigma; outliers (OLS always uses ±10&sigma; fit)</span>
+			<span>Trim axis to exclude &gt;10&sigma; outliers (WLS uses ±10&sigma; fit)</span>
 		</label>
 		<label class="trim-toggle" title="Grey points use the non-TOD control cohort from Census tract filtering">
 			<input type="checkbox" bind:checked={panelState.showNonTodScatter} />
@@ -476,8 +577,10 @@
 	.scatter-controls {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px 14px;
-		padding: 2px 6px;
+		gap: 10px 16px;
+		margin-top: 12px;
+		margin-bottom: 16px;
+		padding: 10px 8px 4px;
 		justify-content: flex-end;
 		align-items: center;
 	}

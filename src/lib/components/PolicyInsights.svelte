@@ -31,8 +31,9 @@
 
 	let minStopsPerSqMi = $state(0);
 	let minPopulation = $state(0);
-	let minPopDensity = $state(0);
-	let minHuChange = $state(0);
+	// Match dashboard createPanelState() tract-universe defaults.
+	let minPopDensity = $state(200);
+	let minHuChange = $state(20);
 
 	/** MassBuilds project filters (same semantics as the main dashboard). */
 	let minUnitsPerProject = $state(0);
