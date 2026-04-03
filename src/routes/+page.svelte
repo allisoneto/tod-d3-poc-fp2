@@ -990,8 +990,8 @@
 								<div class="takeaway-label">{row.label}</div>
 								<div class="takeaway-dumbbell" role="img" aria-label={`${row.label} for TOD, non-TOD, and minimal development tracts`}>
 									<div class="takeaway-axis"></div>
-									{#each buildCohortTakeawayItems(row) as item (item.key)}
-										<div class="takeaway-dot-group {item.tone}" style={`left:${item.pct}%`}>
+									{#each buildCohortTakeawayItems(row) as item, i (item.key)}
+										<div class="takeaway-dot-group {item.tone}" class:takeaway-dot-group--lower={i % 2 === 1} style={`left:${item.pct}%`}>
 											<div class="takeaway-dot-label">{item.label}</div>
 											<div class="takeaway-dot"></div>
 											<div class="takeaway-dot-value">{item.fmt}</div>
@@ -1021,8 +1021,8 @@
 								<div class="takeaway-label">{row.label}</div>
 								<div class="takeaway-dumbbell takeaway-dumbbell--compact" role="img" aria-label={`${row.label} for high- and low-affordability TOD tracts`}>
 									<div class="takeaway-axis"></div>
-									{#each buildAffordabilityTakeawayItems(row) as item (item.key)}
-										<div class="takeaway-dot-group {item.tone}" style={`left:${item.pct}%`}>
+									{#each buildAffordabilityTakeawayItems(row) as item, i (item.key)}
+										<div class="takeaway-dot-group {item.tone}" class:takeaway-dot-group--lower={i % 2 === 1} style={`left:${item.pct}%`}>
 											<div class="takeaway-dot-label">{item.label}</div>
 											<div class="takeaway-dot"></div>
 											<div class="takeaway-dot-value">{item.fmt}</div>
@@ -1768,12 +1768,12 @@
 
 	.takeaway-dumbbell {
 		position: relative;
-		height: 104px;
+		height: 132px;
 		margin: 10px 0 6px;
 	}
 
 	.takeaway-dumbbell--compact {
-		height: 82px;
+		height: 110px;
 	}
 
 	.takeaway-axis {
@@ -1796,16 +1796,24 @@
 		transform: translateX(-50%);
 		display: grid;
 		justify-items: center;
-		gap: 6px;
-		min-width: 92px;
+		gap: 4px;
+		min-width: 72px;
+		max-width: 92px;
+	}
+
+	.takeaway-dot-group--lower {
+		top: 24px;
 	}
 
 	.takeaway-dot-label {
-		font-size: 0.72rem;
+		font-size: 0.68rem;
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--muted);
+		text-align: center;
+		line-height: 1.15;
+		white-space: nowrap;
 	}
 
 	.takeaway-dot {
@@ -1814,11 +1822,11 @@
 		border-radius: 999px;
 		border: 3px solid #fff;
 		box-shadow: 0 2px 10px rgba(31, 36, 48, 0.15);
-		margin-top: 22px;
+		margin-top: 18px;
 	}
 
 	.takeaway-dumbbell--compact .takeaway-dot {
-		margin-top: 14px;
+		margin-top: 12px;
 	}
 
 	.takeaway-dot-group.tod .takeaway-dot,
@@ -1836,11 +1844,14 @@
 	}
 
 	.takeaway-dot-value {
-		font-size: 1rem;
+		font-size: 0.95rem;
 		font-weight: 700;
 		font-variant-numeric: tabular-nums;
 		color: var(--ink);
 		white-space: nowrap;
+		background: rgba(255, 253, 248, 0.96);
+		padding: 0 4px;
+		border-radius: 6px;
 	}
 
 	.takeaway-meta {
