@@ -401,6 +401,43 @@
 	const affIncomeRow = $derived(affSplitRowsByY.find((r) => r.key === 'median_income_change_pct'));
 	const affEduRow = $derived(affSplitRowsByY.find((r) => r.key === 'bachelors_pct_change'));
 
+	function buildTakeawayScale(items) {
+		const finite = items.filter((d) => Number.isFinite(d.value));
+		if (!finite.length) return [];
+		const min = d3.min(finite, (d) => d.value) ?? 0;
+		const max = d3.max(finite, (d) => d.value) ?? 0;
+		const span = max - min;
+		const pad = span > 0 ? span * 0.12 : Math.max(Math.abs(max) * 0.15, 1);
+		const lo = min - pad;
+		const hi = max + pad;
+		const scale = d3.scaleLinear().domain([lo, hi]).range([0, 100]);
+		return finite.map((d) => ({ ...d, pct: scale(d.value) }));
+	}
+
+	function buildCohortTakeawayItems(row) {
+		if (!row) return [];
+		return buildTakeawayScale([
+			{ key: 'tod', label: 'TOD', value: row.rawTod, fmt: row.fmtTod, tone: 'tod' },
+			{ key: 'ctrl', label: 'non-TOD', value: row.rawCtrl, fmt: row.fmtCtrl, tone: 'ctrl' },
+			{ key: 'minimal', label: 'minimal dev.', value: row.rawMinimal, fmt: row.fmtMinimal, tone: 'minimal' }
+		]);
+	}
+
+	function buildAffordabilityTakeawayItems(row) {
+		if (!row) return [];
+		return buildTakeawayScale([
+			{ key: 'hi-aff', label: 'High aff.', value: row.rawHi, fmt: row.fmtHi, tone: 'hi-aff' },
+			{ key: 'lo-aff', label: 'Low aff.', value: row.rawLo, fmt: row.fmtLo, tone: 'lo-aff' }
+		]);
+	}
+
+	function formatTakeawayDelta(value, key) {
+		if (!Number.isFinite(value)) return '—';
+		const kind = key === 'bachelors_pct_change' ? 'pp' : 'pct';
+		const out = formatYMetricSummary(value, kind);
+		return value > 0 ? `+${out}` : out;
+	}
+
 	/** Panel state for the TodIntensityScatter — shared config + a yVar override. */
 	function makeTodScatterPanelState(yVar) {
 		return {
@@ -951,17 +988,25 @@
 						{#each cohortRowsByY.filter((r) => r.key === 'median_income_change_pct' || r.key === 'bachelors_pct_change') as row (row.key)}
 							<div class="takeaway-card">
 								<div class="takeaway-label">{row.label}</div>
-								<div class="takeaway-row">
-									<span class="takeaway-tag tod">TOD</span>
-									<span class="takeaway-value">{row.fmtTod}</span>
+								<div class="takeaway-dumbbell" role="img" aria-label={`${row.label} for TOD, non-TOD, and minimal development tracts`}>
+									<div class="takeaway-axis"></div>
+									{#each buildCohortTakeawayItems(row) as item (item.key)}
+										<div class="takeaway-dot-group {item.tone}" style={`left:${item.pct}%`}>
+											<div class="takeaway-dot-label">{item.label}</div>
+											<div class="takeaway-dot"></div>
+											<div class="takeaway-dot-value">{item.fmt}</div>
+										</div>
+									{/each}
 								</div>
-								<div class="takeaway-row">
-									<span class="takeaway-tag ctrl">non-TOD</span>
-									<span class="takeaway-value">{row.fmtCtrl}</span>
-								</div>
-								<div class="takeaway-row">
-									<span class="takeaway-tag minimal">minimal development</span>
-									<span class="takeaway-value">{row.fmtMinimal}</span>
+								<div class="takeaway-meta">
+									<div class="takeaway-statline">
+										<span>TOD − non-TOD</span>
+										<strong>{formatTakeawayDelta(row.rawTod - row.rawCtrl, row.key)}</strong>
+									</div>
+									<div class="takeaway-statline">
+										<span>Minimal dev. reference</span>
+										<strong>{row.fmtMinimal}</strong>
+									</div>
 								</div>
 							</div>
 						{/each}
@@ -974,13 +1019,21 @@
 						{#each affSplitRowsByY.filter((r) => r.key === 'median_income_change_pct' || r.key === 'bachelors_pct_change') as row (row.key)}
 							<div class="takeaway-card">
 								<div class="takeaway-label">{row.label}</div>
-								<div class="takeaway-row">
-									<span class="takeaway-tag hi-aff">High aff.</span>
-									<span class="takeaway-value">{row.fmtHi}</span>
+								<div class="takeaway-dumbbell takeaway-dumbbell--compact" role="img" aria-label={`${row.label} for high- and low-affordability TOD tracts`}>
+									<div class="takeaway-axis"></div>
+									{#each buildAffordabilityTakeawayItems(row) as item (item.key)}
+										<div class="takeaway-dot-group {item.tone}" style={`left:${item.pct}%`}>
+											<div class="takeaway-dot-label">{item.label}</div>
+											<div class="takeaway-dot"></div>
+											<div class="takeaway-dot-value">{item.fmt}</div>
+										</div>
+									{/each}
 								</div>
-								<div class="takeaway-row">
-									<span class="takeaway-tag lo-aff">Low aff.</span>
-									<span class="takeaway-value">{row.fmtLo}</span>
+								<div class="takeaway-meta">
+									<div class="takeaway-statline">
+										<span>High aff. − low aff.</span>
+										<strong>{formatTakeawayDelta(row.rawHi - row.rawLo, row.key)}</strong>
+									</div>
 								</div>
 							</div>
 						{/each}
@@ -1711,6 +1764,106 @@
 		align-items: center;
 		gap: 8px;
 		margin-bottom: 4px;
+	}
+
+	.takeaway-dumbbell {
+		position: relative;
+		height: 104px;
+		margin: 10px 0 6px;
+	}
+
+	.takeaway-dumbbell--compact {
+		height: 82px;
+	}
+
+	.takeaway-axis {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 56px;
+		height: 4px;
+		border-radius: 999px;
+		background: linear-gradient(90deg, #e8e0d4, #ddd3c3);
+	}
+
+	.takeaway-dumbbell--compact .takeaway-axis {
+		top: 46px;
+	}
+
+	.takeaway-dot-group {
+		position: absolute;
+		top: 0;
+		transform: translateX(-50%);
+		display: grid;
+		justify-items: center;
+		gap: 6px;
+		min-width: 92px;
+	}
+
+	.takeaway-dot-label {
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--muted);
+	}
+
+	.takeaway-dot {
+		width: 16px;
+		height: 16px;
+		border-radius: 999px;
+		border: 3px solid #fff;
+		box-shadow: 0 2px 10px rgba(31, 36, 48, 0.15);
+		margin-top: 22px;
+	}
+
+	.takeaway-dumbbell--compact .takeaway-dot {
+		margin-top: 14px;
+	}
+
+	.takeaway-dot-group.tod .takeaway-dot,
+	.takeaway-dot-group.hi-aff .takeaway-dot {
+		background: var(--accent);
+	}
+
+	.takeaway-dot-group.ctrl .takeaway-dot {
+		background: #94a3b8;
+	}
+
+	.takeaway-dot-group.minimal .takeaway-dot,
+	.takeaway-dot-group.lo-aff .takeaway-dot {
+		background: #c9bfaf;
+	}
+
+	.takeaway-dot-value {
+		font-size: 1rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink);
+		white-space: nowrap;
+	}
+
+	.takeaway-meta {
+		margin-top: 10px;
+		padding-top: 10px;
+		border-top: 1px solid var(--line);
+		display: grid;
+		gap: 6px;
+	}
+
+	.takeaway-statline {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 14px;
+		font-size: 0.9rem;
+		color: var(--muted);
+	}
+
+	.takeaway-statline strong {
+		color: var(--ink);
+		font-size: 1rem;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.takeaway-tag {
