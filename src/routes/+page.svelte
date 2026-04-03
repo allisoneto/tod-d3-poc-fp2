@@ -976,9 +976,9 @@
 				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
 			</section>
 
-			<!-- ── 10. How affordability helps ──────────── -->
+			<!-- ── 10. How affordability could help ──────────── -->
 			<section class="story card full-width">
-				<h2>How increased affordability can mitigate these effects</h2>
+				<h2>How affordability could help</h2>
 				<p>
 					Among TOD-dominated tracts, we compare those where <strong>at least half</strong> of new
 					development is affordable (≥{(affSplitCohorts.affSplitThreshold * 100).toFixed(0)}% affordable share)
