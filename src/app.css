@@ -1,22 +1,22 @@
 :root {
-	--bg: #0f1117;
-	--bg-panel: #1a1d27;
-	--bg-card: #252836;
-	--bg-hover: #2e3144;
-	--border: #363a4e;
-	--text: #e4e7f1;
-	--text-muted: #8b90a5;
-	--accent: #6c8cff;
-	--accent-hover: #8ba3ff;
-	--cat-a: #ff6b6b;
-	--cat-b: #ffa94d;
-	--cat-c: #51cf66;
-	--danger: #ff4757;
-	--success: #2ed573;
-	--warning: #ffa502;
+	--bg: #f5f2eb;
+	--bg-panel: #fffdf8;
+	--bg-card: #fffdf8;
+	--bg-hover: #f0eadf;
+	--border: #d8d2c7;
+	--text: #1f2430;
+	--text-muted: #5e6573;
+	--accent: #00843d;
+	--accent-hover: #0b5e2c;
+	--cat-a: #006b32;
+	--cat-b: #ed8b00;
+	--cat-c: #003da5;
+	--danger: #b42318;
+	--success: #006b32;
+	--warning: #ed8b00;
 	--radius: 8px;
 	--radius-sm: 4px;
-	--shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	--shadow: 0 8px 24px rgba(31, 36, 48, 0.08);
 	--font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 	/* Body copy vs. headings (used site-wide). */
 	--font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
