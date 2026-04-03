@@ -147,7 +147,7 @@ export function drawMainPocTractCharts(cfg) {
 	const domainTotalUnits = Math.max(1, d3.sum(domainRows, (d) => d.units));
 
 	// --- Scatter ---
-	{
+	if (elScatter) {
 		const root = d3.select(elScatter);
 		root.selectAll('*').remove();
 		if (!visibleRows.length) {
@@ -322,7 +322,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Main tract choropleth (MassBuilds metrics) ---
-	{
+	if (elChoro) {
 		const root = d3.select(elChoro);
 		root.selectAll('*').remove();
 		if (!tractGeo?.features?.length || !visibleRows.length) {
@@ -411,7 +411,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Timeline ---
-	{
+	if (elTimeline) {
 		const root = d3.select(elTimeline);
 		root.selectAll('*').remove();
 		if (!selectedProjectRows.length) {
@@ -480,7 +480,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- TOD composition stacked ---
-	{
+	if (elComposition) {
 		const root = d3.select(elComposition);
 		root.selectAll('*').remove();
 		if (!projectRows.length) {
@@ -550,7 +550,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Ranked growth (top tracts) ---
-	{
+	if (elRanked) {
 		const root = d3.select(elRanked);
 		root.selectAll('*').remove();
 		const rows = visibleRows
@@ -591,7 +591,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Affordable vs market composition ---
-	{
+	if (elAffordMix) {
 		const root = d3.select(elAffordMix);
 		root.selectAll('*').remove();
 		if (!projectRows.length) {
@@ -661,7 +661,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Growth capture (poverty median split) ---
-	{
+	if (elGrowthCapture) {
 		const root = d3.select(elGrowthCapture);
 		root.selectAll('*').remove();
 		if (!projectRows.length || !domainRows.length) {
@@ -731,7 +731,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- NHGIS-style tract map (Census change metrics) ---
-	{
+	if (elTractChoroNhgis) {
 		const root = d3.select(elTractChoroNhgis);
 		root.selectAll('*').remove();
 		if (!tractGeo?.features?.length || !nhgisLikeRows?.length) {
@@ -763,7 +763,9 @@ export function drawMainPocTractCharts(cfg) {
 				{ color: '#ed8b00', label: 'Lower / more negative change' },
 				{ color: '#fffdf8', label: 'Near zero' },
 				{ color: '#003da5', label: 'Higher / more positive change' },
-				{ type: 'outline', color: 'var(--mpc-accent)', fill: '#ffffff', label: 'TOD tract outline' }
+				{ type: 'outline', color: 'var(--mpc-accent)', fill: '#ffffff', label: 'TOD-dominated' },
+				{ type: 'outline', color: 'var(--mpc-warning)', fill: '#ffffff', label: 'Non-TOD-dominated (sig.)' },
+				{ type: 'outline', color: '#64748b', fill: '#ffffff', label: 'Minimal development' }
 			]);
 
 			const width = root.node().clientWidth || 900;
@@ -785,21 +787,33 @@ export function drawMainPocTractCharts(cfg) {
 				})
 				.attr('stroke', (d) => {
 					const row = rowByGj.get(d.properties?.gisjoin);
-					return row?.is_tod ? 'var(--mpc-accent)' : 'rgba(60,64,67,0.22)';
+					const dc = row?.devClass;
+					if (dc === 'tod_dominated') return 'var(--mpc-accent)';
+					if (dc === 'nontod_dominated') return 'var(--mpc-warning)';
+					if (dc === 'minimal') return '#64748b';
+					return 'rgba(60,64,67,0.22)';
 				})
 				.attr('stroke-width', (d) => {
 					const row = rowByGj.get(d.properties?.gisjoin);
-					return row?.is_tod ? 0.65 : 0.2;
+					return row?.devClass ? 0.55 : 0.2;
 				})
 				.on('mouseenter', (event, d) => {
 					const row = rowByGj.get(d.properties?.gisjoin);
 					const v = row ? row[metricConfig.key] : NaN;
+					const tier =
+						row?.devClass === 'tod_dominated'
+							? 'TOD-dominated'
+							: row?.devClass === 'nontod_dominated'
+								? 'Non-TOD-dominated (sig. dev)'
+								: row?.devClass === 'minimal'
+									? 'Minimal development'
+									: 'Unclassified';
 					tooltip
 						.style('opacity', 1)
 						.html(
 							`<strong>${d.properties?.gisjoin || 'Tract'}</strong><br/>` +
 								`${metricConfig.label}: ${Number.isFinite(v) ? metricConfig.format(v) : 'No data'}<br/>` +
-								`${row?.is_tod ? 'TOD tract (pipeline flag)' : 'Non-TOD tract'}`
+								tier
 						);
 					positionTooltip(root, tooltip, event);
 				})
@@ -809,7 +823,7 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Tract education / income bars (reuse NHGIS bar style) ---
-	{
+	if (elTractEdu) {
 		const root = d3.select(elTractEdu);
 		root.selectAll('*').remove();
 		if (!nhgisLikeRows?.length) {
@@ -819,18 +833,20 @@ export function drawMainPocTractCharts(cfg) {
 				{ key: 'median_income_change_pct_10_20', label: 'Median income change', fmt: (v) => `${v.toFixed(1)}%` },
 				{ key: 'bachelors_pct_change_10_20', label: "Bachelor's share change", fmt: (v) => `${v.toFixed(1)} pp` }
 			];
-			const todRows = nhgisLikeRows.filter((d) => d.is_tod);
-			const nonTodRows = nhgisLikeRows.filter((d) => !d.is_tod);
+			const todRows = nhgisLikeRows.filter((d) => d.devClass === 'tod_dominated');
+			const nonTodRows = nhgisLikeRows.filter((d) => d.devClass === 'nontod_dominated');
+			const minimalRows = nhgisLikeRows.filter((d) => d.devClass === 'minimal');
 			const summary = metrics.map((metric) => ({
 				label: metric.label,
 				tod: nhgisWeightedMean(todRows, metric.key),
 				nonTod: nhgisWeightedMean(nonTodRows, metric.key),
+				minimal: nhgisWeightedMean(minimalRows, metric.key),
 				fmt: metric.fmt,
 				pValue: permutationPValue(todRows, nonTodRows, (d) => d[metric.key])
 			}));
 
 			const width = root.node().clientWidth || 520;
-			const height = 280;
+			const height = 300;
 			const margin = { top: 24, right: 72, bottom: 44, left: 140 };
 			const innerW = width - margin.left - margin.right;
 			const innerH = height - margin.top - margin.bottom;
@@ -841,7 +857,10 @@ export function drawMainPocTractCharts(cfg) {
 				.domain(summary.map((d) => d.label))
 				.range([0, innerH])
 				.padding(0.28);
-			const max = d3.max(summary, (d) => Math.max(Math.abs(d.tod) || 0, Math.abs(d.nonTod) || 0)) || 1;
+			const max =
+				d3.max(summary, (d) =>
+					Math.max(Math.abs(d.tod) || 0, Math.abs(d.nonTod) || 0, Math.abs(d.minimal) || 0)
+				) || 1;
 			const x = d3.scaleLinear().domain([0, max * 1.15]).range([0, innerW]);
 
 			g.append('g').call(d3.axisLeft(y).tickSize(0));
@@ -854,13 +873,14 @@ export function drawMainPocTractCharts(cfg) {
 				.attr('class', 'mpc-metric-row')
 				.attr('transform', (d) => `translate(0,${y(d.label)})`);
 
-			const sub = d3.scaleBand().domain(['tod', 'nonTod']).range([0, y.bandwidth()]).padding(0.14);
+			const sub = d3.scaleBand().domain(['tod', 'nonTod', 'minimal']).range([0, y.bandwidth()]).padding(0.12);
 
 			rowsG
 				.selectAll('rect')
 				.data((d) => [
 					{ key: 'tod', value: d.tod, color: '#0f766e' },
-					{ key: 'nonTod', value: d.nonTod, color: '#c96b3b' }
+					{ key: 'nonTod', value: d.nonTod, color: '#c96b3b' },
+					{ key: 'minimal', value: d.minimal, color: '#64748b' }
 				])
 				.join('rect')
 				.attr('x', x(0))
@@ -881,33 +901,38 @@ export function drawMainPocTractCharts(cfg) {
 	}
 
 	// --- Mobility strip / box simplified: mean comparison text + small bars ---
-	{
+	if (elMobility) {
 		const root = d3.select(elMobility);
 		root.selectAll('*').remove();
 		const data = nhgisLikeRows.filter((d) => Number.isFinite(d.avg_travel_time_change_10_20));
 		if (!data.length) {
 			root.append('div').attr('class', 'mpc-empty').text('No travel-time change data.');
 		} else {
-			const todRows = data.filter((d) => d.is_tod);
-			const nonTodRows = data.filter((d) => !d.is_tod);
-			const diff = d3.mean(todRows, (d) => d.avg_travel_time_change_10_20) - d3.mean(nonTodRows, (d) => d.avg_travel_time_change_10_20);
+			const todRows = data.filter((d) => d.devClass === 'tod_dominated');
+			const nonTodRows = data.filter((d) => d.devClass === 'nontod_dominated');
+			const minimalRows = data.filter((d) => d.devClass === 'minimal');
+			const mTod = nhgisWeightedMean(todRows, 'avg_travel_time_change_10_20');
+			const mNon = nhgisWeightedMean(nonTodRows, 'avg_travel_time_change_10_20');
+			const mMin = nhgisWeightedMean(minimalRows, 'avg_travel_time_change_10_20');
+			const diff = mTod - mNon;
 			const pVal = permutationPValue(todRows, nonTodRows, (d) => d.avg_travel_time_change_10_20);
 			root
 				.append('p')
 				.attr('class', 'mpc-chart-note')
 				.text(
-					`Mean travel-time change (2010–20 window): TOD tracts ${diff >= 0 ? 'higher' : 'lower'} by ${Math.abs(diff).toFixed(2)} min vs non-TOD. ${significanceStars(pVal) || 'n.s.'}`
+					`Travel-time change (2010–20, pop.-weighted means): TOD-dom. ${Number.isFinite(mTod) ? `${mTod.toFixed(2)} min` : '—'} · non-TOD ${Number.isFinite(mNon) ? `${mNon.toFixed(2)} min` : '—'} · minimal dev. ${Number.isFinite(mMin) ? `${mMin.toFixed(2)} min` : '—'}. TOD vs non-TOD gap ${diff >= 0 ? '+' : ''}${Number.isFinite(diff) ? diff.toFixed(2) : '—'} min ${significanceStars(pVal) || 'n.s.'}`
 				);
 		}
 	}
 
 	// --- Takeaway cards ---
-	{
+	if (elTakeaway) {
 		const root = d3.select(elTakeaway);
 		root.selectAll('*').remove();
 		if (!nhgisLikeRows?.length) return;
-		const todRows = nhgisLikeRows.filter((d) => d.is_tod);
-		const nonTodRows = nhgisLikeRows.filter((d) => !d.is_tod);
+		const todRows = nhgisLikeRows.filter((d) => d.devClass === 'tod_dominated');
+		const nonTodRows = nhgisLikeRows.filter((d) => d.devClass === 'nontod_dominated');
+		const minimalRows = nhgisLikeRows.filter((d) => d.devClass === 'minimal');
 		const metrics = [
 			{ title: 'Income change', key: 'median_income_change_pct_10_20', fmt: (v) => `${v.toFixed(1)}%` },
 			{ title: "Bachelor's change", key: 'bachelors_pct_change_10_20', fmt: (v) => `${v.toFixed(1)} pp` },
@@ -916,6 +941,7 @@ export function drawMainPocTractCharts(cfg) {
 		for (const metric of metrics) {
 			const tod = nhgisWeightedMean(todRows, metric.key);
 			const nonTod = nhgisWeightedMean(nonTodRows, metric.key);
+			const minimal = nhgisWeightedMean(minimalRows, metric.key);
 			const diff = tod - nonTod;
 			const card = root.append('div').attr('class', 'mpc-summary-stat');
 			card.append('div').attr('class', 'mpc-k').text(metric.title);
@@ -923,6 +949,13 @@ export function drawMainPocTractCharts(cfg) {
 				.append('div')
 				.attr('class', 'mpc-v')
 				.text(`TOD − non-TOD: ${diff >= 0 ? '+' : ''}${metric.fmt(diff)}`);
+			card
+				.append('div')
+				.attr('class', 'mpc-chart-note')
+				.style('margin-top', '6px')
+				.text(
+					`Minimal dev.: ${Number.isFinite(minimal) ? metric.fmt(minimal) : '—'} (weighted)`
+				);
 		}
 	}
 }

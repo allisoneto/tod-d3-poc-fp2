@@ -4,7 +4,9 @@
  */
 
 import {
+	aggregateTractTodMetrics,
 	classifyDevTodUnits,
+	classifyTractDevelopment,
 	developmentAffordableUnitsCapped,
 	developmentAffordableShare,
 	developmentMultifamilyShare,
@@ -236,15 +238,86 @@ export function uniqueCounties(tractData) {
  * -------
  * Array<{ gisjoin: string, year: number, units: number, affordableUnits: number, todUnits: number, nonTodUnits: number }>
  */
-export function buildNhgisLikeRows(tractList) {
+/**
+ * NHGIS-style tract rows for demographic charts. Optional ``devClassByGj`` maps
+ * GISJOIN → ``'tod_dominated'`` | ``'nontod_dominated'`` | ``'minimal'`` from
+ * MassBuilds stock-growth + TOD share rules (same window as ``windowDevs``).
+ *
+ * Parameters
+ * ----------
+ * tractList : Array<object>
+ * devClassByGj : Map<string, string> | null | undefined
+ *
+ * Returns
+ * -------
+ * Array<object>
+ */
+export function buildNhgisLikeRows(tractList, devClassByGj) {
 	return tractList.map((t) => ({
 		gisjoin: t.gisjoin,
 		is_tod: !!t.is_tod,
+		devClass: devClassByGj?.get(t.gisjoin) ?? null,
 		median_income_change_pct_10_20: t.median_income_change_pct_10_20,
 		bachelors_pct_change_10_20: t.bachelors_pct_change_10_20,
 		avg_travel_time_change_10_20: t.avg_travel_time_change_10_20,
 		pop_2020: Number(t.pop_2020) || 0
 	}));
+}
+
+/**
+ * Per-tract development tier for the main POC: ``aggregateTractTodMetrics`` on the
+ * same completion-year window as charts, then ``classifyTractDevelopment``.
+ *
+ * Parameters
+ * ----------
+ * tractList : Array<object>
+ * windowDevs : Array<object>
+ *     Output of ``filterDevelopmentsByYearRange`` for ``yearStart``–``yearEnd``.
+ * universePanel : {{ timePeriod: string }}
+ * thresholdMi : number
+ * devOpts : object
+ * sigDevPct : number
+ * todFractionCutoff : number
+ *
+ * Returns
+ * -------
+ * Map<string, 'minimal' | 'tod_dominated' | 'nontod_dominated'>
+ */
+export function buildTractDevClassMap(
+	tractList,
+	windowDevs,
+	universePanel,
+	thresholdMi,
+	devOpts,
+	sigDevPct,
+	todFractionCutoff
+) {
+	const tractMap = new Map();
+	for (const t of tractList) {
+		if (t.gisjoin) tractMap.set(t.gisjoin, t);
+	}
+	const transitM = transitDistanceMiToMetres(thresholdMi);
+	const minMf = Math.min(1, Math.max(0, (Number(devOpts.minDevMultifamilyRatioPct) || 0) / 100));
+	const tractTodMetrics = aggregateTractTodMetrics(
+		windowDevs,
+		tractMap,
+		tractList,
+		universePanel.timePeriod,
+		transitM,
+		'massbuilds',
+		minMf
+	);
+	const sig = sigDevPct ?? 2;
+	const cut = Number.isFinite(Number(todFractionCutoff)) ? todFractionCutoff : 0.5;
+	const out = new Map();
+	for (const t of tractList) {
+		const gj = t.gisjoin;
+		if (!gj) continue;
+		const m = tractTodMetrics.get(gj);
+		if (!m) continue;
+		out.set(gj, classifyTractDevelopment(m, sig, cut));
+	}
+	return out;
 }
 
 export function buildProjectRowsWithGisjoin(developments, yearStart, yearEnd, thresholdMi, devOpts = {}) {

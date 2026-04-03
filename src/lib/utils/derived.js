@@ -422,6 +422,96 @@ export function getNonTodTracts(tracts, panelState, developments) {
 }
 
 /**
+ * Tracts with **minimal** development (below significant stock-growth threshold or
+ * indeterminate TOD share) — same rules as ``classifyTractDevelopment``.
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * developments : Array<object>
+ * panelState : object
+ *
+ * Returns
+ * -------
+ * Array<object>
+ */
+export function getMinimalDevelopmentTracts(tracts, developments, panelState) {
+	return buildCohortDevelopmentSplit(tracts, panelState, developments).minimal;
+}
+
+/**
+ * Single ``buildTodAnalysisData`` pass: split universe tracts into TOD-dominated,
+ * non-TOD-dominated (significant dev), and minimal cohorts.
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * panelState : object
+ * developments : Array<object>
+ *
+ * Returns
+ * -------
+ * {{ tod: Array<object>, nonTod: Array<object>, minimal: Array<object>, nFiltered: number }}
+ */
+export function buildCohortDevelopmentSplit(tracts, panelState, developments) {
+	if (!tracts?.length || !panelState?.timePeriod) {
+		return { tod: [], nonTod: [], minimal: [], nFiltered: 0 };
+	}
+	const { filteredTracts, tractTodMetrics } = buildTodAnalysisData(
+		tracts,
+		developments ?? [],
+		panelState
+	);
+	const sig = panelState.sigDevMinPctStockIncrease ?? 2;
+	const cut = panelState.todFractionCutoff ?? 0.5;
+	const tod = [];
+	const nonTod = [];
+	const minimal = [];
+	for (const t of filteredTracts) {
+		const m = tractTodMetrics.get(t.gisjoin);
+		if (!m) continue;
+		const cls = classifyTractDevelopment(m, sig, cut);
+		if (cls === 'tod_dominated') tod.push(t);
+		else if (cls === 'nontod_dominated') nonTod.push(t);
+		else minimal.push(t);
+	}
+	return { tod, nonTod, minimal, nFiltered: filteredTracts.length };
+}
+
+/**
+ * Population-weighted means and tract counts for one Y column given a cohort split.
+ *
+ * Parameters
+ * ----------
+ * split : {{ tod: Array<object>, nonTod: Array<object>, minimal: Array<object> }}
+ * yKey : string
+ * weightKey : string | null
+ *
+ * Returns
+ * -------
+ * object
+ */
+export function cohortYMeansForYKey(split, yKey, weightKey) {
+	const { tod, nonTod, minimal } = split;
+	const meanTod = computeGroupMean(tod, yKey, weightKey);
+	const meanNonTod = computeGroupMean(nonTod, yKey, weightKey);
+	const meanMinimal = computeGroupMean(minimal, yKey, weightKey);
+	const countWithY = (arr) =>
+		arr.filter((t) => t[yKey] != null && Number.isFinite(Number(t[yKey]))).length;
+	return {
+		meanTod,
+		meanNonTod,
+		meanMinimal,
+		nTod: tod.length,
+		nNonTod: nonTod.length,
+		nMinimal: minimal.length,
+		nTodWithY: countWithY(tod),
+		nNonTodWithY: countWithY(nonTod),
+		nMinimalWithY: countWithY(minimal)
+	};
+}
+
+/**
  * Compute the (optionally population-weighted) mean of a Y variable.
  *
  * Parameters
@@ -531,34 +621,33 @@ export function formatYMetricSummary(value, kind) {
  * Returns
  * -------
  * {{ yKey: string, yLabel: string, weightKey: string, weightLabel: string,
- *     kind: 'pp'|'pct'|'min', meanTod: number, meanNonTod: number,
- *     nTod: number, nNonTod: number, nTodWithY: number, nNonTodWithY: number } | null}
+ *     meanTod: number, meanNonTod: number, meanMinimal: number,
+ *     nTod: number, nNonTod: number, nMinimal: number,
+ *     nTodWithY: number, nNonTodWithY: number, nMinimalWithY: number } | null}
  */
 export function cohortYMeansForPanel(tracts, panelState, developments) {
 	if (!tracts?.length || !panelState?.timePeriod || !panelState?.yVar) return null;
-	const devs = developments ?? [];
 	const tp = panelState.timePeriod;
 	const yBase = panelState.yVar;
 	const yKey = `${yBase}_${tp}`;
 	const weightKey = popWeightKey(tp);
-	const tod = getTodTracts(tracts, panelState, devs);
-	const nonTod = getNonTodTracts(tracts, panelState, devs);
-	const meanTod = computeGroupMean(tod, yKey, weightKey);
-	const meanNonTod = computeGroupMean(nonTod, yKey, weightKey);
-	const nTodWithY = tod.filter((t) => t[yKey] != null && Number.isFinite(Number(t[yKey]))).length;
-	const nNonTodWithY = nonTod.filter((t) => t[yKey] != null && Number.isFinite(Number(t[yKey]))).length;
+	const split = buildCohortDevelopmentSplit(tracts, panelState, developments);
+	const m = cohortYMeansForYKey(split, yKey, weightKey);
 	const { startY } = periodCensusBounds(tp);
 	return {
 		yKey,
 		yBase,
 		weightKey,
 		weightLabel: `population in ${startY} (start of selected period)`,
-		meanTod,
-		meanNonTod,
-		nTod: tod.length,
-		nNonTod: nonTod.length,
-		nTodWithY,
-		nNonTodWithY
+		meanTod: m.meanTod,
+		meanNonTod: m.meanNonTod,
+		meanMinimal: m.meanMinimal,
+		nTod: m.nTod,
+		nNonTod: m.nNonTod,
+		nMinimal: m.nMinimal,
+		nTodWithY: m.nTodWithY,
+		nNonTodWithY: m.nNonTodWithY,
+		nMinimalWithY: m.nMinimalWithY
 	};
 }
 

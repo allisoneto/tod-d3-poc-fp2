@@ -64,6 +64,7 @@
 			kind,
 			fmtTod: formatYMetricSummary(raw.meanTod, kind),
 			fmtCtrl: formatYMetricSummary(raw.meanNonTod, kind),
+			fmtMinimal: formatYMetricSummary(raw.meanMinimal, kind),
 			fmtSelected: formatYMetricSummary(selRaw?.mean ?? NaN, kind),
 			nSel: selRaw?.nSelected ?? 0,
 			nSelWithY: selRaw?.nWithY ?? 0
@@ -82,10 +83,10 @@
 		<div
 			class="cohort-summary"
 			role="region"
-			aria-label="Population-weighted averages for the Y variable: TOD-dominated, non-TOD-dominated, and manual selection"
+			aria-label="Population-weighted averages for the Y variable: TOD-dominated, non-TOD-dominated, minimal development, and manual selection"
 		>
 			<p class="cohort-summary-heading">{cohortStats.displayLabel}</p>
-			<div class="cohort-summary-grid">
+			<div class="cohort-summary-grid cohort-summary-grid--four">
 				<div class="cohort-pill cohort-pill--tod">
 					<span class="cohort-pill-label">TOD-dominated</span>
 					<span class="cohort-pill-value">{cohortStats.fmtTod}</span>
@@ -98,6 +99,13 @@
 					<span class="cohort-pill-value">{cohortStats.fmtCtrl}</span>
 					<span class="cohort-pill-n">
 						{cohortStats.nNonTodWithY} / {cohortStats.nNonTod} tracts with data
+					</span>
+				</div>
+				<div class="cohort-pill cohort-pill--minimal">
+					<span class="cohort-pill-label">Minimal development</span>
+					<span class="cohort-pill-value">{cohortStats.fmtMinimal}</span>
+					<span class="cohort-pill-n">
+						{cohortStats.nMinimalWithY} / {cohortStats.nMinimal} tracts with data
 					</span>
 				</div>
 				<div class="cohort-pill cohort-pill--picked">
@@ -206,6 +214,16 @@
 		gap: 5px;
 	}
 
+	.cohort-summary-grid--four {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	@media (min-width: 960px) {
+		.cohort-summary-grid--four {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+
 	@media (max-width: 720px) {
 		.cohort-summary-grid {
 			grid-template-columns: 1fr;
@@ -254,6 +272,15 @@
 
 	.cohort-pill--ctrl .cohort-pill-value {
 		color: #64748b;
+	}
+
+	.cohort-pill--minimal {
+		background: color-mix(in srgb, #64748b 10%, var(--bg-panel));
+		border-color: color-mix(in srgb, #64748b 32%, var(--border));
+	}
+
+	.cohort-pill--minimal .cohort-pill-value {
+		color: #475569;
 	}
 
 	.cohort-pill--picked {

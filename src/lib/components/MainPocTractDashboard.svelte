@@ -7,6 +7,7 @@
 		DEFAULT_MAIN_POC_UNIVERSE,
 		buildNhgisLikeRows,
 		buildProjectRowsWithGisjoin,
+		buildTractDevClassMap,
 		buildTractPocRows,
 		filterDevelopmentsByYearRange,
 		filterTractsForMainPoc,
@@ -37,6 +38,10 @@
 	let minDevMfPct = $state(DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct);
 	let minDevAffPct = $state(DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct);
 	let includeRedevelopment = $state(DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment);
+	/** Min. % housing stock growth for “significant” development (MassBuilds / census HU) — matches tract TOD Analysis. */
+	let sigDevMinPctStockIncrease = $state(2);
+	/** TOD share of new units at/above this value → TOD-dominated tract. */
+	let todFractionCutoff = $state(0.5);
 
 	/** @type {Set<string>} */
 	let counties = $state(new Set());
@@ -111,7 +116,19 @@
 		return projectRows.filter((d) => selected.has(d.gisjoin));
 	});
 
-	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered));
+	const devClassByGj = $derived.by(() =>
+		buildTractDevClassMap(
+			tractListFiltered,
+			windowDevs,
+			universePanel,
+			threshold,
+			devOpts,
+			sigDevMinPctStockIncrease,
+			todFractionCutoff
+		)
+	);
+
+	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered, devClassByGj));
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
@@ -157,6 +174,8 @@
 		minDevMfPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct;
 		minDevAffPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct;
 		includeRedevelopment = DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment;
+		sigDevMinPctStockIncrease = 2;
+		todFractionCutoff = 0.5;
 		selectAllCounties();
 	}
 
@@ -323,6 +342,18 @@
 					<input type="checkbox" bind:checked={includeRedevelopment} />
 					<span>Include redevelopment</span>
 				</label>
+				<label class="mpc-field">
+					<span class="mpc-field-label">Sig. dev % (min. stock growth)</span>
+					<input type="number" min="0" max="20" step="0.5" bind:value={sigDevMinPctStockIncrease} />
+				</label>
+				<label class="mpc-field">
+					<span class="mpc-field-label">TOD-dom. cut (TOD share of units)</span>
+					<input type="number" min="0" max="1" step="0.05" bind:value={todFractionCutoff} />
+				</label>
+				<p class="mpc-hint">
+					Minimal vs TOD vs non-TOD cohorts on NHGIS charts use the same rules as the
+					<a href="{base}/tract">tract dashboard</a> TOD Analysis (stock growth + TOD share).
+				</p>
 			</details>
 
 			<div class="mpc-block">
@@ -503,8 +534,11 @@
 
 			<div class="mpc-small-grid">
 				<section class="mpc-card mpc-chart-card">
-					<h3 class="mpc-h3">Income & education — TOD vs non-TOD tracts</h3>
-					<p class="mpc-note">Population-weighted means; permutation p-values for difference in means.</p>
+					<h3 class="mpc-h3">Income & education — TOD-dominated vs non-TOD vs minimal development</h3>
+					<p class="mpc-note">
+						Population-weighted means (MassBuilds cohort tiers); p-values for TOD-dominated vs non-TOD-dominated
+						only.
+					</p>
 					<div class="mpc-chart-wrap mpc-chart-sm" bind:this={elTractEdu}></div>
 				</section>
 				<section class="mpc-card mpc-chart-card">
@@ -514,7 +548,7 @@
 			</div>
 
 			<section class="mpc-card mpc-summary">
-				<h3 class="mpc-h3">Bottom line (TOD vs non-TOD, weighted)</h3>
+				<h3 class="mpc-h3">Bottom line (cohorts, population-weighted)</h3>
 				<div class="mpc-takeaway-grid" bind:this={elTakeaway}></div>
 			</section>
 		</div>

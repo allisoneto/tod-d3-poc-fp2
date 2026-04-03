@@ -1,14 +1,15 @@
 <script>
-	import { tractData, developments, meta } from '$lib/stores/data.svelte.js';
+	import { tractData, developments, meta, mbtaStops } from '$lib/stores/data.svelte.js';
 	import {
 		filterTractsByTract,
+		buildCohortDevelopmentSplit,
+		cohortYMeansForYKey,
 		getTodTracts,
 		getNonTodTracts,
 		aggregateDevsByTract,
 		computeRegression,
 		filterPointsTenSigmaMarginals,
 		filterDevelopments,
-		cohortYMeansForPanel,
 		computeGroupMean,
 		popWeightKey,
 		yMetricDisplayKind,
@@ -63,17 +64,27 @@
 	/** Recompute cohort means when any cohort / universe input changes (matches dashboard). */
 	const cohortComparisonKey = $derived(JSON.stringify({ ...panelConfig, ms: mbtaStops.length }));
 
-	/**
-	 * Population-weighted TOD vs non-TOD means for every scatter Y-axis metric (same logic as the dashboard cohort summary).
-	 */
-	const cohortRowsByY = $derived.by(() => {
+	/** One MassBuilds aggregation per filter change; per-Y work is cheap weighted means only. */
+	const cohortDevSplit = $derived.by(() => {
 		void cohortComparisonKey;
 		void developments.length;
+		return buildCohortDevelopmentSplit(tractData, panelConfig, developments);
+	});
+
+	/**
+	 * Population-weighted TOD vs non-TOD vs minimal means for every scatter Y-axis metric (same logic as the dashboard cohort summary).
+	 */
+	const cohortRowsByY = $derived.by(() => {
+		void cohortDevSplit;
 		void meta.yVariables?.length;
+		const tp = timePeriod;
+		const weightKey = popWeightKey(tp);
+		const { startY } = periodCensusBounds(tp);
+		const weightLabel = `population in ${startY} (start of selected period)`;
 		const rows = [];
 		for (const v of meta.yVariables ?? []) {
-			const raw = cohortYMeansForPanel(tractData, { ...panelConfig, yVar: v.key }, developments);
-			if (!raw) continue;
+			const yKey = `${v.key}_${tp}`;
+			const raw = cohortYMeansForYKey(cohortDevSplit, yKey, weightKey);
 			const kind = yMetricDisplayKind(v);
 			rows.push({
 				key: v.key,
@@ -81,11 +92,14 @@
 				catLabel: v.catLabel ?? 'Outcomes',
 				fmtTod: formatYMetricSummary(raw.meanTod, kind),
 				fmtCtrl: formatYMetricSummary(raw.meanNonTod, kind),
+				fmtMinimal: formatYMetricSummary(raw.meanMinimal, kind),
 				nTod: raw.nTod,
 				nNonTod: raw.nNonTod,
+				nMinimal: raw.nMinimal,
 				nTodWithY: raw.nTodWithY,
 				nNonTodWithY: raw.nNonTodWithY,
-				weightLabel: raw.weightLabel
+				nMinimalWithY: raw.nMinimalWithY,
+				weightLabel
 			});
 		}
 		return rows;
@@ -120,6 +134,8 @@
 	const todRows = $derived.by(() => getTodTracts(tractData, panelConfig, developments));
 
 	const nonTodRows = $derived.by(() => getNonTodTracts(tractData, panelConfig, developments));
+
+	const nMinimalTracts = $derived(cohortDevSplit.minimal.length);
 
 	// Affordable-share splits and regression use the same filtered MassBuilds set as the dashboard dev metrics.
 	const affShareMap = $derived.by(() => {
@@ -251,7 +267,14 @@
 			});
 		}
 
-		return { cards, nTracts: rows.length, nTod: tod.length, nNonTod: nonTod.length, todAffN: todAff.length };
+		return {
+			cards,
+			nTracts: rows.length,
+			nTod: tod.length,
+			nNonTod: nonTod.length,
+			nMinimal: nMinimalTracts,
+			todAffN: todAff.length
+		};
 	});
 
 	const regressionNote = $derived.by(() => {
@@ -405,7 +428,7 @@
 			Population-weighted means for every dashboard outcome metric ({periodLabel}), using the same MassBuilds-based
 			cohort rules as the main panel ({keyFindings.nTracts.toLocaleString()} tracts after filters;
 			{keyFindings.nTod.toLocaleString()} TOD-dominated, {keyFindings.nNonTod.toLocaleString()} non-TOD-dominated
-			significant development).
+			significant development, {keyFindings.nMinimal.toLocaleString()} minimal development).
 			{#if cohortRowsByY[0]}
 				Means weighted by tract {cohortRowsByY[0].weightLabel} (same as the dashboard bar chart).
 			{/if}
@@ -424,10 +447,10 @@
 					<div
 						class="cohort-summary policy-cohort-block"
 						role="group"
-						aria-label="{row.label}: population-weighted TOD-dominated vs non-TOD-dominated means"
+						aria-label="{row.label}: population-weighted TOD-dominated, non-TOD-dominated, and minimal development means"
 					>
 						<p class="cohort-summary-heading">{row.label}</p>
-						<div class="cohort-summary-grid">
+						<div class="cohort-summary-grid cohort-summary-grid--four">
 							<div class="cohort-pill cohort-pill--tod">
 								<span class="cohort-pill-label">TOD-dominated</span>
 								<span class="cohort-pill-value">{row.fmtTod}</span>
@@ -440,6 +463,13 @@
 								<span class="cohort-pill-value">{row.fmtCtrl}</span>
 								<span class="cohort-pill-n">
 									{row.nNonTodWithY} / {row.nNonTod} tracts with data
+								</span>
+							</div>
+							<div class="cohort-pill cohort-pill--minimal">
+								<span class="cohort-pill-label">Minimal development</span>
+								<span class="cohort-pill-value">{row.fmtMinimal}</span>
+								<span class="cohort-pill-n">
+									{row.nMinimalWithY} / {row.nMinimal} tracts with data
 								</span>
 							</div>
 						</div>
@@ -962,6 +992,16 @@
 		gap: 8px;
 	}
 
+	.cohort-summary-grid--four {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	@media (min-width: 900px) {
+		.cohort-summary-grid--four {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+
 	@media (max-width: 520px) {
 		.cohort-summary-grid {
 			grid-template-columns: 1fr;
@@ -986,6 +1026,15 @@
 	.cohort-pill--ctrl {
 		background: color-mix(in srgb, #64748b 8%, var(--bg-panel));
 		border-color: color-mix(in srgb, #64748b 28%, var(--border));
+	}
+
+	.cohort-pill--minimal {
+		background: color-mix(in srgb, #475569 9%, var(--bg-panel));
+		border-color: color-mix(in srgb, #475569 30%, var(--border));
+	}
+
+	.cohort-pill--minimal .cohort-pill-value {
+		color: #475569;
 	}
 
 	.cohort-pill-label {

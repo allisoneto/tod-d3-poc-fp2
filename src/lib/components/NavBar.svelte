@@ -6,6 +6,7 @@
 	const onMunicipal = $derived(page.route.id === '/');
 	const onTract = $derived(page.route.id === '/tract');
 	const onPolicy = $derived(page.route.id === '/policy');
+	const onPoc = $derived(page.route.id === '/poc');
 </script>
 
 <nav class="navbar" aria-label="Primary">
@@ -14,6 +15,7 @@
 		<li><a href="{base}/" class:active={onMunicipal}>Income &amp; TOD</a></li>
 		<li><a href="{base}/tract" class:active={onTract}>Tract dashboard</a></li>
 		<li><a href="{base}/policy" class:active={onPolicy}>Policy insights</a></li>
+		<li><a href="{base}/poc" class:active={onPoc}>Proof of Concept</a></li>
 	</ul>
 </nav>
 
