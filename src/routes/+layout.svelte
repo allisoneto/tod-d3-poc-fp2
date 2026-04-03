@@ -28,61 +28,33 @@
 	});
 </script>
 
-<div class="site-shell">
-	<NavBar />
+<NavBar />
 
-	<main>
-	{#if needsTractData(page.route.id)}
-		{#if error}
-			<div class="error-screen">
-				<h2>Failed to load data</h2>
-				<p>{error}</p>
-			</div>
-		{:else if !tractDataReady}
-			<div class="loading-screen">
-				<div class="spinner"></div>
-				<p>Loading dashboard data...</p>
-			</div>
-		{:else}
-			<div class="main-page">
-				{@render children()}
-			</div>
-		{/if}
-	{:else}
-		<div class="main-page">
-			{@render children()}
+{#if needsTractData(page.route.id)}
+	{#if error}
+		<div class="error-screen">
+			<h2>Failed to load data</h2>
+			<p>{error}</p>
 		</div>
+	{:else if !tractDataReady}
+		<div class="loading-screen">
+			<div class="spinner"></div>
+			<p>Loading dashboard data...</p>
+		</div>
+	{:else}
+		{@render children()}
 	{/if}
-	</main>
-</div>
+{:else}
+	{@render children()}
+{/if}
 
 <style>
-	.site-shell {
-		max-width: min(1280px, 100%);
-		margin: 0 auto;
-		width: 100%;
-		/* Fill the viewport so main/.main-page get a bounded height and scroll inside .main-page (needed for sticky sidebars). */
-		min-height: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-	}
-
-	main {
-		flex: 1;
-		min-height: 0;
-		display: flex;
-		flex-direction: column;
-		/* Must not be overflow:hidden — that breaks position:sticky for sidebar controls inside .main-page */
-		overflow: visible;
-	}
 	.loading-screen, .error-screen {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		flex: 1;
-		min-height: 0;
+		min-height: calc(100vh - 56px);
 		gap: 16px;
 	}
 	.spinner {
@@ -95,16 +67,4 @@
 	}
 	@keyframes spin { to { transform: rotate(360deg); } }
 	.error-screen h2 { color: var(--danger); }
-
-	/*
-	 * Block layout (not flex): a flex child with min-height:auto would grow with POC content and
-	 * move scrolling to the document, which breaks position:sticky on the controls sidebar.
-	 */
-	.main-page {
-		flex: 1;
-		min-height: 0;
-		overflow-x: hidden;
-		overflow-y: auto;
-		-webkit-overflow-scrolling: touch;
-	}
 </style>
