@@ -681,6 +681,21 @@
 						{/each}
 					{/if}
 				</div>
+
+				<div class="finding-list">
+					<div class="finding-item">
+						<div class="finding-kicker">Key finding 1</div>
+						<p>TOD-dominant municipalities tend to be lower-income municipalities, measured here by the share of households under $125k.</p>
+					</div>
+					<div class="finding-item">
+						<div class="finding-kicker">Key finding 2</div>
+						<p>Recent production is not evenly distributed: a disproportionate share of new units is landing in places that already appear more vulnerable to gentrification pressures.</p>
+					</div>
+					<div class="finding-item">
+						<div class="finding-kicker">Key finding 3</div>
+						<p>TOD still offers real planning benefits, but the municipal pattern suggests it should be paired with affordability requirements rather than treated as automatically equitable.</p>
+					</div>
+				</div>
 			</section>
 
 			<!-- ── 2. How much TOD? ─────────────────────── -->
@@ -692,22 +707,28 @@
 				</p>
 			</section>
 
-			<div class="small-grid">
-				<section class="chart-card card">
-					<h3>TOD vs non-TOD mix by year</h3>
-					<div class="chart-wrap small-chart" bind:this={elComposition}></div>
-					<p class="chart-note">
-						The share of new development that is transit-oriented 
-					</p>
-				</section>
-				<section class="chart-card card">
-					<h3>When production rises, affordability often lags</h3>
-					<p class="chart-note">
-						In recent years, despite increasing total production, the share of affordable newly-constructed units has decreased significantly.
-					</p>
-					<div class="chart-wrap small-chart" bind:this={elTimeline}></div>
-				</section>
-			</div>
+			<section class="story card">
+				<h3>What the municipal trend suggests</h3>
+				<p>
+					Across the visible time window, most new housing is still non-TOD, even though TOD production has grown in absolute terms. At the same time, affordability has not kept pace with total production, which is why this project treats TOD as a strategy that still needs policy guardrails.
+				</p>
+				<details class="supplemental">
+					<summary>Open supplemental charts: TOD/non-TOD mix and affordability over time</summary>
+					<div class="small-grid supplemental-grid">
+						<section class="chart-card card">
+							<h3>TOD vs non-TOD mix by year</h3>
+							<div class="chart-wrap small-chart" bind:this={elComposition}></div>
+						</section>
+						<section class="chart-card card">
+							<h3>When production rises, affordability often lags</h3>
+							<p class="chart-note">
+								In recent years, despite increasing total production, the share of affordable newly-constructed units has decreased significantly.
+							</p>
+							<div class="chart-wrap small-chart" bind:this={elTimeline}></div>
+						</section>
+					</div>
+				</details>
+			</section>
 
 			<!-- ── 3. Where is it happening? ────────────── -->
 			<section class="story card">
@@ -717,36 +738,40 @@
 				</p>
 			</section>
 
-			<section class="chart-card card">
-				<h2>Lower-income municipalities see the most TOD</h2>
-				<div class="chart-wrap" bind:this={elScatter}></div>
-			</section>
-
-			<div class="small-grid">
-				<section class="chart-card card">
-					<h3>New development is concentrated in a small set of municipalities</h3>
-					<!-- <p class="chart-note">
-						Darker fill means more affordability inside that growth. Large growth with low affordability
-						is the clearest gentrification-warning pattern.
-					</p> -->
-					<div class="chart-wrap small-chart" bind:this={elRanked}></div>
-				</section>
-				<section class="chart-card card">
-					<h3>The map below shows where vulnerability and growth overlap</h3>
-					<div class="chart-toolbar">
-						<label class="label" for="poc-map-metric" style="margin:0">Map metric</label>
-						<select id="poc-map-metric" bind:value={mapMetric}>
-							<option value="units">New units in current window</option>
-							<option value="affordableUnits">Affordable units</option>
-							<option value="under125">Households under $125k</option>
-							<option value="high125">Households $125k+</option>
-							<option value="affordableShare">Affordable share</option>
-							<option value="todShare">TOD share of units</option>
-						</select>
+			<section class="story card">
+				<h3>What the location pattern suggests</h3>
+				<p>
+					TOD is not happening evenly across Massachusetts. In this dataset, it is more concentrated in lower-income municipalities, and recent unit growth is concentrated in a relatively small set of places. That is the setup for the equity question explored in the tract analysis below.
+				</p>
+				<details class="supplemental">
+					<summary>Open supplemental charts: income scatter, concentration ranking, and municipal map</summary>
+					<section class="chart-card card supplemental-card">
+						<h2>Lower-income municipalities see the most TOD</h2>
+						<div class="chart-wrap" bind:this={elScatter}></div>
+					</section>
+					<div class="small-grid supplemental-grid">
+						<section class="chart-card card">
+							<h3>New development is concentrated in a small set of municipalities</h3>
+							<div class="chart-wrap small-chart" bind:this={elRanked}></div>
+						</section>
+						<section class="chart-card card">
+							<h3>The map below shows where vulnerability and growth overlap</h3>
+							<div class="chart-toolbar">
+								<label class="label" for="poc-map-metric" style="margin:0">Map metric</label>
+								<select id="poc-map-metric" bind:value={mapMetric}>
+									<option value="units">New units in current window</option>
+									<option value="affordableUnits">Affordable units</option>
+									<option value="under125">Households under $125k</option>
+									<option value="high125">Households $125k+</option>
+									<option value="affordableShare">Affordable share</option>
+									<option value="todShare">TOD share of units</option>
+								</select>
+							</div>
+							<div class="chart-wrap small-chart" bind:this={elChoro}></div>
+						</section>
 					</div>
-					<div class="chart-wrap small-chart" bind:this={elChoro}></div>
-				</section>
-			</div>
+				</details>
+			</section>
 
 			<!-- ── 4. Most not affordable (single card: narrative + chart) ───────────────── -->
 			<section class="card story-chart-panel">
@@ -1323,6 +1348,35 @@
 		margin-top: 10px;
 	}
 
+	.finding-list {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+		margin-top: 16px;
+	}
+
+	.finding-item {
+		padding: 14px;
+		border-radius: 14px;
+		background: #faf7f0;
+		border: 1px solid var(--line);
+	}
+
+	.finding-kicker {
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--muted);
+		margin-bottom: 6px;
+	}
+
+	.finding-item p {
+		color: var(--muted);
+		line-height: 1.5;
+		margin: 0;
+	}
+
 	.chip {
 		padding: 6px 10px;
 		border-radius: 999px;
@@ -1349,6 +1403,40 @@
 	}
 
 	.story-list li { margin-bottom: 6px; }
+
+	.supplemental {
+		margin-top: 14px;
+		padding-top: 14px;
+		border-top: 1px solid var(--line);
+	}
+
+	.supplemental summary {
+		cursor: pointer;
+		font-weight: 700;
+		color: var(--ink);
+		list-style: none;
+	}
+
+	.supplemental summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.supplemental summary::before {
+		content: '+';
+		display: inline-block;
+		margin-right: 8px;
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.supplemental[open] summary::before {
+		content: '–';
+	}
+
+	.supplemental-grid,
+	.supplemental-card {
+		margin-top: 14px;
+	}
 
 	/* ── Chart cards ──────────────────────────────────── */
 	.chart-card { padding: 20px; }
@@ -1493,6 +1581,7 @@
 	}
 
 	@media (max-width: 920px) {
+		.finding-list,
 		.story-chart-panel__grid,
 		.story-chart-row--tract {
 			grid-template-columns: 1fr;
