@@ -537,15 +537,13 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="hero-full card">
 		<div class="eyebrow">Proof of Concept</div>
-		<h1>TOD and gentrification: how affordability helps.</h1>
+		<h1>TOD can expand access. The question is who benefits.</h1>
 		<p class="subtitle">
-			As Massachusetts works to encourage transit-oriented development, policymakers should be aware
-			that this development can cause displacement, gentrification, and other demographic changes.
-			The "transit premium" shifts the demographic profile of neighborhoods — as high-density,
-			mixed-use developments are built around stations, they attract high-income professionals who
-			value commute efficiency. This naturally creates a polarized economic landscape near public transit.
-			In order to minimize these effects, <strong>TOD projects must include a substantial number
-			of affordable housing units</strong>.
+			Transit-oriented development is widely viewed as a positive planning strategy: it can support housing growth,
+			reduce car dependence, and place more homes near transit. This project asks a narrower question:
+			when TOD is built, are lower-income residents as likely to benefit as everyone else? The patterns below
+			are <strong>descriptive associations, not causal proof</strong>, but they suggest TOD should be paired
+			with stronger affordable-housing requirements if the goal is inclusive growth.
 		</p>
 	</section>
 
@@ -782,8 +780,9 @@
 							A primary concern for many residents is the gap between housing supply and genuine affordability.
 							Although TOD projects often increase the total number of housing units, a greater proportion
 							are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
-							of reduced transportation costs is then negated by the sharp rise in rent — and as a result,
-							<strong>lower-income residents are pushed further to the periphery</strong>.
+							of reduced transportation costs may be offset by rising housing costs. That does not prove
+							displacement in each municipality, but it is one reason affordability should remain central
+							to TOD policy.
 						</p>
 					</div>
 					<div class="story-chart-panel__chart">
@@ -799,21 +798,21 @@
 
 			<!-- ── 5. Displacement explanation ──────────── -->
 			<section class="story card">
-				<h2>The relationship between new development and gentrification</h2>
+				<h2>Interpreting the gentrification indicators</h2>
 				<p>
-					There are many indicators that new development is associated with gentrification, including:
+					This dashboard uses several <strong>proxy indicators</strong> that are often associated with
+					gentrification pressure, including:
 				</p>
 				<ul class="story-list">
-					<li>Sharp increase in median income, often serving as a <strong>lead indicator for rising housing costs</strong></li>
+					<li>Sharp increase in median income, often used as a <strong>risk indicator for rising housing costs</strong></li>
 					<li>Rapid increase in the percentage of residents with bachelor's degrees or higher</li>
 					<li>A shift from owner-occupied housing to high-turnover rental units</li>
 					<li>Replacement of "legacy" small businesses with high-end retail and services tailored to a wealthier demographic</li>
 				</ul>
 				<p>
-					With the transit premium shifting the demographic profile of neighborhoods, high-income
-					professionals attracted by commute efficiency change the economic landscape. Areas
-					near public transit see rising property values, and without affordability protections, this
-					process accelerates displacement of vulnerable populations.
+					These measures do <strong>not</strong> establish that TOD causes gentrification. They are best
+					interpreted as warning signals that can help identify where neighborhood change may be happening
+					alongside new development and transit access.
 				</p>
 			</section>
 
@@ -821,10 +820,11 @@
 			<section class="card story-chart-panel">
 				<div class="story-chart-panel__grid">
 					<div class="story-chart-panel__text">
-						<h2>The communities most at risk of gentrification are seeing the most development</h2>
+						<h2>More development is landing in higher-vulnerability municipalities</h2>
 						<p>
 							Municipalities with more households whose incomes are below $125k are seeing greater new development.
-							These areas are both the most vulnerable, and the most likely to be affected.
+							That does not prove harm, but it does suggest that equitable implementation matters most in
+							the places already under the most pressure.
 						</p>
 					</div>
 					<div class="story-chart-panel__chart">
@@ -842,10 +842,11 @@
 	<section class="tract-section">
 		<!-- ── 7. Transition to tract analysis ──────────── -->
 		<section class="story card full-width">
-			<h2>How does this TOD affect specific demographics?</h2>
+			<h2>How is TOD associated with demographic change?</h2>
 			<p>
-				The impact of gentrification can be investigated by looking at how specific demographics change
-				as new development occurs.
+				The next section looks at whether TOD-dominated tracts are associated with different demographic
+				patterns than non-TOD or minimal-development tracts. These are not direct measures of displacement;
+				they are tract-level comparisons using demographic proxies.
 			</p>
 			<h4>Data analysis methodology</h4>
 			<p>
@@ -857,6 +858,10 @@
 				(where TOD units make up at least 50% of new development)
 				with primarily <strong>non-TOD-dominated tracts</strong>
 				(where TOD units make up less than 50% of new development).
+			</p>
+			<p>
+				These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
+				broader urban form, pre-existing neighborhood trends, or regional labor-market dynamics rather than TOD alone.
 			</p>
 			<p>
 				Because these demographic shifts are measured using census tracts from the decennial census,
@@ -909,13 +914,12 @@
 							<strong>{incomeRow.fmtCtrl}</strong>, and in minimal development tracts by
 							<strong>{incomeRow.fmtMinimal}</strong>.
 						{/if}
-						This likely indicates that areas with significant TOD see a larger influx of higher-income
-						residents, which is usually tied to gentrification.
+						This is one proxy for neighborhood change and possible market pressure. It should not be
+						read as direct evidence that TOD itself caused these shifts.
 					</p>
 					<p>
-						With the transit premium shifting demographic profiles, high-density mixed-use developments
-						around stations attract high-income professionals who value commute efficiency. This naturally
-						creates a polarized economic landscape near public transit.
+						If TOD-dominated tracts show larger income increases, that is consistent with stronger
+						socioeconomic sorting or housing-market pressure, though other urban factors may also contribute.
 					</p>
 				</section>
 
@@ -923,7 +927,7 @@
 					<h3>TOD intensity vs median income change</h3>
 					<p class="chart-note">
 						This plot shows that not only does TOD correspond to greater income jumps than non-TOD,
-						but <em>more</em> TOD development pushes incomes up faster than <em>more</em> non-TOD development.
+						but also that higher TOD intensity is associated with larger income changes within the observed tract sample.
 						Each point is a tract; color = TOD share of new units; size = population.
 					</p>
 					<div class="scatter-container scatter-container--compact">
@@ -944,8 +948,8 @@
 							<strong>{eduRow.fmtCtrl}</strong> in non-TOD dominated tracts and
 							<strong>{eduRow.fmtMinimal}</strong> in minimal development tracts.
 						{/if}
-						Since education is uncommon later in life, changes in education levels are usually the result
-						of new residents moving in, and often correspond wealthier residents and rising housing costs.
+						This is another proxy for neighborhood change. Because most adults do not gain bachelor's degrees
+						rapidly within a decade, changes often reflect turnover, replacement, or selective in-migration.
 					</p>
 				</section>
 
@@ -953,7 +957,7 @@
 					<h3>TOD intensity vs bachelor's degree share change</h3>
 					<p class="chart-note">
 						The same pattern holds for education: tracts with more TOD see larger increases in the share
-						of residents with bachelor's degrees or higher — a lead indicator of gentrification pressure.
+						of residents with bachelor's degrees or higher — a useful proxy for neighborhood change, but not direct causal proof of displacement.
 					</p>
 					<div class="scatter-container scatter-container--compact">
 						<TodIntensityScatter panelState={eduPanelState} wideLayout showTrimControl={false} />
@@ -988,8 +992,8 @@
 						<strong>{affIncomeRow.fmtHi}</strong> (vs. <strong>{affIncomeRow.fmtLo}</strong> in
 						low-affordable TOD tracts). For education, the bachelor's share changes by
 						<strong>{affEduRow.fmtHi}</strong> vs. <strong>{affEduRow.fmtLo}</strong>.
-						This indicates that <strong>median incomes and education levels go up less in more affordable
-						tracts</strong> — the demographic disruption is moderated.
+						This suggests that TOD tracts with more affordability may experience smaller socioeconomic shifts
+						on average, though the comparison is still descriptive rather than causal.
 					</p>
 				{/if}
 				<!-- <p>
@@ -1003,8 +1007,8 @@
 			<section class="summary card full-width">
 				<h2>Bottom line</h2>
 				<p class="chart-note">
-					The tract-level evidence sharpens the same takeaway as the municipal dashboard:
-					TOD is only anti-gentrification policy when affordability grows with it.
+					The tract-level evidence points in the same direction as the municipal patterns:
+					TOD appears most equitable when affordability grows with it.
 				</p>
 
 				<h3>TOD-dominated vs non-TOD-dominated</h3>
@@ -1074,17 +1078,16 @@
 			<section class="story card full-width conclusion">
 				<h2>Conclusion</h2>
 				<p>
-					TOD is associated with gentrification, but these effects can be mitigated by increasing the
-					share of TOD units that are affordable. 
+					TOD is still a valuable planning strategy, but the patterns in this dataset suggest it should be paired
+					with a larger share of affordable housing if the goal is broadly shared access to neighborhood benefits. 
 					<!-- This narrative highlights that <strong>inclusionary
 					zoning</strong>, <strong>rent stabilization</strong>, and <strong>subsidized transit passes</strong>
 					are key to preventing housing exclusivity. -->
 				</p>
 				<p>
-					Without affordable housing controls, TOD naturally moves towards exclusionary policy. 
-					When considering housing, transit accessibility
-					is simultaneously a public good and a risk -- <strong>without necessary guardrails, TOD may
-					inadvertently displace vulnerable populations.</strong>
+					These findings should be interpreted cautiously: they show correlations in demographic and development patterns,
+					not definitive causal effects. Still, they provide a practical reason to treat affordability requirements as a core
+					part of TOD implementation rather than a separate policy add-on.
 				</p>
 				<p>
 					The policy answer is not less TOD. It is <strong>more affordability inside TOD</strong>.
