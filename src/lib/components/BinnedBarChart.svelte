@@ -19,9 +19,9 @@
 
 	const marginLeft = 60;
 	const marginRight = 20;
-	const marginBottom = 92;
-	const innerWidth = 500;
-	const innerHeight = 300;
+	const marginBottom = 88;
+	const innerWidth = 380;
+	const innerHeight = 340;
 	const width = marginLeft + innerWidth + marginRight;
 
 	const plotKey = $derived(
@@ -31,22 +31,18 @@
 			y: panelState.yVar,
 			n: tractData.length,
 			dn: developments.length,
+			ms: mbtaStops.length,
 			stops: panelState.minStopsPerSqMi,
-			nonTodMax: panelState.nonTodMaxStopsPerSqMi,
-			todModes: panelState.todTransitModes,
-			nonTodModes: panelState.nonTodTransitModes,
+			tdMi: panelState.transitDistanceMi,
+			sig: panelState.sigDevMinPctStockIncrease,
+			todCut: panelState.todFractionCutoff,
+			huSrc: panelState.huChangeSource,
 			devMin: panelState.minUnitsPerProject,
 			devMfPct: panelState.minDevMultifamilyRatioPct,
 			devAffPct: panelState.minDevAffordableRatioPct,
 			redev: panelState.includeRedevelopment,
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
-			minHU: panelState.minHuChange,
-			todMin: panelState.todMinStopsPerSqMi,
-			todAffPct: panelState.todMinAffordableSharePct,
-			nonTodAffPct: panelState.nonTodMinAffordableSharePct,
-			todStockPct: panelState.todMinStockIncreasePct,
-			nonTodStockPct: panelState.nonTodMinStockIncreasePct,
 			showCtrlBars: panelState.showNonTodBinnedBars,
 			domSync: domainOverride ? 'on' : 'off',
 			domY: domainOverride?.yDomain
@@ -70,7 +66,7 @@
 		root.selectAll('*').remove();
 
 		const { filteredTracts, devAgg } = buildFilteredData(tractData, developments, panelState);
-		const todTracts = getTodTracts(tractData, panelState);
+		const todTracts = getTodTracts(tractData, panelState, developments);
 
 		const wKey = popWeightKey(tp);
 		const rows = [];
@@ -88,7 +84,7 @@
 
 		const xLabel = meta.xVariables?.find((v) => v.key === xBase)?.label ?? xBase;
 		const yLabel = meta.yVariables?.find((v) => v.key === yBase)?.label ?? yBase;
-		const mainTitle = `${yLabel} by ${xLabel} (TOD analysis tracts, pop-weighted bins)`;
+		const mainTitle = `${yLabel} by ${xLabel} (TOD-dominated tracts, pop-weighted bins)`;
 		const titleLines = splitChartTitle(mainTitle, 44);
 		const titleAnchorX = marginLeft + innerWidth / 2;
 		/** Baseline of the first title line (px from top of SVG). */
@@ -98,16 +94,16 @@
 
 		if (bins.length === 0) {
 			const p = root.append('p').attr('class', 'binned-empty');
-			p.append('span').text('No TOD tract data in range for this binning.');
+			p.append('span').text('No TOD-dominated tract data in range for this binning.');
 			p.append('br');
 			p.append('span').text(
-				`(${todTracts.length} TOD tracts pass cohort filters; ${filteredTracts.length} in TOD ∪ non-TOD).`
+				`(${todTracts.length} TOD-dominated tracts; ${filteredTracts.length} in analysis universe).`
 			);
 			return;
 		}
 
 		const showCtrlBars = panelState.showNonTodBinnedBars;
-		const nonTodTracts = getNonTodTracts(tractData, panelState);
+		const nonTodTracts = getNonTodTracts(tractData, panelState, developments);
 		const controlRows = [];
 		for (const t of nonTodTracts) {
 			const rawY = t[yKey];
@@ -187,8 +183,8 @@
 			.attr('font-size', '10px')
 			.text(
 				showCtrlBars
-					? 'Non-TOD control bars use the same X bin edges (tracts outside bins omitted).'
-					: 'Bins from TOD X quantiles only.'
+					? 'Non-TOD-dominated (significant dev) bars use the same X bin edges (tracts outside bins omitted).'
+					: 'Bins from TOD-dominated X quantiles only.'
 			);
 
 		const chart = svg.append('g').attr('transform', `translate(${marginLeft},${chartOffsetTop})`);
@@ -196,9 +192,9 @@
 		if (showCtrlBars) {
 			const leg = chart.append('g').attr('transform', `translate(${innerWidth - 108}, -4)`);
 			leg.append('rect').attr('width', 8).attr('height', 8).attr('fill', 'var(--accent)').attr('rx', 1);
-			leg.append('text').attr('x', 11).attr('y', 8).attr('fill', 'var(--text-muted)').attr('font-size', '9px').text('TOD');
+			leg.append('text').attr('x', 11).attr('y', 8).attr('fill', 'var(--text-muted)').attr('font-size', '9px').text('TOD-dom.');
 			leg.append('rect').attr('y', 12).attr('width', 8).attr('height', 8).attr('fill', '#94a3b8').attr('rx', 1);
-			leg.append('text').attr('x', 11).attr('y', 20).attr('fill', 'var(--text-muted)').attr('font-size', '9px').text('non-TOD');
+			leg.append('text').attr('x', 11).attr('y', 20).attr('fill', 'var(--text-muted)').attr('font-size', '9px').text('non-TOD sig.');
 		}
 
 		// Zero line
@@ -409,10 +405,10 @@
 			const b = bins[i];
 			const c = ctrlMoments?.[i];
 			if (showCtrlBars) {
-				const todLines = ['TOD', `n=${b.count}`];
+				const todLines = ['TOD-dom.', `n=${b.count}`];
 				if (b.totalPop > 0) todLines.push(`pop=${popFmt(b.totalPop)}`);
 				appendStackedBinMeta(centerTod(b), todLines);
-				const ctrlLines = ['ctrl', `n=${c?.count ?? 0}`];
+				const ctrlLines = ['non-TOD sig.', `n=${c?.count ?? 0}`];
 				if (c && c.totalPop > 0) ctrlLines.push(`pop=${popFmt(c.totalPop)}`);
 				appendStackedBinMeta(centerCtrl(b), ctrlLines);
 			} else {
@@ -440,9 +436,9 @@
 
 <div class="binned-bar-wrap">
 	<div class="bar-controls">
-		<label class="bar-toggle" title="Grey bars: non-TOD control cohort, same X bin edges as TOD">
+		<label class="bar-toggle" title="Grey bars: non-TOD-dominated significant development, same X bin edges">
 			<input type="checkbox" bind:checked={panelState.showNonTodBinnedBars} />
-			<span>Show non-TOD bars (per bin)</span>
+			<span>Show non-TOD-dominated bars (per bin)</span>
 		</label>
 	</div>
 	<div class="binned-bar-root" bind:this={containerEl}></div>
@@ -450,7 +446,7 @@
 
 <style>
 	.binned-bar-wrap {
-		min-height: 260px;
+		min-height: 360px;
 		width: 100%;
 	}
 	.bar-controls {

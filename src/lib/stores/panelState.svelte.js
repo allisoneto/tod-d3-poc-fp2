@@ -23,11 +23,6 @@ export function createPanelState(id) {
 		xVar = $state('pct_stock_increase');
 		yVar = $state('minority_pct_change');
 
-		// ── TOD vs non-TOD cohorts (see FilterPanel census block) ─
-		todMinStopsPerSqMi = $state(4);
-		nonTodMaxStopsPerSqMi = $state(4);
-		todTransitModes = $state({ rail: true, commuter_rail: true, bus: true });
-		nonTodTransitModes = $state({ rail: true, commuter_rail: true, bus: true });
 		/** Min. share of MassBuilds new units that are affordable (0–100%); 0 = off. */
 		todMinAffordableSharePct = $state(0);
 		nonTodMinAffordableSharePct = $state(0);
@@ -40,7 +35,6 @@ export function createPanelState(id) {
 		minPopulation = $state(0);
 		// Tract-universe defaults (same floors as Policy Insights).
 		minPopDensity = $state(200);
-		minHuChange = $state(20);
 
 		// ── Development filters ────────────────────────────────
 		minUnitsPerProject = $state(0);
@@ -58,16 +52,24 @@ export function createPanelState(id) {
 		showBusStops = $state(false);
 		showRailStops = $state(false);
 		showCommuterRailStops = $state(false);
-		/** When true, tint choropleth tracts in the TOD analysis cohort (see FilterPanel). */
+		/** When true, tint choropleth tracts classified as TOD-dominated (MassBuilds TOD share). */
 		showMapTodCohortShade = $state(false);
-		/** When true, tint choropleth tracts in the non-TOD control cohort. */
+		/** When true, tint tracts with significant non-TOD-dominated development. */
 		showMapControlCohortShade = $state(false);
+
+		// ── TOD Analysis (development-level TOD; see TodIntensityScatter) ──
+		/** Miles from development to nearest MBTA stop to count as transit-accessible. */
+		transitDistanceMi = $state(0.5);
+		/** Min. % housing stock increase (census or MassBuilds per ``huChangeSource``) for "significant" tracts. */
+		sigDevMinPctStockIncrease = $state(2);
+		/** TOD fraction of new dev units at/above which a tract is "TOD-dominated". */
+		todFractionCutoff = $state(0.5);
+		/** ``census`` = decennial HU change %; ``massbuilds`` = filtered dev units / base stock. */
+		huChangeSource = $state('massbuilds');
 
 		// ── Chart options ─────────────────────────────────────
 		trimOutliers = $state(true);
-		/** When true, scatter shows non-TOD control tracts as subdued grey underlay. */
-		showNonTodScatter = $state(true);
-		/** When true, binned bar chart draws a second bar per bin for the non-TOD cohort. */
+		/** When true, binned bar chart draws a second bar per bin for non-TOD-dominated (significant dev) tracts. */
 		showNonTodBinnedBars = $state(true);
 
 		// ── Selection / interaction ────────────────────────────

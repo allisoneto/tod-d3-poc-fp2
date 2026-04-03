@@ -1,6 +1,31 @@
 import * as d3 from 'd3';
 import { periodCensusBounds } from './periods.js';
 
+/**
+ * Great-circle distance between two WGS84 points (metres).
+ *
+ * Parameters
+ * ----------
+ * lat1 : number
+ * lon1 : number
+ * lat2 : number
+ * lon2 : number
+ *
+ * Returns
+ * -------
+ * number
+ */
+export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+	const R = 6371000;
+	const toRad = (deg) => (deg * Math.PI) / 180;
+	const dLat = toRad(lat2 - lat1);
+	const dLon = toRad(lon2 - lon1);
+	const a =
+		Math.sin(dLat / 2) ** 2 +
+		Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+	return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
 const MODE_TO_FLAG = {
 	rail: 'has_rail',
 	commuter_rail: 'has_commuter_rail',
@@ -58,8 +83,8 @@ export function tractMatchesTransitModes(tract, transitModes) {
 }
 
 /**
- * Census tract passes overall universe filters (population, density, HU change,
- * minimum stops/mi²). Does not apply TOD vs. non-TOD cohort rules.
+ * Census tract passes overall universe filters (population, density, minimum
+ * stops/mi²). Does not apply TOD vs. non-TOD cohort rules.
  *
  * Parameters
  * ----------
@@ -72,7 +97,7 @@ export function tractMatchesTransitModes(tract, transitModes) {
  */
 export function passesTractUniverse(tract, panelState) {
 	const tp = panelState.timePeriod;
-	const { startY, endY } = periodCensusBounds(tp);
+	const { startY } = periodCensusBounds(tp);
 	const gj = tract.gisjoin;
 	if (!gj || typeof gj !== 'string' || !gj.startsWith('G')) return false;
 
@@ -85,12 +110,6 @@ export function passesTractUniverse(tract, panelState) {
 	const area = Number(tract.area_sq_mi) || 0;
 	if ((panelState.minPopDensity || 0) > 0 && area > 0) {
 		if (pop / area < panelState.minPopDensity) return false;
-	}
-
-	if ((panelState.minHuChange || 0) > 0) {
-		const huStart = Number(tract[`total_hu_${startY}`]) || 0;
-		const huEnd = Number(tract[`total_hu_${endY}`]) || 0;
-		if (huEnd - huStart < panelState.minHuChange) return false;
 	}
 
 	return true;
@@ -220,8 +239,7 @@ export function isNonTodCohortTract(tract, panelState) {
 	if (maxStops > 0 && stopsPerSqMi > maxStops) return false;
 	const modes = panelState.nonTodTransitModes ?? panelState.transitModes;
 	if (!tractMatchesTransitModes(tract, modes)) return false;
-	if (!passesCohortMinAffordableShare(tract, panelState, 'nonTod')) return false;
-	return passesCohortMinHousingStockIncreasePct(tract, panelState, 'nonTod');
+	return true;
 }
 
 /**
@@ -240,14 +258,14 @@ export function isTodCohortTract(tract, panelState) {
 	if (!isTodTract(tract, panelState.todMinStopsPerSqMi ?? 0)) return false;
 	const modes = panelState.todTransitModes ?? panelState.transitModes;
 	if (!tractMatchesTransitModes(tract, modes)) return false;
-	if (!passesCohortMinAffordableShare(tract, panelState, 'tod')) return false;
-	return passesCohortMinHousingStockIncreasePct(tract, panelState, 'tod');
+	return true;
 }
 
 /**
- * Stage 1: census tracts in the analysis universe that match either the TOD or
- * the non-TOD cohort definition (union). Map choropleth and dev aggregation use
- * this set.
+ * Census tracts in the analysis universe (overall filters only). Map, bar chart,
+ * and MassBuilds aggregation use this set; TOD-dominated vs non-TOD-dominated
+ * (significant development) highlights use ``getTodTracts`` / ``getNonTodTracts``
+ * with MassBuilds TOD units and ``classifyTractDevelopment`` (see TOD Analysis).
  *
  * Parameters
  * ----------
@@ -259,11 +277,7 @@ export function isTodCohortTract(tract, panelState) {
  * Array<object>
  */
 export function filterTractsByTract(tracts, panelState) {
-	return tracts.filter(
-		(t) =>
-			passesTractUniverse(t, panelState) &&
-			(isTodCohortTract(t, panelState) || isNonTodCohortTract(t, panelState))
-	);
+	return tracts.filter((t) => passesTractUniverse(t, panelState));
 }
 
 /**
@@ -311,42 +325,100 @@ export function tractStopsDensityForDisplay(tract) {
 }
 
 /**
- * Tracts in the TOD (analysis) cohort: universe filters, TOD stop rule, and TOD
- * transit-mode toggles.
+ * Tracts classified as **TOD-dominated** (significant development with TOD share
+ * at or above ``todFractionCutoff``). Uses ``buildTodAnalysisData`` and
+ * ``classifyTractDevelopment`` — same rules as the TOD Analysis tab.
  *
  * Parameters
  * ----------
  * tracts : Array<object>
+ * developments : Array<object>
  * panelState : object
  *
  * Returns
  * -------
  * Array<object>
  */
-export function getTodTracts(tracts, panelState) {
-	return tracts.filter((t) => passesTractUniverse(t, panelState) && isTodCohortTract(t, panelState));
+export function getTodDominatedTracts(tracts, developments, panelState) {
+	const { filteredTracts, tractTodMetrics } = buildTodAnalysisData(
+		tracts,
+		developments,
+		panelState
+	);
+	const sig = panelState.sigDevMinPctStockIncrease ?? 2;
+	const cut = panelState.todFractionCutoff ?? 0.5;
+	const out = [];
+	for (const t of filteredTracts) {
+		const m = tractTodMetrics.get(t.gisjoin);
+		if (!m) continue;
+		if (classifyTractDevelopment(m, sig, cut) === 'tod_dominated') out.push(t);
+	}
+	return out;
 }
 
 /**
- * Non-TOD control group: universe filters, non-TOD max stops/mi² and mode
- * toggles, and excludes tracts that also qualify as TOD (disjoint control).
+ * Tracts with **significant** non-TOD-dominated development (above the stock
+ * increase threshold but TOD share below ``todFractionCutoff``).
  *
  * Parameters
  * ----------
  * tracts : Array<object>
+ * developments : Array<object>
  * panelState : object
  *
  * Returns
  * -------
  * Array<object>
  */
-export function getNonTodTracts(tracts, panelState) {
-	return tracts.filter(
-		(t) =>
-			passesTractUniverse(t, panelState) &&
-			isNonTodCohortTract(t, panelState) &&
-			!isTodCohortTract(t, panelState)
+export function getNonTodDominatedSignificantTracts(tracts, developments, panelState) {
+	const { filteredTracts, tractTodMetrics } = buildTodAnalysisData(
+		tracts,
+		developments,
+		panelState
 	);
+	const sig = panelState.sigDevMinPctStockIncrease ?? 2;
+	const cut = panelState.todFractionCutoff ?? 0.5;
+	const out = [];
+	for (const t of filteredTracts) {
+		const m = tractTodMetrics.get(t.gisjoin);
+		if (!m) continue;
+		if (classifyTractDevelopment(m, sig, cut) === 'nontod_dominated') out.push(t);
+	}
+	return out;
+}
+
+/**
+ * Alias for ``getTodDominatedTracts`` (bar chart / map / cohort summary).
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * panelState : object
+ * developments : Array<object>
+ *
+ * Returns
+ * -------
+ * Array<object>
+ */
+export function getTodTracts(tracts, panelState, developments) {
+	return getTodDominatedTracts(tracts, developments, panelState);
+}
+
+/**
+ * Alias for ``getNonTodDominatedSignificantTracts``.
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * panelState : object
+ * developments : Array<object>
+ *
+ * Returns
+ * -------
+ * Array<object>
+ */
+export function getNonTodTracts(tracts, panelState, developments) {
+	return getNonTodDominatedSignificantTracts(tracts, developments, panelState);
 }
 
 /**
@@ -392,6 +464,22 @@ export function popWeightKey(timePeriod) {
 }
 
 /**
+ * Housing-units weight key at period start (for TOD scatter dot sizing).
+ *
+ * Parameters
+ * ----------
+ * timePeriod : string
+ *
+ * Returns
+ * -------
+ * string
+ */
+export function huWeightKey(timePeriod) {
+	const { startY } = periodCensusBounds(timePeriod);
+	return `total_hu_${startY}`;
+}
+
+/**
  * Infer how to format numeric summaries from a Y-variable metadata label.
  *
  * Parameters
@@ -430,12 +518,15 @@ export function formatYMetricSummary(value, kind) {
 }
 
 /**
- * Population-weighted means of the active Y variable for TOD vs non-TOD cohorts.
+ * Population-weighted means of the active Y variable for TOD-dominated vs
+ * non-TOD-dominated (significant development) cohorts.
  *
  * Parameters
  * ----------
  * tracts : Array<object>
  * panelState : {{ timePeriod: string, yVar: string }}
+ * developments : Array<object>
+ *     MassBuilds rows (same as dashboard store).
  *
  * Returns
  * -------
@@ -443,14 +534,15 @@ export function formatYMetricSummary(value, kind) {
  *     kind: 'pp'|'pct'|'min', meanTod: number, meanNonTod: number,
  *     nTod: number, nNonTod: number, nTodWithY: number, nNonTodWithY: number } | null}
  */
-export function cohortYMeansForPanel(tracts, panelState) {
+export function cohortYMeansForPanel(tracts, panelState, developments) {
 	if (!tracts?.length || !panelState?.timePeriod || !panelState?.yVar) return null;
+	const devs = developments ?? [];
 	const tp = panelState.timePeriod;
 	const yBase = panelState.yVar;
 	const yKey = `${yBase}_${tp}`;
 	const weightKey = popWeightKey(tp);
-	const tod = getTodTracts(tracts, panelState);
-	const nonTod = getNonTodTracts(tracts, panelState);
+	const tod = getTodTracts(tracts, panelState, devs);
+	const nonTod = getNonTodTracts(tracts, panelState, devs);
 	const meanTod = computeGroupMean(tod, yKey, weightKey);
 	const meanNonTod = computeGroupMean(nonTod, yKey, weightKey);
 	const nTodWithY = tod.filter((t) => t[yKey] != null && Number.isFinite(Number(t[yKey]))).length;
@@ -725,6 +817,364 @@ export function buildFilteredData(tracts, developments, panelState) {
 	const devAgg = aggregateDevsByTract(devFiltered, tractMap, panelState.timePeriod);
 
 	return { filteredTracts: tractFiltered, devAgg, filteredDevs: devFiltered };
+}
+
+/**
+ * Miles to metres (for MBTA nearest-stop distance thresholds).
+ *
+ * Parameters
+ * ----------
+ * mi : number
+ *
+ * Returns
+ * -------
+ * number
+ */
+export function transitDistanceMiToMetres(mi) {
+	return (Number(mi) || 0) * 1609.344;
+}
+
+/**
+ * Nearest-stop distance (m) and count of MBTA stops within ``radiusM`` (m).
+ * Uses ``nearest_stop_dist_m`` from the pipeline when present; otherwise derives
+ * distances from ``stops`` (``lat`` / ``lon``) on the client so tooltips and TOD
+ * logic work even when static JSON omits server-side fields.
+ *
+ * Parameters
+ * ----------
+ * dev : object
+ *     MassBuilds row with ``lat``, ``lon``, optional ``nearest_stop_dist_m``.
+ * stops : Array<object>
+ *     MBTA stops from ``mbta_stops.json`` (``lat``, ``lon``).
+ * radiusM : number
+ *     TOD radius in metres (e.g. from ``transitDistanceMiToMetres(panelState.transitDistanceMi)``).
+ *
+ * Returns
+ * -------
+ * {{ nearestDistM: number | null, stopsWithinRadius: number }}
+ */
+export function developmentMbtaProximity(dev, stops, radiusM) {
+	const lat = Number(dev?.lat);
+	const lon = Number(dev?.lon);
+	const r = Number(radiusM);
+	const radiusOk = Number.isFinite(r) && r >= 0 && r < 1e9;
+	const serverDist = dev?.nearest_stop_dist_m;
+	const sd = serverDist == null ? NaN : Number(serverDist);
+	const useServerNearest = Number.isFinite(sd);
+
+	if (!stops?.length) {
+		return { nearestDistM: useServerNearest ? sd : null, stopsWithinRadius: 0 };
+	}
+	if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+		return { nearestDistM: useServerNearest ? sd : null, stopsWithinRadius: 0 };
+	}
+
+	let best = Infinity;
+	let stopsWithinRadius = 0;
+	for (const s of stops) {
+		const slat = Number(s.lat);
+		const slon = Number(s.lon);
+		if (!Number.isFinite(slat) || !Number.isFinite(slon)) continue;
+		const d = haversineDistanceMeters(lat, lon, slat, slon);
+		if (!useServerNearest && d < best) best = d;
+		if (radiusOk && d <= r) stopsWithinRadius += 1;
+	}
+
+	const nearestDistM = useServerNearest
+		? sd
+		: Number.isFinite(best) && best < Infinity
+			? best
+			: null;
+	return { nearestDistM, stopsWithinRadius };
+}
+
+/**
+ * Whether the nearest MBTA stop is within the transit-distance threshold (same rule as TOD unit classification).
+ *
+ * Parameters
+ * ----------
+ * dev : object
+ *     Development row with optional ``nearest_stop_dist_m``.
+ * transitDistanceM : number
+ *     Maximum distance in metres to the nearest stop.
+ *
+ * Returns
+ * -------
+ * boolean
+ */
+export function isDevelopmentTransitAccessible(dev, transitDistanceM) {
+	const transitM = Number(transitDistanceM);
+	if (!Number.isFinite(transitM) || transitM <= 0) return false;
+	const distRaw = dev?.nearest_stop_dist_m;
+	const dist = distRaw == null ? NaN : Number(distRaw);
+	return Number.isFinite(dist) && dist <= transitM;
+}
+
+/**
+ * Classify MassBuilds units into TOD vs non-TOD for a single development.
+ *
+ * Transit-accessible developments (nearest stop within ``transitDistanceM``)
+ * count multifamily units as TOD; all other units are non-TOD. Non-accessible
+ * developments are entirely non-TOD.
+ *
+ * Parameters
+ * ----------
+ * dev : object
+ *     Development row with ``hu``, ``smmultifam``, ``lgmultifam``, ``nearest_stop_dist_m``
+ *     (from ``scripts/process_data.py``).
+ * transitDistanceM : number
+ *     Maximum distance in metres to nearest stop for accessibility.
+ * minMultifamilyShare : number
+ *     Minimum multifamily share ``(smmultifam + lgmultifam) / hu`` in ``[0, 1]`` for the
+ *     project to contribute **any** TOD units. When ``> 0``, projects below this share
+ *     are entirely non-TOD (matches the filter-panel “min multifamily %” rule for TOD classification).
+ *
+ * Returns
+ * -------
+ * {{ todUnits: number, nonTodUnits: number }}
+ */
+export function classifyDevTodUnits(dev, transitDistanceM, minMultifamilyShare = 0) {
+	const hu = Number(dev.hu) || 0;
+	if (hu <= 0) return { todUnits: 0, nonTodUnits: 0 };
+
+	const dist = dev.nearest_stop_dist_m == null ? NaN : Number(dev.nearest_stop_dist_m);
+	const accessible =
+		Number.isFinite(dist) && Number.isFinite(transitDistanceM) && dist <= transitDistanceM;
+
+	if (!accessible) {
+		return { todUnits: 0, nonTodUnits: hu };
+	}
+
+	const minMf = Math.min(1, Math.max(0, Number(minMultifamilyShare) || 0));
+	if (minMf > 0) {
+		const mfShare = developmentMultifamilyShare(dev);
+		if (mfShare == null || mfShare < minMf) {
+			return { todUnits: 0, nonTodUnits: hu };
+		}
+	}
+
+	const mf = (Number(dev.smmultifam) || 0) + (Number(dev.lgmultifam) || 0);
+	const todUnits = Math.min(mf, hu);
+	const nonTodUnits = hu - todUnits;
+	return { todUnits, nonTodUnits };
+}
+
+/**
+ * Census-based % housing stock increase for a tract and period.
+ *
+ * Parameters
+ * ----------
+ * tract : object
+ * timePeriod : string
+ *
+ * Returns
+ * -------
+ * number | null
+ */
+export function censusPctStockIncrease(tract, timePeriod) {
+	const { startY, endY } = periodCensusBounds(timePeriod);
+	const huS = Number(tract[`total_hu_${startY}`]) || 0;
+	const huE = Number(tract[`total_hu_${endY}`]) || 0;
+	if (huS <= 0) return null;
+	return +(((huE - huS) / huS) * 100).toFixed(4);
+}
+
+/**
+ * Per-tract TOD development metrics for the TOD Analysis scatter plots.
+ *
+ * Uses only ``passesTractUniverse`` tracts (caller supplies the list). For each tract,
+ * ``pctStockIncrease`` comes from census or filtered MassBuilds totals per
+ * ``huChangeSource``. TOD fractions use MassBuilds development rows only.
+ *
+ * Parameters
+ * ----------
+ * filteredDevs : Array<object>
+ * tractMap : Map<string, object>
+ * universeTracts : Array<object>
+ *     Tracts that passed the analysis universe (same order as plotted).
+ * timePeriod : string
+ * transitDistanceM : number
+ * huChangeSource : 'census' | 'massbuilds'
+ * minMultifamilyShare : number
+ *     Same semantics as ``classifyDevTodUnits`` (typically ``panelState.minDevMultifamilyRatioPct / 100``).
+ *
+ * Returns
+ * -------
+ * Map<string, object>
+ *     gisjoin -> metrics row.
+ */
+export function aggregateTractTodMetrics(
+	filteredDevs,
+	tractMap,
+	universeTracts,
+	timePeriod,
+	transitDistanceM,
+	huChangeSource,
+	minMultifamilyShare = 0
+) {
+	const { startY } = periodCensusBounds(timePeriod);
+	const byTract = new Map();
+
+	for (const d of filteredDevs) {
+		const gj = d.gisjoin;
+		if (!byTract.has(gj)) {
+			byTract.set(gj, {
+				todUnits: 0,
+				nonTodUnits: 0,
+				totalNewUnits: 0,
+				todAffordableUnits: 0
+			});
+		}
+		const agg = byTract.get(gj);
+		const { todUnits, nonTodUnits } = classifyDevTodUnits(
+			d,
+			transitDistanceM,
+			minMultifamilyShare
+		);
+		const affCapped = developmentAffordableUnitsCapped(d);
+		const todAff = Math.min(affCapped, todUnits);
+		agg.todUnits += todUnits;
+		agg.nonTodUnits += nonTodUnits;
+		agg.totalNewUnits += Number(d.hu) || 0;
+		agg.todAffordableUnits += todAff;
+	}
+
+	const result = new Map();
+	const src = huChangeSource === 'census' ? 'census' : 'massbuilds';
+
+	for (const tract of universeTracts) {
+		const gj = tract.gisjoin;
+		if (!gj) continue;
+
+		const row = byTract.get(gj);
+		const totalNewUnits = row ? row.totalNewUnits : 0;
+		const todUnits = row ? row.todUnits : 0;
+		const nonTodUnits = row ? row.nonTodUnits : 0;
+
+		let pctStockIncrease;
+		if (src === 'census') {
+			pctStockIncrease = censusPctStockIncrease(tract, timePeriod);
+		} else {
+			const baseStock = Number(tract[`total_hu_${startY}`]) || 0;
+			pctStockIncrease =
+				baseStock > 0 ? +((totalNewUnits / baseStock) * 100).toFixed(4) : null;
+		}
+
+		const tot = todUnits + nonTodUnits;
+		let todFraction = null;
+		if (tot > 0) {
+			todFraction = todUnits / tot;
+		}
+
+		let todAffordableFraction = null;
+		if (todUnits > 0 && row) {
+			todAffordableFraction = row.todAffordableUnits / todUnits;
+		}
+
+		result.set(gj, {
+			todUnits,
+			nonTodUnits,
+			totalNewUnits,
+			todFraction,
+			pctStockIncrease,
+			todAffordableUnits: row ? row.todAffordableUnits : 0,
+			todAffordableFraction
+		});
+	}
+
+	return result;
+}
+
+/**
+ * Classify a tract into minimal / TOD-dominated / non-TOD-dominated development.
+ *
+ * Parameters
+ * ----------
+ * metrics : {{ pctStockIncrease: number | null, todFraction: number | null }}
+ * sigDevThresholdPct : number
+ * todFractionCutoff : number
+ *
+ * Returns
+ * -------
+ * 'minimal' | 'tod_dominated' | 'nontod_dominated'
+ */
+export function classifyTractDevelopment(metrics, sigDevThresholdPct, todFractionCutoff) {
+	const p = metrics?.pctStockIncrease;
+	const thr = Math.max(0, Number(sigDevThresholdPct) || 0);
+	const cutRaw = Number(todFractionCutoff);
+	const cut = Number.isFinite(cutRaw) ? Math.min(1, Math.max(0, cutRaw)) : 0.5;
+
+	if (p == null || !Number.isFinite(p) || p < thr) {
+		return 'minimal';
+	}
+	const tf = metrics?.todFraction;
+	if (tf == null || !Number.isFinite(tf)) {
+		return 'minimal';
+	}
+	if (tf >= cut) return 'tod_dominated';
+	return 'nontod_dominated';
+}
+
+/**
+ * Tracts in the TOD Analysis universe: overall filters only (no legacy TOD cohort rules).
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * panelState : object
+ *
+ * Returns
+ * -------
+ * Array<object>
+ */
+export function filterTractsTodAnalysisUniverse(tracts, panelState) {
+	return tracts.filter((t) => passesTractUniverse(t, panelState));
+}
+
+/**
+ * Filtered tracts (universe-only) and per-tract TOD metrics for TOD Analysis charts.
+ *
+ * Parameters
+ * ----------
+ * tracts : Array<object>
+ * developments : Array<object>
+ * panelState : object
+ *
+ * Returns
+ * -------
+ * {{ filteredTracts: Array<object>, tractTodMetrics: Map, filteredDevs: Array<object> }}
+ */
+export function buildTodAnalysisData(tracts, developments, panelState) {
+	const tractFiltered = filterTractsTodAnalysisUniverse(tracts, panelState);
+	const tractSet = new Set(tractFiltered.map((t) => t.gisjoin));
+
+	const tractMap = new Map();
+	for (const t of tracts) {
+		if (t.gisjoin) tractMap.set(t.gisjoin, t);
+	}
+
+	const devFiltered = filterDevelopments(developments, panelState).filter((d) =>
+		tractSet.has(d.gisjoin)
+	);
+
+	const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+	const huSrc = panelState.huChangeSource === 'census' ? 'census' : 'massbuilds';
+	const minMfShare = Math.min(
+		1,
+		Math.max(0, (Number(panelState.minDevMultifamilyRatioPct) || 0) / 100)
+	);
+
+	const tractTodMetrics = aggregateTractTodMetrics(
+		devFiltered,
+		tractMap,
+		tractFiltered,
+		panelState.timePeriod,
+		transitM,
+		huSrc,
+		minMfShare
+	);
+
+	return { filteredTracts: tractFiltered, tractTodMetrics, filteredDevs: devFiltered };
 }
 
 /**

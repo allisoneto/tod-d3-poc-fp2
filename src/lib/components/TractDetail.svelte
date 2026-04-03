@@ -422,7 +422,7 @@
 	</div>
 
 	{#if selectedList.length === 0}
-		<p class="empty">Click tracts on the map or scatterplot to see details here.</p>
+		<p class="empty">Click tracts on the map to see details here.</p>
 	{:else}
 		<div class="scroll">
 			{#if aggregate}

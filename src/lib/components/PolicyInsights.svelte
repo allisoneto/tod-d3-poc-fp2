@@ -13,27 +13,21 @@
 		popWeightKey,
 		yMetricDisplayKind,
 		formatYMetricSummary,
-		transitModeUiLabel
 	} from '$lib/utils/derived.js';
 	import { periodDisplayLabel, periodCensusBounds } from '$lib/utils/periods.js';
 	import PolicyCohortMap from '$lib/components/PolicyCohortMap.svelte';
 	import * as d3 from 'd3';
 
 	let timePeriod = $state('10_20');
-	let todMinStopsPerSqMi = $state(4);
-	let nonTodMaxStopsPerSqMi = $state(4);
-	let todMinAffordableSharePct = $state(0);
-	let nonTodMinAffordableSharePct = $state(0);
-	let todMinStockIncreasePct = $state(0);
-	let nonTodMinStockIncreasePct = $state(0);
-	let todTransitModes = $state({ rail: true, commuter_rail: true, bus: true });
-	let nonTodTransitModes = $state({ rail: true, commuter_rail: true, bus: true });
-
+	/** Match dashboard TOD Analysis: MassBuilds TOD unit classification and tract tiers. */
+	let transitDistanceMi = $state(0.5);
+	let sigDevMinPctStockIncrease = $state(2);
+	let todFractionCutoff = $state(0.5);
+	let huChangeSource = $state('massbuilds');
 	let minStopsPerSqMi = $state(0);
 	let minPopulation = $state(0);
 	// Match dashboard createPanelState() tract-universe defaults.
 	let minPopDensity = $state(200);
-	let minHuChange = $state(20);
 
 	/** MassBuilds project filters (same semantics as the main dashboard). */
 	let minUnitsPerProject = $state(0);
@@ -54,17 +48,12 @@
 	const panelConfig = $derived({
 		timePeriod,
 		minStopsPerSqMi,
-		todMinStopsPerSqMi,
-		nonTodMaxStopsPerSqMi,
-		todTransitModes,
-		nonTodTransitModes,
-		todMinAffordableSharePct,
-		nonTodMinAffordableSharePct,
-		todMinStockIncreasePct,
-		nonTodMinStockIncreasePct,
+		transitDistanceMi,
+		sigDevMinPctStockIncrease,
+		todFractionCutoff,
+		huChangeSource,
 		minPopulation,
 		minPopDensity,
-		minHuChange,
 		minUnitsPerProject,
 		minDevMultifamilyRatioPct,
 		minDevAffordableRatioPct,
@@ -72,17 +61,18 @@
 	});
 
 	/** Recompute cohort means when any cohort / universe input changes (matches dashboard). */
-	const cohortComparisonKey = $derived(JSON.stringify(panelConfig));
+	const cohortComparisonKey = $derived(JSON.stringify({ ...panelConfig, ms: mbtaStops.length }));
 
 	/**
 	 * Population-weighted TOD vs non-TOD means for every scatter Y-axis metric (same logic as the dashboard cohort summary).
 	 */
 	const cohortRowsByY = $derived.by(() => {
 		void cohortComparisonKey;
+		void developments.length;
 		void meta.yVariables?.length;
 		const rows = [];
 		for (const v of meta.yVariables ?? []) {
-			const raw = cohortYMeansForPanel(tractData, { ...panelConfig, yVar: v.key });
+			const raw = cohortYMeansForPanel(tractData, { ...panelConfig, yVar: v.key }, developments);
 			if (!raw) continue;
 			const kind = yMetricDisplayKind(v);
 			rows.push({
@@ -102,14 +92,6 @@
 	});
 
 	const periodLabel = $derived(periodDisplayLabel(timePeriod));
-
-	function toggleTodMode(key) {
-		todTransitModes = { ...todTransitModes, [key]: !todTransitModes[key] };
-	}
-
-	function toggleNonTodMode(key) {
-		nonTodTransitModes = { ...nonTodTransitModes, [key]: !nonTodTransitModes[key] };
-	}
 
 	const fmtPP = d3.format('.1f');
 	const fmtPct = d3.format('.1f');
@@ -135,9 +117,9 @@
 
 	const rows = $derived.by(() => filterTractsByTract(tractData, panelConfig));
 
-	const todRows = $derived.by(() => getTodTracts(tractData, panelConfig));
+	const todRows = $derived.by(() => getTodTracts(tractData, panelConfig, developments));
 
-	const nonTodRows = $derived.by(() => getNonTodTracts(tractData, panelConfig));
+	const nonTodRows = $derived.by(() => getNonTodTracts(tractData, panelConfig, developments));
 
 	// Affordable-share splits and regression use the same filtered MassBuilds set as the dashboard dev metrics.
 	const affShareMap = $derived.by(() => {
@@ -331,69 +313,32 @@
 					<span class="filter-label">Pop/mi²</span>
 					<input type="number" min="0" step="100" bind:value={minPopDensity} />
 				</label>
-				<label class="filter-field" title="Min HU change (census)">
-					<span class="filter-label">ΔHU</span>
-					<input type="number" min="0" step="10" bind:value={minHuChange} />
-				</label>
 				<label class="filter-field" title="Min stops/mi² (analysis universe)">
 					<span class="filter-label">Min stops</span>
 					<input type="number" min="0" step="0.5" bind:value={minStopsPerSqMi} />
 				</label>
 			</div>
-			<div class="policy-cohort-grid">
-				<div class="policy-cohort">
-					<p class="filter-sub">Non-TOD (control)</p>
-					<label class="filter-field" title="Max stops/mi² for control cohort; 0 = no ceiling">
-						<span class="filter-label">Max stops</span>
-						<input type="number" min="0" step="0.5" bind:value={nonTodMaxStopsPerSqMi} />
-					</label>
-					<label class="filter-field" title="Min MassBuilds affordable share (%) for control cohort; 0 = off">
-						<span class="filter-label">Min aff. %</span>
-						<input type="number" min="0" max="100" step="1" bind:value={nonTodMinAffordableSharePct} />
-					</label>
-					<div class="filter-chips">
-						{#each Object.keys(nonTodTransitModes) as key (key)}
-							<button
-								type="button"
-								class="chip"
-								class:active={nonTodTransitModes[key]}
-								onclick={() => toggleNonTodMode(key)}
-							>
-								{transitModeUiLabel(key)}
-							</button>
-						{/each}
-					</div>
-				</div>
-				<div class="policy-cohort">
-					<p class="filter-sub">TOD (analyzing)</p>
-					<label class="filter-field" title="Min stops/mi² to count as TOD; 0 = any stop">
-						<span class="filter-label">Min TOD</span>
-						<input type="number" min="0" step="0.5" bind:value={todMinStopsPerSqMi} />
-					</label>
-					<label class="filter-field" title="Min MassBuilds affordable share (%) for TOD cohort; 0 = off">
-						<span class="filter-label">Min aff. %</span>
-						<input type="number" min="0" max="100" step="1" bind:value={todMinAffordableSharePct} />
-					</label>
-					<label
-						class="filter-field"
-						title="Min housing stock increase (%): tract new units ÷ census HU at period start; 0 = off"
-					>
-						<span class="filter-label">Min Δstock %</span>
-						<input type="number" min="0" step="0.1" bind:value={todMinStockIncreasePct} />
-					</label>
-					<div class="filter-chips">
-						{#each Object.keys(todTransitModes) as key (key)}
-							<button
-								type="button"
-								class="chip"
-								class:active={todTransitModes[key]}
-								onclick={() => toggleTodMode(key)}
-							>
-								{transitModeUiLabel(key)}
-							</button>
-						{/each}
-					</div>
-				</div>
+			<p class="filter-sub">TOD tiers (MassBuilds — matches dashboard TOD Analysis)</p>
+			<div class="filter-row filter-row--tod-policy">
+				<label class="filter-field" title="Developments with nearest MBTA stop within this distance count as TOD-accessible">
+					<span class="filter-label">Transit mi</span>
+					<input type="number" min="0.1" max="1" step="0.05" bind:value={transitDistanceMi} />
+				</label>
+				<label class="filter-field" title="Minimum % housing stock increase for significant development">
+					<span class="filter-label">Sig. dev %</span>
+					<input type="number" min="0" max="20" step="0.5" bind:value={sigDevMinPctStockIncrease} />
+				</label>
+				<label class="filter-field" title="TOD share of new units at or above this value → TOD-dominated tract">
+					<span class="filter-label">TOD-dom. cut</span>
+					<input type="number" min="0" max="1" step="0.05" bind:value={todFractionCutoff} />
+				</label>
+				<label class="filter-field" title="How % housing growth is computed for thresholds">
+					<span class="filter-label">HU growth</span>
+					<select bind:value={huChangeSource}>
+						<option value="massbuilds">MassBuilds</option>
+						<option value="census">Census</option>
+					</select>
+				</label>
 			</div>
 		</fieldset>
 
@@ -401,9 +346,7 @@
 			<legend class="filter-legend">Development filters</legend>
 			<p class="filter-hint">
 				Which MassBuilds projects count toward <strong>affordable-share</strong> splits and the regression note
-				below. Cohort definitions and census Y means still use tract fields only; TOD / non-TOD
-				&ldquo;min aff. %&rdquo; and &ldquo;min Δstock %&rdquo; use full-tract MassBuilds totals (same as the
-				dashboard), not these per-project filters.
+				below. TOD-dominated vs comparison cohorts use the TOD tier settings above plus these project rules.
 			</p>
 			<div class="filter-row filter-row--dev">
 				<label
@@ -446,28 +389,23 @@
 
 	<!-- ── Cohort geography (matches filters above) ───────────────── -->
 	<section class="section section--cohort-map" aria-labelledby="cohort-map-heading">
-		<h2 id="cohort-map-heading" class="section-title">TOD vs. non-TOD tracts on the map</h2>
+		<h2 id="cohort-map-heading" class="section-title">TOD-dominated tracts on the map</h2>
 		<p class="section-lead">
-			Each tract is colored by the same TOD and non-TOD (control) rules as the tables below. Tracts that pass overall
-			filters but match neither cohort appear in slate; tracts that fail overall filters stay subdued.
+			Tracts are classified from MassBuilds TOD housing units (transit distance, dev filters, and thresholds above).
+			TOD-dominated vs non-TOD-dominated significant development match the tables below; minimal or mixed tracts
+			appear in slate.
 		</p>
 		<PolicyCohortMap panelConfig={panelConfig} />
 	</section>
 
 	<!-- ── TOD vs control: all Y outcomes (dashboard-style) ── -->
 	<section class="section" aria-labelledby="outcomes-heading">
-		<h2 id="outcomes-heading" class="section-title">TOD vs. non-TOD outcomes</h2>
+		<h2 id="outcomes-heading" class="section-title">TOD-dominated vs comparison outcomes</h2>
 		<p class="section-lead">
-			Population-weighted means for every dashboard outcome metric ({periodLabel}), using the same cohort rules as
-			the main analysis panel ({keyFindings.nTracts.toLocaleString()} tracts after filters;
-			{keyFindings.nTod.toLocaleString()} TOD, {keyFindings.nNonTod.toLocaleString()} non-TOD).
-			{#if todMinStopsPerSqMi > 0}
-				TOD: &ge;{todMinStopsPerSqMi} stops/mi² (plus TOD mode toggles). Non-TOD control: max stops/mi² when set
-				(&gt;0).
-			{:else}
-				TOD: at least one MBTA stop in the buffer (plus TOD mode toggles). Non-TOD control excludes tracts that
-				also meet the TOD definition.
-			{/if}
+			Population-weighted means for every dashboard outcome metric ({periodLabel}), using the same MassBuilds-based
+			cohort rules as the main panel ({keyFindings.nTracts.toLocaleString()} tracts after filters;
+			{keyFindings.nTod.toLocaleString()} TOD-dominated, {keyFindings.nNonTod.toLocaleString()} non-TOD-dominated
+			significant development).
 			{#if cohortRowsByY[0]}
 				Means weighted by tract {cohortRowsByY[0].weightLabel} (same as the dashboard bar chart).
 			{/if}
@@ -486,19 +424,19 @@
 					<div
 						class="cohort-summary policy-cohort-block"
 						role="group"
-						aria-label="{row.label}: population-weighted TOD vs non-TOD means"
+						aria-label="{row.label}: population-weighted TOD-dominated vs non-TOD-dominated means"
 					>
 						<p class="cohort-summary-heading">{row.label}</p>
 						<div class="cohort-summary-grid">
 							<div class="cohort-pill cohort-pill--tod">
-								<span class="cohort-pill-label">TOD (analysis)</span>
+								<span class="cohort-pill-label">TOD-dominated</span>
 								<span class="cohort-pill-value">{row.fmtTod}</span>
 								<span class="cohort-pill-n">
 									{row.nTodWithY} / {row.nTod} tracts with data
 								</span>
 							</div>
 							<div class="cohort-pill cohort-pill--ctrl">
-								<span class="cohort-pill-label">non-TOD (control)</span>
+								<span class="cohort-pill-label">non-TOD-dominated (sig.)</span>
 								<span class="cohort-pill-value">{row.fmtCtrl}</span>
 								<span class="cohort-pill-n">
 									{row.nNonTodWithY} / {row.nNonTod} tracts with data
@@ -516,9 +454,9 @@
 		<h2 id="findings-heading" class="section-title">Additional comparisons</h2>
 
 		<div class="aff-split-block">
-			<h3 class="subsection-title">TOD: high vs. low affordable development share</h3>
+			<h3 class="subsection-title">TOD-dominated: high vs. low affordable development share</h3>
 			<p class="section-lead section-lead--tight">
-				Among TOD tracts with MassBuilds affordable-share data under your development filters (
+				Among TOD-dominated tracts with MassBuilds affordable-share data under your development filters (
 				{affSplitCohorts.todAff.length.toLocaleString()} tracts), compare population-weighted outcome means
 				({periodLabel}) for a <strong>high</strong> vs. <strong>low</strong> affordable-share group.
 			</p>

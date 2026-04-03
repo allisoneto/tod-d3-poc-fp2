@@ -698,7 +698,71 @@ def load_mbta(tracts_gdf):
         })
 
     print(f"    {len(transit_df)} tracts, {transit_df['is_tod'].sum()} classified as TOD")
-    return transit_df, stops_export
+    return transit_df, stops_export, stops_proj
+
+
+def attach_nearest_stop_to_projects(projects, stops_proj):
+    """Attach nearest MBTA stop distance (m) and modes to each MassBuilds project (mutates list).
+
+    Uses EPSG:26986 projected coordinates for metre-accurate distances.
+
+    Parameters
+    ----------
+    projects : list[dict]
+        Records from ``load_massbuilds`` with ``lat`` / ``lon``.
+    stops_proj : geopandas.GeoDataFrame | None
+        Deduped MBTA stops in EPSG:26986 with a ``modes`` column (set of str).
+
+    Returns
+    -------
+    list[dict]
+        Same list with ``nearest_stop_dist_m`` and ``nearest_stop_modes`` on each dict.
+    """
+    if not projects:
+        return projects
+    if stops_proj is None or len(stops_proj) == 0:
+        for p in projects:
+            p["nearest_stop_dist_m"] = None
+            p["nearest_stop_modes"] = []
+        return projects
+
+    geom = [Point(p["lon"], p["lat"]) for p in projects]
+    dev_gdf = gpd.GeoDataFrame({"_i": range(len(projects))}, geometry=geom, crs="EPSG:4326")
+    dev_gdf = dev_gdf.to_crs(epsg=26986)
+
+    # Must keep ``geometry`` — selecting only ``modes`` drops geometry and breaks ``sjoin_nearest``.
+    right = stops_proj[["geometry", "modes"]].copy()
+    joined = gpd.sjoin_nearest(dev_gdf, right, how="left", distance_col="nearest_stop_dist_m")
+    # If multiple nearest ties exist, keep the smallest distance per project index
+    joined = joined.sort_values("nearest_stop_dist_m").drop_duplicates("_i", keep="first")
+
+    by_i = {}
+    for _, row in joined.iterrows():
+        i = int(row["_i"])
+        dist = row["nearest_stop_dist_m"]
+        modes = row.get("modes")
+        by_i[i] = (dist, modes)
+
+    for i, p in enumerate(projects):
+        if i not in by_i:
+            p["nearest_stop_dist_m"] = None
+            p["nearest_stop_modes"] = []
+            continue
+        dist, modes = by_i[i]
+        if dist is not None and pd.notna(dist):
+            p["nearest_stop_dist_m"] = round(float(dist), 2)
+        else:
+            p["nearest_stop_dist_m"] = None
+        if modes is None or (isinstance(modes, float) and pd.isna(modes)):
+            p["nearest_stop_modes"] = []
+        elif isinstance(modes, set):
+            p["nearest_stop_modes"] = sorted(modes)
+        elif isinstance(modes, (list, tuple)):
+            p["nearest_stop_modes"] = sorted(set(str(x) for x in modes))
+        else:
+            p["nearest_stop_modes"] = []
+
+    return projects
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -794,7 +858,10 @@ def main():
     dev, projects_export = load_massbuilds(tracts_gdf)
 
     print("\n[5/6] MBTA transit data")
-    transit_df, stops_export = load_mbta(tracts_gdf)
+    transit_df, stops_export, stops_proj = load_mbta(tracts_gdf)
+
+    print("\n[5b/6] Nearest stop distance per development")
+    projects_export = attach_nearest_stop_to_projects(projects_export, stops_proj)
 
     # ── Merge ────────────────────────────────────────────────────
     print("\n[6/6] Merging & exporting ...")

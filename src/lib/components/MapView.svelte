@@ -12,9 +12,13 @@
 	import {
 		buildFilteredData,
 		developmentAffordableUnitsCapped,
+		developmentMultifamilyShare,
 		getNonTodTracts,
 		getTodTracts,
+		developmentMbtaProximity,
+		isDevelopmentTransitAccessible,
 		tractStopsDensityForDisplay,
+		transitDistanceMiToMetres,
 		transitModeUiLabel
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
@@ -24,15 +28,20 @@
 	let containerEl = $state(null);
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
 
-	const svgW = 500;
-	const svgH = 420;
-	const mapW = 500;
-	const mapH = 330;
+	/* Map canvas + optional left (dev MF) and right (Viridis) legend columns; no extra height below map. */
+	const VIRIDIS_LEGEND_COL_W = 34;
+	const DEV_LEGEND_COL_W = 40;
+	const mapW = 420;
+	const mapH = 380;
+	/** Left edge of map in SVG px (after optional dev legend column); set in ``rebuildSVG``. */
+	let mapCanvasLeft = 0;
 	const mapUid = Math.random().toString(36).slice(2, 11);
 
 	/** Choropleth cohort tints: align with policy page / ``--accent`` (TOD) and control slate. */
 	const MAP_TOD_COHORT_HEX = '#6c8cff';
 	const MAP_CTRL_COHORT_HEX = '#64748b';
+	/** Blend target to mute non-cohort tracts when a cohort highlight is active. */
+	const MAP_DIM_TOWARD_HEX = '#05070c';
 
 	/**
 	 * Linear RGB blend for overlaying cohort highlights on Viridis fills.
@@ -61,11 +70,23 @@
 		).formatHex();
 	}
 
+	/**
+	 * Whether the project meets the min multifamily % from the filter panel (same rule as
+	 * ``filterDevelopments``). Combined with transit distance for ``TOD``-style map styling.
+	 */
+	function meetsTodMultifamilyFloor(d, ps) {
+		const minPct = Math.min(100, Math.max(0, Number(ps.minDevMultifamilyRatioPct) || 0));
+		if (minPct <= 0) return true;
+		const s = developmentMultifamilyShare(d);
+		return s != null && s >= minPct / 100;
+	}
+
 	const structuralKey = $derived(
 		JSON.stringify({
 			n: tractData.length,
 			gf: tractGeo?.features?.length ?? 0,
-			ms: mbtaStops.length
+			ms: mbtaStops.length,
+			showDev: panelState.showDevelopments
 		})
 	);
 
@@ -74,25 +95,22 @@
 			tp: panelState.timePeriod,
 			y: panelState.yVar,
 			stops: panelState.minStopsPerSqMi,
-			nonTodMax: panelState.nonTodMaxStopsPerSqMi,
-			todModes: panelState.todTransitModes,
-			nonTodModes: panelState.nonTodTransitModes,
-			todMin: panelState.todMinStopsPerSqMi,
-			todAffPct: panelState.todMinAffordableSharePct,
-			nonTodAffPct: panelState.nonTodMinAffordableSharePct,
-			todStockPct: panelState.todMinStockIncreasePct,
-			nonTodStockPct: panelState.nonTodMinStockIncreasePct,
+			tdMi: panelState.transitDistanceMi,
+			sig: panelState.sigDevMinPctStockIncrease,
+			todCut: panelState.todFractionCutoff,
+			huSrc: panelState.huChangeSource,
 			devMin: panelState.minUnitsPerProject,
 			devMfPct: panelState.minDevMultifamilyRatioPct,
 			devAffPct: panelState.minDevAffordableRatioPct,
 			redev: panelState.includeRedevelopment,
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
-			minHU: panelState.minHuChange,
+			dn: developments.length,
 			domSync: domainOverride ? 'on' : 'off',
 			domColor: domainOverride?.colorDomain,
 			mapTod: panelState.showMapTodCohortShade,
-			mapCtrl: panelState.showMapControlCohortShade
+			mapCtrl: panelState.showMapControlCohortShade,
+			showDev: panelState.showDevelopments
 		})
 	);
 
@@ -154,7 +172,20 @@
 			return;
 		}
 
-		const projection = d3.geoMercator().fitSize([mapW, mapH], tractGeo);
+		const showDevs = panelState.showDevelopments;
+		mapCanvasLeft = showDevs ? DEV_LEGEND_COL_W : 0;
+		const svgW = mapCanvasLeft + mapW + VIRIDIS_LEGEND_COL_W;
+		const svgH = mapH;
+
+		const projection = d3
+			.geoMercator()
+			.fitExtent(
+				[
+					[mapCanvasLeft, 0],
+					[mapCanvasLeft + mapW, mapH]
+				],
+				tractGeo
+			);
 		projectionRef = projection;
 		const path = d3.geoPath(projection);
 
@@ -170,7 +201,13 @@
 
 		const clipId = `map-clip-${mapUid}`;
 		svg.append('defs').append('clipPath').attr('id', clipId)
-			.append('rect').attr('width', mapW).attr('height', mapH);
+			.append('rect')
+			.attr('x', mapCanvasLeft)
+			.attr('y', 0)
+			.attr('width', mapW)
+			.attr('height', mapH);
+
+		svg.append('g').attr('class', 'map-dev-legend-group');
 
 		const mapRoot = svg.append('g').attr('class', 'map-root').attr('clip-path', `url(#${clipId})`);
 		const zoomLayer = mapRoot.append('g').attr('class', 'map-zoom-layer');
@@ -231,7 +268,7 @@
 
 		// Zoom — scale all dot overlays inversely so they stay readable
 		const zoom = d3.zoom()
-			.scaleExtent([1, 20])
+			.scaleExtent([1, 28])
 			.on('zoom', (event) => {
 				zoomLayer.attr('transform', event.transform);
 				const k = event.transform.k;
@@ -240,13 +277,19 @@
 					.attr('r', (d) => stopRadius(d) * invK)
 					.attr('stroke-width', 0.3 * invK);
 				zoomLayer.select('.dev-dots-layer').selectAll('circle.dev-dot')
-					.attr('r', 2.5 * invK)
-					.attr('stroke-width', 0.3 * invK);
+					.attr('r', function () {
+						const d = d3.select(this).datum();
+						return (d?.rBase ?? 2.5) * invK;
+					})
+					.attr('stroke-width', function () {
+						const d = d3.select(this).datum();
+						return (d?.strokeWBase ?? 0.3) * invK;
+					});
 			});
 
 		svg.call(zoom).on('dblclick.zoom', null).style('touch-action', 'none');
 
-		// Legend placeholder
+		// Choropleth legend (Viridis) — placeholder; filled in ``updateChoropleth``
 		svg.append('g').attr('class', 'map-legend-group');
 	}
 
@@ -273,8 +316,10 @@
 
 		const values = filteredTracts.map((t) => Number(t[yKey])).filter((v) => Number.isFinite(v));
 
-		const todSet = new Set(getTodTracts(tractData, panelState).map((t) => t.gisjoin));
-		const controlSet = new Set(getNonTodTracts(tractData, panelState).map((t) => t.gisjoin));
+		const todSet = new Set(getTodTracts(tractData, panelState, developments).map((t) => t.gisjoin));
+		const controlSet = new Set(
+			getNonTodTracts(tractData, panelState, developments).map((t) => t.gisjoin)
+		);
 		const showTodShade = panelState.showMapTodCohortShade;
 		const showCtrlShade = panelState.showMapControlCohortShade;
 
@@ -296,6 +341,8 @@
 			colorScale = d3.scaleSequential(d3.interpolateViridis).domain([lo, hi]).clamp(true);
 		}
 
+		const cohortMode = showTodShade || showCtrlShade;
+
 		d3.select(containerEl).selectAll('path.tract-poly')
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
@@ -305,6 +352,8 @@
 				let fill = hasData ? colorScale(v) : 'var(--bg-card)';
 				const inTod = todSet.has(id);
 				const inCtrl = controlSet.has(id);
+				const cohortLit =
+					(showTodShade && inTod) || (showCtrlShade && inCtrl);
 				// Cohort map tints: blend with Viridis when possible; solid tint when no Y value.
 				if (showTodShade && inTod) {
 					fill =
@@ -316,6 +365,13 @@
 						typeof fill === 'string' && fill.startsWith('#')
 							? blendHex(fill, MAP_CTRL_COHORT_HEX, 0.4)
 							: MAP_CTRL_COHORT_HEX;
+				} else if (cohortMode && !cohortLit) {
+					// Mute everything that is not a cohort highlight so TOD / control tracts read clearly.
+					if (hasData && typeof fill === 'string' && fill.startsWith('#')) {
+						fill = blendHex(fill, MAP_DIM_TOWARD_HEX, 0.62);
+					} else {
+						fill = '#0c0f18';
+					}
 				}
 				return fill;
 			})
@@ -327,99 +383,134 @@
 				const inCtrl = controlSet.has(id);
 				const cohortLit =
 					(showTodShade && inTod) || (showCtrlShade && inCtrl);
-				if (cohortLit && !hasData) return 0.88;
-				return hasData ? 0.9 : 0.25;
+				if (!cohortMode) {
+					if (cohortLit && !hasData) return 0.88;
+					return hasData ? 0.9 : 0.25;
+				}
+				if (cohortLit && !hasData) return 0.9;
+				if (cohortLit && hasData) return 0.94;
+				if (!cohortLit && hasData) return 0.38;
+				return 0.1;
 			});
 
-		// Legend
+		// Legend — compact vertical Viridis colorbar to the right of the map
 		const svg = svgRef;
 		const legGroup = svg.select('.map-legend-group');
 		legGroup.selectAll('*').remove();
+		legGroup.attr('transform', `translate(${mapCanvasLeft + mapW + 3},0)`);
 
-		const legY = mapH + 14;
-		const legW = 280;
-		const legH = 10;
-		const legX = (svgW - legW) / 2;
-		const legendG = legGroup.append('g').attr('transform', `translate(${legX},${legY})`);
+		const titleBlockH = 18;
+		const yTitleTop = 2;
+		const cohortRows = (showTodShade ? 1 : 0) + (showCtrlShade ? 1 : 0);
+		const cohortBlockH = cohortRows > 0 ? cohortRows * 13 + 6 : 0;
+		const y0 = yTitleTop + titleBlockH;
+		const legBarW = 7;
+		const axisPad = 2;
+		const legBarH = Math.max(100, mapH - y0 - cohortBlockH - 6);
+		const fmtTick = (v) => {
+			const n = Number(v);
+			if (!Number.isFinite(n)) return '';
+			const ax = Math.abs(n);
+			if (ax >= 1000 || (ax > 0 && ax < 0.01)) return d3.format('.2~s')(n);
+			return d3.format('.2~f')(n);
+		};
+
+		const legendG = legGroup.append('g').attr('class', 'map-legend-inner');
 		const gradId = `map-grad-${mapUid}`;
 		svg.select('defs').selectAll(`#${gradId}`).remove();
 		const grad = svg.select('defs').append('linearGradient').attr('id', gradId)
-			.attr('x1', '0%').attr('x2', '100%');
+			.attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
+
+		const shortYLabel =
+			yLabel.length > 22 ? `${yLabel.slice(0, 19)}…` : yLabel;
+		legendG.append('text')
+			.attr('x', 0)
+			.attr('y', yTitleTop + 11)
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '8px')
+			.text(shortYLabel);
 
 		if (values.length > 0 && typeof colorScale.domain === 'function') {
 			const domain = colorScale.domain();
+			const d0 = domain.length === 3 ? domain[0] : domain[0];
+			const d1 = domain.length === 3 ? domain[2] : domain[domain.length - 1];
 			const nStops = 48;
-			const legendScale = domain.length === 3
-				? d3.scaleLinear().domain([domain[0], domain[2]]).range([0, legW])
-				: d3.scaleLinear().domain(domain).range([0, legW]);
 			for (let i = 0; i <= nStops; i++) {
 				const t = i / nStops;
-				const v = legendScale.invert(t * legW);
+				const v = d0 + t * (d1 - d0);
 				grad.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', colorScale(v));
 			}
-			legendG.append('rect').attr('width', legW).attr('height', legH).attr('rx', 2)
-				.attr('fill', `url(#${gradId})`).attr('stroke', 'var(--border)').attr('stroke-width', 0.5);
+			legendG.append('rect')
+				.attr('x', 0)
+				.attr('y', y0)
+				.attr('width', legBarW)
+				.attr('height', legBarH)
+				.attr('rx', 2)
+				.attr('fill', `url(#${gradId})`)
+				.attr('stroke', 'var(--border)')
+				.attr('stroke-width', 0.5);
 
-			const axisScale = domain.length === 3
-				? d3.scaleLinear().domain([domain[0], domain[2]]).range([0, legW])
-				: d3.scaleLinear().domain(domain).range([0, legW]);
-			const axis = d3.axisBottom(axisScale).ticks(5).tickFormat(d3.format('.1f'));
-			legendG.append('g').attr('transform', `translate(0,${legH + 4})`)
-				.call(axis)
+			const yScale = d3.scaleLinear().domain([d0, d1]).range([y0 + legBarH, y0]);
+			legendG.append('g')
+				.attr('transform', `translate(${legBarW + axisPad},0)`)
+				.call(d3.axisRight(yScale).ticks(4).tickFormat(fmtTick))
 				.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
-				.call((g) => g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '10px'));
+				.call((g) =>
+					g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '7.5px')
+				);
 		} else {
-			legendG.append('rect').attr('width', legW).attr('height', legH).attr('rx', 2)
-				.attr('fill', 'var(--bg-card)').attr('stroke', 'var(--border)').attr('stroke-width', 0.5);
+			legendG.append('rect')
+				.attr('x', 0)
+				.attr('y', y0)
+				.attr('width', legBarW)
+				.attr('height', legBarH)
+				.attr('rx', 2)
+				.attr('fill', 'var(--bg-card)')
+				.attr('stroke', 'var(--border)')
+				.attr('stroke-width', 0.5);
 		}
 
-		legendG.append('text').attr('x', legW / 2).attr('y', -4)
-			.attr('text-anchor', 'middle').attr('fill', 'var(--text-muted)').attr('font-size', '11px')
-			.text(yLabel);
-
-		// Cohort tint legend (below colorbar title)
 		if (showTodShade || showCtrlShade) {
-			let lx = 0;
-			const ly = -22;
+			let cy = y0 + legBarH + 4;
 			const cohortG = legendG.append('g').attr('class', 'map-cohort-legend');
 			if (showTodShade) {
 				cohortG
 					.append('rect')
-					.attr('x', lx)
-					.attr('y', ly)
-					.attr('width', 12)
-					.attr('height', 12)
+					.attr('x', 0)
+					.attr('y', cy)
+					.attr('width', 10)
+					.attr('height', 10)
 					.attr('rx', 2)
 					.attr('fill', MAP_TOD_COHORT_HEX)
 					.attr('stroke', 'var(--border)')
 					.attr('stroke-width', 0.5);
 				cohortG
 					.append('text')
-					.attr('x', lx + 16)
-					.attr('y', ly + 10)
+					.attr('x', 13)
+					.attr('y', cy + 9)
 					.attr('fill', 'var(--text-muted)')
-					.attr('font-size', '10px')
-					.text('TOD tint');
-				lx += 78;
+					.attr('font-size', '7.5px')
+					.text('TOD');
+				cy += 13;
 			}
 			if (showCtrlShade) {
 				cohortG
 					.append('rect')
-					.attr('x', lx)
-					.attr('y', ly)
-					.attr('width', 12)
-					.attr('height', 12)
+					.attr('x', 0)
+					.attr('y', cy)
+					.attr('width', 10)
+					.attr('height', 10)
 					.attr('rx', 2)
 					.attr('fill', MAP_CTRL_COHORT_HEX)
 					.attr('stroke', 'var(--border)')
 					.attr('stroke-width', 0.5);
 				cohortG
 					.append('text')
-					.attr('x', lx + 16)
-					.attr('y', ly + 10)
+					.attr('x', 13)
+					.attr('y', cy + 9)
 					.attr('fill', 'var(--text-muted)')
-					.attr('font-size', '10px')
-					.text('Control tint');
+					.attr('font-size', '7.5px')
+					.text('non-TOD');
 			}
 		}
 
@@ -433,6 +524,10 @@
 	function updateDevelopments() {
 		if (!containerEl || !svgRef || !projectionRef) return;
 
+		const svg = svgRef;
+		const devLeg = svg.select('.map-dev-legend-group');
+		devLeg.selectAll('*').remove();
+
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		devLayer.selectAll('*').remove();
 
@@ -444,17 +539,82 @@
 		const currentK = d3.zoomTransform(svgRef.node()).k;
 		const invK = 1 / currentK;
 
+		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const huVals = filteredDevs.map((d) => Number(d.hu) || 0).filter((h) => h > 0);
+		const huMin = huVals.length ? d3.min(huVals) : 1;
+		const huMax = huVals.length ? d3.max(huVals) : 1;
+		const lo = Math.max(1, huMin);
+		const hi = Math.max(lo + 1e-6, huMax);
+		const rScale = d3.scaleSqrt().domain([lo, hi]).range([1.4, 8]);
+
+		const mfColor = d3.scaleSequential(d3.interpolateYlGnBu).domain([0, 1]);
+
+		// Left margin: multifamily share colorbar (matches dot fill scale)
+		const y0mf = 18;
+		const legBarHmf = Math.max(100, mapH - y0mf - 8);
+		const legBarWmf = 7;
+		const barLeft = 26;
+		const gradMfId = `map-dev-mf-grad-${mapUid}`;
+		svg.select('defs').selectAll(`#${gradMfId}`).remove();
+		const gradMf = svg.select('defs').append('linearGradient').attr('id', gradMfId)
+			.attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
+		for (let i = 0; i <= 48; i++) {
+			const t = i / 48;
+			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', d3.interpolateYlGnBu(t));
+		}
+		const mfLegG = devLeg.append('g').attr('class', 'map-dev-legend-inner').attr('transform', 'translate(2,0)');
+		mfLegG.append('text')
+			.attr('x', 0)
+			.attr('y', 11)
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '8px')
+			.text('MF %');
+		mfLegG.append('rect')
+			.attr('x', barLeft)
+			.attr('y', y0mf)
+			.attr('width', legBarWmf)
+			.attr('height', legBarHmf)
+			.attr('rx', 2)
+			.attr('fill', `url(#${gradMfId})`)
+			.attr('stroke', 'var(--border)')
+			.attr('stroke-width', 0.5);
+		const yMf = d3.scaleLinear().domain([0, 1]).range([y0mf + legBarHmf, y0mf]);
+		mfLegG.append('g')
+			.attr('transform', `translate(${barLeft},0)`)
+			.call(d3.axisLeft(yMf).ticks(4).tickFormat(d3.format('.0%')))
+			.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
+			.call((g) =>
+				g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '7.5px')
+			);
+
+		const glyphData = filteredDevs.map((d) => {
+			const hu = Number(d.hu) || 0;
+			const mf = developmentMultifamilyShare(d);
+			const access =
+				isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+			const rBase = hu > 0 ? rScale(Math.max(lo, Math.min(hi, hu))) : rScale(lo);
+			return {
+				...d,
+				mfShare: mf,
+				rBase,
+				strokeWBase: access ? 0.525 : 0.38,
+				transitAccessible: access
+			};
+		});
+
 		devLayer.selectAll('circle.dev-dot')
-			.data(filteredDevs, (d, i) => `${d.gisjoin}-${d.lat}-${d.lon}-${i}`)
+			.data(glyphData, (d, i) => `${d.gisjoin}-${d.lat}-${d.lon}-${i}`)
 			.join('circle')
 			.attr('class', 'dev-dot')
 			.attr('cx', (d) => projection([d.lon, d.lat])?.[0] ?? -9999)
 			.attr('cy', (d) => projection([d.lon, d.lat])?.[1] ?? -9999)
-			.attr('r', 2.5 * invK)
-			.attr('fill', (d) => d.mixed_use ? '#f472b6' : '#22d3ee')
-			.attr('fill-opacity', 0.85)
-			.attr('stroke', '#333')
-			.attr('stroke-width', 0.3 * invK)
+			.attr('r', (d) => d.rBase * invK)
+			.attr('fill', (d) =>
+				d.mfShare == null || !Number.isFinite(d.mfShare) ? '#475569' : mfColor(d.mfShare)
+			)
+			.attr('fill-opacity', 0.75)
+			.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
+			.attr('stroke-width', (d) => d.strokeWBase * invK)
 			.style('cursor', 'pointer')
 			.on('mouseenter', handleDevEnter)
 			.on('mousemove', handleMouseMove)
@@ -594,9 +754,33 @@
 	}
 
 	function handleDevEnter(event, d) {
+		const fmtPct = d3.format('.1f');
 		const lines = [{ bold: true, text: d.name || 'Development' }];
 		lines.push({ bold: false, text: `${d.municipal}` });
 		lines.push({ bold: false, text: `Units: ${d.hu}` });
+		const mf = developmentMultifamilyShare(d);
+		if (mf != null && Number.isFinite(mf)) {
+			lines.push({ bold: false, text: `Multifamily (share): ${fmtPct(mf * 100)}%` });
+		}
+		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const todMi = panelState.transitDistanceMi ?? 0.5;
+		const prox = developmentMbtaProximity(d, mbtaStops, transitM);
+		const access =
+			isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+		const nearestM = prox.nearestDistM;
+		const nWithin = prox.stopsWithinRadius;
+		if (nearestM != null && Number.isFinite(nearestM)) {
+			lines.push({
+				bold: false,
+				text: `Nearest stop: ${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
+			});
+		} else {
+			lines.push({ bold: false, text: 'Nearest stop: \u2014' });
+		}
+		lines.push({
+			bold: false,
+			text: `Stops within ${todMi} mi: ${nWithin}`
+		});
 		const affCap = developmentAffordableUnitsCapped(d);
 		if (affCap > 0) {
 			const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
@@ -696,7 +880,8 @@
 	}
 	.map-root {
 		width: 100%;
-		min-height: 200px;
+		max-width: 100%;
+		min-height: 280px;
 	}
 	:global(.map-empty) {
 		margin: 0;

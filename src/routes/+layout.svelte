@@ -19,9 +19,10 @@
 	});
 </script>
 
-<NavBar />
+<div class="site-shell">
+	<NavBar />
 
-<main>
+	<main>
 	{#if loading}
 		<div class="loading-screen">
 			<div class="spinner"></div>
@@ -33,20 +34,37 @@
 			<p>{error}</p>
 		</div>
 	{:else}
-		{@render children()}
+		<div class="main-page">
+			{@render children()}
+		</div>
 	{/if}
-</main>
+	</main>
+</div>
 
 <style>
+	.site-shell {
+		max-width: min(1280px, 100%);
+		margin: 0 auto;
+		width: 100%;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
 	main {
-		min-height: calc(100vh - 56px);
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 	}
 	.loading-screen, .error-screen {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		min-height: 60vh;
+		flex: 1;
+		min-height: 0;
 		gap: 16px;
 	}
 	.spinner {
@@ -59,4 +77,13 @@
 	}
 	@keyframes spin { to { transform: rotate(360deg); } }
 	.error-screen h2 { color: var(--danger); }
+
+	.main-page {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		overflow-x: hidden;
+		overflow-y: auto;
+	}
 </style>

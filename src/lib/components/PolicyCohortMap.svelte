@@ -1,10 +1,10 @@
 <script>
 	import { onDestroy } from 'svelte';
 	import * as d3 from 'd3';
-	import { tractData, tractGeo, mbtaLines } from '$lib/stores/data.svelte.js';
+	import { tractData, tractGeo, mbtaLines, developments } from '$lib/stores/data.svelte.js';
 	import {
-		isNonTodCohortTract,
-		isTodCohortTract,
+		buildTodAnalysisData,
+		classifyTractDevelopment,
 		passesTractUniverse
 	} from '$lib/utils/derived.js';
 
@@ -36,27 +36,33 @@
 	const structuralKey = $derived(
 		JSON.stringify({
 			n: tractData.length,
+			dn: developments.length,
 			gf: tractGeo?.features?.length ?? 0,
 			cfg: panelConfig
 		})
 	);
 
 	/**
-	 * Classify a tract row for fixed-fill choropleth (TOD / control / gap / out of universe).
+	 * Classify a tract for fixed-fill choropleth using MassBuilds TOD units + development thresholds.
 	 *
 	 * Parameters
 	 * ----------
 	 * tract : object | undefined
 	 * pc : PanelConfigLike
+	 * tractTodMetrics : Map<string, object>
+	 * sig : number
+	 * cut : number
 	 *
 	 * Returns
 	 * -------
 	 * 'tod' | 'control' | 'other' | 'outside'
 	 */
-	function cohortFillClass(tract, pc) {
+	function cohortFillClass(tract, pc, tractTodMetrics, sig, cut) {
 		if (!tract || !passesTractUniverse(tract, pc)) return 'outside';
-		if (isTodCohortTract(tract, pc)) return 'tod';
-		if (isNonTodCohortTract(tract, pc)) return 'control';
+		const m = tractTodMetrics.get(tract.gisjoin);
+		const cls = classifyTractDevelopment(m, sig, cut);
+		if (cls === 'tod_dominated') return 'tod';
+		if (cls === 'nontod_dominated') return 'control';
 		return 'other';
 	}
 
@@ -128,6 +134,9 @@
 			.attr('vector-effect', 'non-scaling-stroke');
 
 		const tLookup = tractLookupMap();
+		const { tractTodMetrics } = buildTodAnalysisData(tractData, developments, panelConfig);
+		const sig = panelConfig.sigDevMinPctStockIncrease ?? 2;
+		const cut = panelConfig.todFractionCutoff ?? 0.5;
 		zoomLayer.append('g').attr('class', 'tract-layer')
 			.selectAll('path.tract-poly')
 			.data(features, (d) => d.properties?.gisjoin)
@@ -138,7 +147,7 @@
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = tLookup.get(id);
-				const cls = cohortFillClass(row, panelConfig);
+				const cls = cohortFillClass(row, panelConfig, tractTodMetrics, sig, cut);
 				if (cls === 'tod') return TOD_FILL;
 				if (cls === 'control') return CTRL_FILL;
 				if (cls === 'other') return OTHER_FILL;
@@ -147,7 +156,7 @@
 			.attr('fill-opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = tLookup.get(id);
-				const cls = cohortFillClass(row, panelConfig);
+				const cls = cohortFillClass(row, panelConfig, tractTodMetrics, sig, cut);
 				if (cls === 'outside') return 0.22;
 				if (cls === 'other') return 0.5;
 				return 0.88;
@@ -167,9 +176,9 @@
 			.attr('transform', `translate(16,${legY})`);
 
 		const items = [
-			{ fill: TOD_FILL, label: 'TOD (analysis cohort)' },
-			{ fill: CTRL_FILL, label: 'non-TOD (control cohort)' },
-			{ fill: OTHER_FILL, label: 'In universe, neither cohort' },
+			{ fill: TOD_FILL, label: 'TOD-dominated (MassBuilds TOD share)' },
+			{ fill: CTRL_FILL, label: 'non-TOD-dominated, significant dev' },
+			{ fill: OTHER_FILL, label: 'In universe, minimal or mixed' },
 			{ fill: '#94a3b8', label: 'Outside tract filters', note: 'dim' }
 		];
 		let y = 0;

@@ -1,5 +1,10 @@
 import { base } from '$app/paths';
 
+const MISSING_NEAREST_STOP =
+	'developments.json must include a numeric nearest_stop_dist_m for every MassBuilds project. ' +
+	'Run the data pipeline on your machine and copy outputs into static/data, e.g.: ' +
+	'conda activate ./.conda && python scripts/process_data.py';
+
 /**
  * Shared dashboard data loaded once at app startup from ``static/data`` (served under ``{base}/data/`` for GitHub Pages).
  *
@@ -27,6 +32,27 @@ function replaceObjectProps(target, source) {
 }
 
 /**
+ * Fail fast if the pipeline did not attach per-project nearest-stop distances.
+ *
+ * Parameters
+ * ----------
+ * devs : Array<object>
+ *
+ * Returns
+ * -------
+ * void
+ */
+function assertDevelopmentsHaveNearestStopDist(devs) {
+	if (!Array.isArray(devs) || devs.length === 0) return;
+	for (let i = 0; i < devs.length; i++) {
+		const v = devs[i].nearest_stop_dist_m;
+		if (v == null || !Number.isFinite(Number(v))) {
+			throw new Error(MISSING_NEAREST_STOP);
+		}
+	}
+}
+
+/**
  * Fetch all dashboard JSON assets in parallel and assign module state.
  */
 export async function loadAllData() {
@@ -50,6 +76,8 @@ export async function loadAllData() {
 			mbtaLinesRes.json(),
 			metaRes.json()
 		]);
+
+	assertDevelopmentsHaveNearestStopDist(devsJson);
 
 	tractData.length = 0;
 	tractData.push(...tractDataJson);

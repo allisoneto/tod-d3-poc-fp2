@@ -50,8 +50,9 @@
 			</section>
 
 			<p class="footnote">
-				Scatter and bar charts focus on TOD (analysis) tracts; optional grey points or paired
-				non-TOD bars compare against the control cohort from your census-tract filters.
+				The bar chart bins <strong>TOD-dominated</strong> tracts (MassBuilds TOD housing share at or above
+				your cutoff); optional grey bars compare <strong>non-TOD-dominated</strong> tracts with significant
+				development. Map highlights and thresholds are controlled under TOD Analysis in the filter panel.
 			</p>
 	</div>
 </aside>
