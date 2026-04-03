@@ -2,20 +2,29 @@
 	import '../app.css';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import { loadAllData } from '$lib/stores/data.svelte.js';
-	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 
 	let { children } = $props();
-	let loading = $state(true);
-	let error = $state(null);
+	let error = $state(/** @type {string | null} */ (null));
+	/** Tract/policy bundle successfully loaded at least once. */
+	let tractDataReady = $state(false);
 
-	onMount(async () => {
-		try {
-			await loadAllData();
-		} catch (e) {
-			error = e.message;
-		} finally {
-			loading = false;
-		}
+	function needsTractData(/** @type {string | null} */ routeId) {
+		return routeId === '/tract' || routeId === '/policy';
+	}
+
+	$effect(() => {
+		const id = page.route.id;
+		if (!needsTractData(id)) return;
+		if (tractDataReady) return;
+		error = null;
+		loadAllData()
+			.then(() => {
+				tractDataReady = true;
+			})
+			.catch((e) => {
+				error = e instanceof Error ? e.message : String(e);
+			});
 	});
 </script>
 
@@ -23,16 +32,22 @@
 	<NavBar />
 
 	<main>
-	{#if loading}
-		<div class="loading-screen">
-			<div class="spinner"></div>
-			<p>Loading dashboard data...</p>
-		</div>
-	{:else if error}
-		<div class="error-screen">
-			<h2>Failed to load data</h2>
-			<p>{error}</p>
-		</div>
+	{#if needsTractData(page.route.id)}
+		{#if error}
+			<div class="error-screen">
+				<h2>Failed to load data</h2>
+				<p>{error}</p>
+			</div>
+		{:else if !tractDataReady}
+			<div class="loading-screen">
+				<div class="spinner"></div>
+				<p>Loading dashboard data...</p>
+			</div>
+		{:else}
+			<div class="main-page">
+				{@render children()}
+			</div>
+		{/if}
 	{:else}
 		<div class="main-page">
 			{@render children()}

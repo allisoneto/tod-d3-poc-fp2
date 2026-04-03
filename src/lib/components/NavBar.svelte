@@ -3,15 +3,17 @@
 	import { page } from '$app/state';
 
 	// Use route id so active states work when kit.paths.base is set (e.g. GitHub Pages).
-	const onDashboard = $derived(page.route.id === '/');
+	const onMunicipal = $derived(page.route.id === '/');
+	const onTract = $derived(page.route.id === '/tract');
 	const onPolicy = $derived(page.route.id === '/policy');
 </script>
 
 <nav class="navbar" aria-label="Primary">
 	<a class="brand" href="{base}/">TOD Demographics Dashboard</a>
 	<ul class="links">
-		<li><a href="{base}/" class:active={onDashboard}>Dashboard</a></li>
-		<li><a href="{base}/policy" class:active={onPolicy}>Policy Insights</a></li>
+		<li><a href="{base}/" class:active={onMunicipal}>Income &amp; TOD</a></li>
+		<li><a href="{base}/tract" class:active={onTract}>Tract dashboard</a></li>
+		<li><a href="{base}/policy" class:active={onPolicy}>Policy insights</a></li>
 	</ul>
 </nav>
 
