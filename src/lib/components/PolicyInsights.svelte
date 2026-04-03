@@ -72,7 +72,7 @@
 	});
 
 	/**
-	 * Population-weighted TOD vs non-TOD vs minimal means for every scatter Y-axis metric (same logic as the dashboard cohort summary).
+	 * Population-weighted TOD vs non-TOD vs minimal-development means for every scatter Y-axis metric (same logic as the dashboard cohort summary).
 	 */
 	const cohortRowsByY = $derived.by(() => {
 		void cohortDevSplit;
@@ -415,7 +415,7 @@
 		<h2 id="cohort-map-heading" class="section-title">TOD-dominated tracts on the map</h2>
 		<p class="section-lead">
 			Tracts are classified from MassBuilds TOD housing units (transit distance, dev filters, and thresholds above).
-			TOD-dominated vs non-TOD-dominated significant development match the tables below; minimal or mixed tracts
+			TOD-dominated vs non-TOD-dominated significant development match the tables below; minimal development or mixed tracts
 			appear in slate.
 		</p>
 		<PolicyCohortMap panelConfig={panelConfig} />

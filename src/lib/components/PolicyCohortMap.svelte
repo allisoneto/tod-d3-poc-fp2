@@ -178,7 +178,7 @@
 		const items = [
 			{ fill: TOD_FILL, label: 'TOD-dominated (MassBuilds TOD share)' },
 			{ fill: CTRL_FILL, label: 'non-TOD-dominated, significant dev' },
-			{ fill: OTHER_FILL, label: 'In universe, minimal or mixed' },
+			{ fill: OTHER_FILL, label: 'In universe, minimal development or mixed' },
 			{ fill: '#94a3b8', label: 'Outside tract filters', note: 'dim' }
 		];
 		let y = 0;

@@ -61,7 +61,9 @@
 		max-width: min(1280px, 100%);
 		margin: 0 auto;
 		width: 100%;
-		min-height: 100vh;
+		/* Fill the viewport so main/.main-page get a bounded height and scroll inside .main-page (needed for sticky sidebars). */
+		min-height: 100%;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
 	}
@@ -71,7 +73,8 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
+		/* Must not be overflow:hidden — that breaks position:sticky for sidebar controls inside .main-page */
+		overflow: visible;
 	}
 	.loading-screen, .error-screen {
 		display: flex;
@@ -93,12 +96,15 @@
 	@keyframes spin { to { transform: rotate(360deg); } }
 	.error-screen h2 { color: var(--danger); }
 
+	/*
+	 * Block layout (not flex): a flex child with min-height:auto would grow with POC content and
+	 * move scrolling to the document, which breaks position:sticky on the controls sidebar.
+	 */
 	.main-page {
 		flex: 1;
 		min-height: 0;
-		display: flex;
-		flex-direction: column;
 		overflow-x: hidden;
 		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
 	}
 </style>

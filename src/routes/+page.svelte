@@ -417,14 +417,32 @@
 			minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
 			minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,
 			includeRedevelopment: DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment,
-			trimOutliers: true,
+			trimOutliers: false,
 			hoveredTract: null,
-			selectedTracts: new Set()
+			selectedTracts: new Set(),
+			/** @param {string | null} gisjoin */
+			setHovered(gisjoin) {
+				this.hoveredTract = gisjoin;
+			},
+			/** @param {string} gisjoin */
+			toggleTract(gisjoin) {
+				const next = new Set(this.selectedTracts);
+				if (next.has(gisjoin)) next.delete(gisjoin);
+				else next.add(gisjoin);
+				this.selectedTracts = next;
+			}
 		};
 	}
 
-	const incomePanelState = $derived(makeTodScatterPanelState('median_income_change_pct'));
-	const eduPanelState = $derived(makeTodScatterPanelState('bachelors_pct_change'));
+	/** $state so hover/selection updates rerun TodIntensityScatter effects (plain $derived objects are not deeply reactive). */
+	let incomePanelState = $state(makeTodScatterPanelState('median_income_change_pct'));
+	let eduPanelState = $state(makeTodScatterPanelState('bachelors_pct_change'));
+
+	$effect(() => {
+		void threshold;
+		incomePanelState = makeTodScatterPanelState('median_income_change_pct');
+		eduPanelState = makeTodScatterPanelState('bachelors_pct_change');
+	});
 
 	/* ── Tract chart element refs ─────────────────────── */
 	let elTractChoroNhgis = $state(/** @type {HTMLElement | undefined} */ (undefined));
@@ -482,7 +500,7 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="hero-full card">
 		<div class="eyebrow">Proof of Concept</div>
-		<h1>TOD's link with gentrification: how affordability helps.</h1>
+		<h1>TOD and gentrification: how affordability helps.</h1>
 		<p class="subtitle">
 			As Massachusetts works to encourage transit-oriented development, policymakers should be aware
 			that this development can cause displacement, gentrification, and other demographic changes.
@@ -506,7 +524,8 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
 		<aside class="controls card">
-			<h2>Controls</h2>
+			<div class="controls-inner">
+			<h2>Municipality Dashboard Controls</h2>
 			<p class="controls-note">Primary controls: adjust the time window, the TOD distance definition, and the municipality scope.</p>
 
 			<div class="control-block">
@@ -595,6 +614,7 @@
 					{/each}
 				</div>
 			</div>
+			</div>
 		</aside>
 
 		<div class="content">
@@ -639,6 +659,9 @@
 				<section class="chart-card card">
 					<h3>TOD vs non-TOD mix by year</h3>
 					<div class="chart-wrap small-chart" bind:this={elComposition}></div>
+					<p class="chart-note">
+						The share of new development that is transit-oriented 
+					</p>
 				</section>
 				<section class="chart-card card">
 					<h3>When production rises, affordability often lags</h3>
@@ -653,7 +676,7 @@
 			<section class="story card">
 				<h2>Where is TOD taking place?</h2>
 				<p>
-					Development is not distributed evenly across Massachusetts, and transit-oriented development is specifically concentrated in lower-income municipalities.
+					Development is not distributed evenly across Massachusetts, and transit-oriented development is mostly concentrated in lower-income municipalities.
 				</p>
 			</section>
 
@@ -672,7 +695,7 @@
 					<div class="chart-wrap small-chart" bind:this={elRanked}></div>
 				</section>
 				<section class="chart-card card">
-					<h3>The map shows where vulnerability and growth overlap</h3>
+					<h3>The map below shows where vulnerability and growth overlap</h3>
 					<div class="chart-toolbar">
 						<label class="label" for="poc-map-metric" style="margin:0">Map metric</label>
 						<select id="poc-map-metric" bind:value={mapMetric}>
@@ -688,28 +711,29 @@
 				</section>
 			</div>
 
-			<!-- ── 4. Most not affordable ───────────────── -->
-			<div class="story-chart-row story-chart-row--muni">
-				<section class="story card story-chart-text">
-					<h2>The issue of affordability</h2>
-					<p>
-						A primary concern for many residents is the gap between housing supply and genuine affordability.
-						Although TOD projects often increase the total number of housing units, a greater proportion
-						are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
-						of reduced transportation costs is then negated by the sharp rise in rent — and as a result,
-						<strong>lower-income residents are pushed further to the periphery</strong>.
-					</p>
-				</section>
-
-				<section class="chart-card card story-chart-plot">
-					<h3>Most new housing is still market-rate</h3>
-					<p class="chart-note">
-						The percentage of new development that is affordable has decreased significantly in recent years,
-						which likely indicates that lower-income residents are benefitting much less from the new development.
-					</p>
-					<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordMix}></div>
-				</section>
-			</div>
+			<!-- ── 4. Most not affordable (single card: narrative + chart) ───────────────── -->
+			<section class="card story-chart-panel">
+				<div class="story-chart-panel__grid">
+					<div class="story-chart-panel__text">
+						<h2>The issue of affordability</h2>
+						<p>
+							A primary concern for many residents is the gap between housing supply and genuine affordability.
+							Although TOD projects often increase the total number of housing units, a greater proportion
+							are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
+							of reduced transportation costs is then negated by the sharp rise in rent — and as a result,
+							<strong>lower-income residents are pushed further to the periphery</strong>.
+						</p>
+					</div>
+					<div class="story-chart-panel__chart">
+						<h3>Most new housing is still market-rate</h3>
+						<p class="chart-note">
+							The percentage of new development that is affordable has decreased significantly in recent years,
+							which likely indicates that lower-income residents are benefitting much less from the new development.
+						</p>
+						<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordMix}></div>
+					</div>
+				</div>
+			</section>
 
 			<!-- ── 5. Displacement explanation ──────────── -->
 			<section class="story card">
@@ -731,21 +755,22 @@
 				</p>
 			</section>
 
-			<!-- ── 6. Higher-vulnerability areas ─────────── -->
-			<div class="story-chart-row story-chart-row--muni">
-				<section class="story card story-chart-text">
-					<h2>The communities most at risk of gentrification are seeing the most development</h2>
-					<p>
-						Municipalities with more households whose incomes are below $125k are seeing greater new development.
-						These areas are both the most vulnerable, and the most likely to be affected.
-					</p>
-				</section>
-
-				<section class="chart-card card story-chart-plot">
-					<h3>Development in above-median vulnerability municipalities vs below-median vulnerability municipalities</h3>
-					<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
-				</section>
-			</div>
+			<!-- ── 6. Higher-vulnerability areas (single card: narrative + chart) ─────────── -->
+			<section class="card story-chart-panel">
+				<div class="story-chart-panel__grid">
+					<div class="story-chart-panel__text">
+						<h2>The communities most at risk of gentrification are seeing the most development</h2>
+						<p>
+							Municipalities with more households whose incomes are below $125k are seeing greater new development.
+							These areas are both the most vulnerable, and the most likely to be affected.
+						</p>
+					</div>
+					<div class="story-chart-panel__chart">
+						<h3>Development in above-median vulnerability municipalities vs below-median vulnerability municipalities</h3>
+						<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
+					</div>
+				</div>
+			</section>
 		</div>
 	</section>
 
@@ -772,8 +797,10 @@
 				(where TOD units make up less than 50% of new development).
 			</p>
 			<p>
-				The TOD distance threshold of <strong>{threshold.toFixed(2)} miles</strong> from Part 1
-				carries through to the tract analysis below — adjust the slider above to see how it affects
+				Because these demographic shifts are measured using census tracts from the decennial census,
+				municipality filters and year-to-year playback are not applied here.
+				However, the TOD distance threshold of <strong>{threshold.toFixed(2)} miles</strong>
+				through to the tract analysis below — adjust the slider above to see how it affects
 				the demographic patterns.
 			</p>
 		</section>
@@ -838,7 +865,7 @@
 						Each point is a tract; color = TOD share of new units; size = population.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<TodIntensityScatter panelState={incomePanelState} wideLayout />
+						<TodIntensityScatter panelState={incomePanelState} wideLayout showTrimControl={false} />
 					</div>
 				</section>
 			</div>
@@ -867,7 +894,7 @@
 						of residents with bachelor's degrees or higher — a lead indicator of gentrification pressure.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<TodIntensityScatter panelState={eduPanelState} wideLayout />
+						<TodIntensityScatter panelState={eduPanelState} wideLayout showTrimControl={false} />
 					</div>
 				</section>
 			</div>
@@ -880,7 +907,7 @@
 					TOD-dominated tracts see greater income and education increases than both non-TOD
 					dominated and minimal development tracts.
 				</p>
-				<div class="chart-wrap small-chart" bind:this={elTractEdu}></div>
+				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
 			</section>
 
 			<!-- ── 10. How affordability helps ──────────── -->
@@ -933,7 +960,7 @@
 									<span class="takeaway-value">{row.fmtCtrl}</span>
 								</div>
 								<div class="takeaway-row">
-									<span class="takeaway-tag minimal">minimal</span>
+									<span class="takeaway-tag minimal">minimal development</span>
 									<span class="takeaway-value">{row.fmtMinimal}</span>
 								</div>
 							</div>
@@ -1032,7 +1059,7 @@
 		--mpc-warning: #ed8b00;
 		--mpc-blue5: #003da5;
 
-		font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+		font-family: var(--font-body);
 		color: var(--ink);
 		background:
 			radial-gradient(circle at top left, rgba(0, 132, 61, 0.08), transparent 28%),
@@ -1046,7 +1073,6 @@
 	* { box-sizing: border-box; }
 
 	h1, h2, h3, p { margin-top: 0; }
-	h1, h2, h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 
 	h1 {
 		margin-bottom: 14px;
@@ -1094,7 +1120,20 @@
 	.controls {
 		position: sticky;
 		top: 16px;
+		align-self: start;
+		padding: 0;
+		/* Main column sits below the 56px nav; cap height so the sticky panel stays in view. */
+		max-height: calc(100dvh - 56px - 32px);
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	.controls-inner {
 		padding: 20px;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		min-height: 0;
 	}
 
 	.controls h2 { margin-bottom: 10px; font-size: 1.1rem; }
@@ -1295,6 +1334,13 @@
 	.small-chart { min-height: 320px; }
 	.chart-tall { min-height: 520px; }
 
+	/* Cohort comparison chart: responsive height, scroll if needed */
+	.chart-wrap--tract-edu {
+		min-height: 0;
+		max-height: min(78vh, 620px);
+		overflow: auto;
+	}
+
 	.scatter-container {
 		display: flex;
 		justify-content: center;
@@ -1313,29 +1359,49 @@
 		align-items: start;
 	}
 
-	/* Municipal: balanced two columns — chart gets a real min width (no tiny % cap) */
-	.story-chart-row--muni {
-		grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr);
-		/* start: do not stretch chart column to story height (was stretching SVGs vertically) */
-		align-items: start;
+	/* Narrative + chart in one white card (municipal affordability & vulnerability) */
+	.story-chart-panel {
+		padding: 22px 24px;
 	}
 
-	.story-chart-row--muni .story-chart-plot {
+	.story-chart-panel__grid {
+		display: grid;
+		gap: 18px;
+		align-items: start;
+		grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr);
+	}
+
+	.story-chart-panel__text h2 {
+		font-size: 1.2rem;
+		margin-bottom: 10px;
+	}
+
+	.story-chart-panel__text p {
+		color: var(--muted);
+		line-height: 1.58;
+		margin-bottom: 0;
+	}
+
+	.story-chart-panel__chart {
 		width: 100%;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		min-height: 0;
 	}
 
-	/* Shorter charts: drop global .chart-wrap / .small-chart min-heights; no flex-grow */
-	.story-chart-row--muni .story-chart-plot .chart-wrap.small-chart.compact-side-chart {
+	.story-chart-panel__chart h3 {
+		font-size: 1rem;
+		margin-bottom: 8px;
+	}
+
+	.story-chart-panel__chart .chart-wrap.small-chart.compact-side-chart {
 		flex: 0 0 auto;
 		min-height: 0;
 		height: auto;
 		width: 100%;
 	}
 
-	.story-chart-row--muni .compact-side-chart :global(svg) {
+	.story-chart-panel .compact-side-chart :global(svg) {
 		display: block;
 		width: 100%;
 		height: auto;
@@ -1361,10 +1427,6 @@
 		max-width: 34em;
 	}
 
-	.story-chart-row--muni .story-chart-text {
-		max-width: none;
-	}
-
 	.story-chart-plot {
 		min-width: 0;
 	}
@@ -1378,15 +1440,46 @@
 	}
 
 	@media (max-width: 920px) {
-		.story-chart-row--muni,
+		.story-chart-panel__grid,
 		.story-chart-row--tract {
 			grid-template-columns: 1fr;
 		}
 
-		.story-chart-row--muni .compact-side-chart {
+		.story-chart-panel .compact-side-chart {
 			max-height: none;
 			min-height: 260px;
 		}
+	}
+
+	:global(.poc-root .mpc-map-zoom-hint) {
+		font-size: 0.78rem;
+		color: var(--muted);
+		margin: 8px 0 0;
+		line-height: 1.45;
+	}
+
+	:global(.poc-root .mpc-tract-edu-legend) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px 20px;
+		align-items: center;
+		margin-bottom: 6px;
+		font-size: 0.82rem;
+		color: var(--muted);
+	}
+
+	:global(.poc-root .mpc-tract-edu-legend-item) {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	:global(.poc-root .mpc-tract-edu-swatch) {
+		width: 11px;
+		height: 11px;
+		border-radius: 2px;
+		flex-shrink: 0;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 	}
 
 	/* TodIntensityScatter: readable tooltip on warm background */
@@ -1677,6 +1770,5 @@
 		.dashboard, .small-grid, .summary-grid {
 			grid-template-columns: 1fr;
 		}
-		.controls { position: static; }
 	}
 </style>

@@ -18,6 +18,9 @@
 	--radius-sm: 4px;
 	--shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 	--font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+	/* Body copy vs. headings (used site-wide). */
+	--font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+	--font-heading: Helvetica, 'Helvetica Neue', Arial, sans-serif;
 }
 
 *,
@@ -30,11 +33,20 @@
 
 html, body {
 	height: 100%;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+	font-family: var(--font-body);
 	background: var(--bg);
 	color: var(--text);
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-heading);
 }
 
 a { color: var(--accent); text-decoration: none; }

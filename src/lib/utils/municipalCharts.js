@@ -7,6 +7,7 @@
  */
 import * as d3 from 'd3';
 import { normalize } from './municipalModel.js';
+import { createMapZoomLayer } from './mapZoom.js';
 
 /* ── Shared constants & helpers ──────────────────────── */
 
@@ -419,13 +420,22 @@ export function renderMuniChoropleth(el, allRows, domainRows, muniGeo, state, ca
 
 	const projection = d3.geoIdentity().reflectY(true).fitSize([width, height], muniGeo);
 	const path = d3.geoPath(projection);
-	const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+	const svg = root
+		.append('svg')
+		.attr('viewBox', `0 0 ${width} ${height}`)
+		.attr('width', '100%')
+		.attr('height', 'auto')
+		.attr('preserveAspectRatio', 'xMidYMid meet')
+		.style('display', 'block')
+		.style('touch-action', 'none');
+	const zoomLayer = createMapZoomLayer(svg, width, height, { maxScale: 20 });
 	const tooltip = makeTooltip(root);
 
-	svg
+	zoomLayer
 		.selectAll('path')
 		.data(muniGeo.features)
 		.join('path')
+		.attr('vector-effect', 'non-scaling-stroke')
 		.attr('d', path)
 		.transition()
 		.duration(250)
@@ -479,6 +489,11 @@ export function renderMuniChoropleth(el, allRows, domainRows, muniGeo, state, ca
 		state.selected.clear();
 		callbacks.onSelectionChange();
 	});
+
+	root
+		.append('p')
+		.attr('class', 'mpc-map-zoom-hint')
+		.text('Scroll or pinch to zoom · drag to pan · double-click to reset');
 }
 
 /* ── Timeline ────────────────────────────────────────── */

@@ -351,7 +351,7 @@
 					<input type="number" min="0" max="1" step="0.05" bind:value={todFractionCutoff} />
 				</label>
 				<p class="mpc-hint">
-					Minimal vs TOD vs non-TOD cohorts on NHGIS charts use the same rules as the
+					Minimal development vs TOD vs non-TOD cohorts on NHGIS charts use the same rules as the
 					<a href="{base}/tract">tract dashboard</a> TOD Analysis (stock growth + TOD share).
 				</p>
 			</details>
@@ -539,7 +539,7 @@
 						Population-weighted means (MassBuilds cohort tiers); p-values for TOD-dominated vs non-TOD-dominated
 						only.
 					</p>
-					<div class="mpc-chart-wrap mpc-chart-sm" bind:this={elTractEdu}></div>
+					<div class="mpc-chart-wrap mpc-chart-sm mpc-chart-tract-edu" bind:this={elTractEdu}></div>
 				</section>
 				<section class="mpc-card mpc-chart-card">
 					<h3 class="mpc-h3">Travel time change</h3>
@@ -566,7 +566,7 @@
 		--mpc-accent-soft: #d8efe2;
 		--mpc-warning: #ed8b00;
 		--mpc-blue5: #003da5;
-		font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+		font-family: var(--font-body);
 		color: var(--mpc-ink);
 		background: var(--mpc-bg);
 		padding: 16px;
@@ -834,6 +834,12 @@
 		min-height: 260px;
 	}
 
+	.mpc-chart-tract-edu {
+		min-height: 0;
+		max-height: min(78vh, 620px);
+		overflow: auto;
+	}
+
 	.mpc-small-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -887,6 +893,37 @@
 		opacity: 0;
 		z-index: 20;
 		max-width: 280px;
+	}
+
+	:global(.mpc-root .mpc-map-zoom-hint) {
+		font-size: 0.78rem;
+		color: var(--mpc-muted);
+		margin: 8px 0 0;
+		line-height: 1.45;
+	}
+
+	:global(.mpc-root .mpc-tract-edu-legend) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px 20px;
+		align-items: center;
+		margin-bottom: 6px;
+		font-size: 0.82rem;
+		color: var(--mpc-muted);
+	}
+
+	:global(.mpc-root .mpc-tract-edu-legend-item) {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	:global(.mpc-root .mpc-tract-edu-swatch) {
+		width: 11px;
+		height: 11px;
+		border-radius: 2px;
+		flex-shrink: 0;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 	}
 
 	:global(.mpc-root .mpc-chart-note) {

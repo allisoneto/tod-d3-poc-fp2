@@ -422,7 +422,7 @@ export function getNonTodTracts(tracts, panelState, developments) {
 }
 
 /**
- * Tracts with **minimal** development (below significant stock-growth threshold or
+ * Tracts with **minimal development** (below significant stock-growth threshold or
  * indeterminate TOD share) — same rules as ``classifyTractDevelopment``.
  *
  * Parameters
@@ -441,7 +441,7 @@ export function getMinimalDevelopmentTracts(tracts, developments, panelState) {
 
 /**
  * Single ``buildTodAnalysisData`` pass: split universe tracts into TOD-dominated,
- * non-TOD-dominated (significant dev), and minimal cohorts.
+ * non-TOD-dominated (significant dev), and minimal-development cohorts.
  *
  * Parameters
  * ----------
@@ -1175,7 +1175,7 @@ export function aggregateTractTodMetrics(
 }
 
 /**
- * Classify a tract into minimal / TOD-dominated / non-TOD-dominated development.
+ * Classify a tract into minimal-development / TOD-dominated / non-TOD-dominated development.
  *
  * Parameters
  * ----------

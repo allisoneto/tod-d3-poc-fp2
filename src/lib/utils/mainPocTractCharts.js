@@ -2,6 +2,7 @@
  * D3 charts for the main-page tract POC (mirrors ``static/municipal/index.html`` behavior).
  */
 import * as d3 from 'd3';
+import { createMapZoomLayer } from './mapZoom.js';
 
 const incomePalette = ['#edf4ff', '#bfd6f6', '#6fa8dc', '#2f6ea6', '#003da5'];
 
@@ -358,13 +359,22 @@ export function drawMainPocTractCharts(cfg) {
 			const height = 480;
 			const projection = d3.geoMercator().fitSize([width, height], tractGeo);
 			const path = d3.geoPath(projection);
-			const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+			const svg = root
+				.append('svg')
+				.attr('viewBox', `0 0 ${width} ${height}`)
+				.attr('width', '100%')
+				.attr('height', 'auto')
+				.attr('preserveAspectRatio', 'xMidYMid meet')
+				.style('display', 'block')
+				.style('touch-action', 'none');
+			const zoomLayer = createMapZoomLayer(svg, width, height, { maxScale: 22 });
 			const tooltip = makeTooltip(root);
 
-			svg
+			zoomLayer
 				.selectAll('path')
 				.data(tractGeo.features)
 				.join('path')
+				.attr('vector-effect', 'non-scaling-stroke')
 				.attr('d', path)
 				.attr('fill', (d) => {
 					const gj = d.properties?.gisjoin;
@@ -407,6 +417,11 @@ export function drawMainPocTractCharts(cfg) {
 				.on('mouseleave', () => tooltip.style('opacity', 0));
 
 			svg.on('click', () => cfg.clearSelection());
+
+			root
+				.append('p')
+				.attr('class', 'mpc-map-zoom-hint')
+				.text('Scroll or pinch to zoom · drag to pan · double-click to reset');
 		}
 	}
 
@@ -772,13 +787,22 @@ export function drawMainPocTractCharts(cfg) {
 			const height = 520;
 			const projection = d3.geoMercator().fitSize([width, height], tractGeo);
 			const path = d3.geoPath(projection);
-			const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+			const svg = root
+				.append('svg')
+				.attr('viewBox', `0 0 ${width} ${height}`)
+				.attr('width', '100%')
+				.attr('height', 'auto')
+				.attr('preserveAspectRatio', 'xMidYMid meet')
+				.style('display', 'block')
+				.style('touch-action', 'none');
+			const zoomLayer = createMapZoomLayer(svg, width, height, { maxScale: 22 });
 			const tooltip = makeTooltip(root);
 
-			svg
+			zoomLayer
 				.selectAll('path')
 				.data(tractGeo.features)
 				.join('path')
+				.attr('vector-effect', 'non-scaling-stroke')
 				.attr('d', path)
 				.attr('fill', (d) => {
 					const row = rowByGj.get(d.properties?.gisjoin);
@@ -819,84 +843,190 @@ export function drawMainPocTractCharts(cfg) {
 				})
 				.on('mousemove', (event) => positionTooltip(root, tooltip, event))
 				.on('mouseleave', () => tooltip.style('opacity', 0));
+
+			root
+				.append('p')
+				.attr('class', 'mpc-map-zoom-hint')
+				.text('Scroll or pinch to zoom · drag to pan · double-click to reset');
 		}
 	}
 
-	// --- Tract education / income bars (reuse NHGIS bar style) ---
+	// --- Income & education: cohort comparison (population-weighted means, separate scale per outcome) ---
 	if (elTractEdu) {
 		const root = d3.select(elTractEdu);
 		root.selectAll('*').remove();
 		if (!nhgisLikeRows?.length) {
 			root.append('div').attr('class', 'mpc-empty').text('No tract comparison data.');
 		} else {
+			const cohorts = [
+				{ key: 'tod', label: 'TOD-dominated', color: '#0d9488' },
+				{ key: 'nonTod', label: 'Non-TOD-dominated', color: '#ea580c' },
+				{ key: 'minimal', label: 'Minimal development', color: '#64748b' }
+			];
 			const metrics = [
-				{ key: 'median_income_change_pct_10_20', label: 'Median income change', fmt: (v) => `${v.toFixed(1)}%` },
-				{ key: 'bachelors_pct_change_10_20', label: "Bachelor's share change", fmt: (v) => `${v.toFixed(1)} pp` }
+				{
+					key: 'median_income_change_pct_10_20',
+					title: 'Median household income',
+					subtitle: 'Percent change (2010–2020), population-weighted by tract',
+					xAxisLabel: 'Mean change (%)',
+					fmt: (v) => `${v.toFixed(1)}%`,
+					tickFmt: (v) => `${v.toFixed(0)}%`
+				},
+				{
+					key: 'bachelors_pct_change_10_20',
+					title: "Bachelor's degree or higher",
+					subtitle: 'Change in share of adults 25+ (percentage points), population-weighted',
+					xAxisLabel: 'Mean change (percentage points)',
+					fmt: (v) => `${v.toFixed(1)} pp`,
+					tickFmt: (v) => `${v.toFixed(1)}`
+				}
 			];
 			const todRows = nhgisLikeRows.filter((d) => d.devClass === 'tod_dominated');
 			const nonTodRows = nhgisLikeRows.filter((d) => d.devClass === 'nontod_dominated');
 			const minimalRows = nhgisLikeRows.filter((d) => d.devClass === 'minimal');
 			const summary = metrics.map((metric) => ({
-				label: metric.label,
+				...metric,
 				tod: nhgisWeightedMean(todRows, metric.key),
 				nonTod: nhgisWeightedMean(nonTodRows, metric.key),
 				minimal: nhgisWeightedMean(minimalRows, metric.key),
-				fmt: metric.fmt,
 				pValue: permutationPValue(todRows, nonTodRows, (d) => d[metric.key])
 			}));
 
-			const width = root.node().clientWidth || 520;
-			const height = 300;
-			const margin = { top: 24, right: 72, bottom: 44, left: 140 };
+			const leg = root.append('div').attr('class', 'mpc-tract-edu-legend');
+			for (const c of cohorts) {
+				const span = leg.append('span').attr('class', 'mpc-tract-edu-legend-item');
+				span.append('span').attr('class', 'mpc-tract-edu-swatch').style('background-color', c.color);
+				span.append('span').text(c.label);
+			}
+
+			const width = Math.max(300, root.node().clientWidth || 640);
+			/* Vertical space per metric block — taller bar stack = thicker horizontal bars. */
+			const blockH = 172;
+			const legendH = 40;
+			const margin = { top: 10, right: 12, bottom: 14, left: 12 };
 			const innerW = width - margin.left - margin.right;
-			const innerH = height - margin.top - margin.bottom;
-			const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+			const totalH = legendH + summary.length * blockH + margin.top + margin.bottom;
+			const height = Math.min(580, Math.max(300, totalH));
+
+			const svg = root
+				.append('svg')
+				.attr('viewBox', `0 0 ${width} ${height}`)
+				.attr('width', '100%')
+				.attr('height', 'auto')
+				.attr('preserveAspectRatio', 'xMidYMid meet')
+				.attr('class', 'mpc-tract-edu-svg')
+				.style('display', 'block');
+
 			const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-			const y = d3
-				.scaleBand()
-				.domain(summary.map((d) => d.label))
-				.range([0, innerH])
-				.padding(0.28);
-			const max =
-				d3.max(summary, (d) =>
-					Math.max(Math.abs(d.tod) || 0, Math.abs(d.nonTod) || 0, Math.abs(d.minimal) || 0)
-				) || 1;
-			const x = d3.scaleLinear().domain([0, max * 1.15]).range([0, innerW]);
 
-			g.append('g').call(d3.axisLeft(y).tickSize(0));
-			g.append('g').attr('transform', `translate(0,${innerH})`).call(d3.axisBottom(x).ticks(5));
+			summary.forEach((row, i) => {
+				const blockG = g.append('g').attr('transform', `translate(0,${legendH + i * blockH})`);
 
-			const rowsG = g
-				.selectAll('.mpc-metric-row')
-				.data(summary)
-				.join('g')
-				.attr('class', 'mpc-metric-row')
-				.attr('transform', (d) => `translate(0,${y(d.label)})`);
+				const vals = cohorts.map((c) => ({
+					...c,
+					value: row[c.key]
+				}));
+				const finite = vals.filter((d) => Number.isFinite(d.value));
+				const minV = finite.length ? Math.min(0, d3.min(finite, (d) => d.value) ?? 0) : 0;
+				const maxV = finite.length ? Math.max(0, d3.max(finite, (d) => d.value) ?? 0) : 1;
+				const spanR = maxV - minV || 1e-6;
+				const pad = spanR * 0.08;
+				const x = d3.scaleLinear().domain([minV - pad, maxV + pad]).range([0, innerW]);
 
-			const sub = d3.scaleBand().domain(['tod', 'nonTod', 'minimal']).range([0, y.bandwidth()]).padding(0.12);
+				blockG
+					.append('text')
+					.attr('x', 0)
+					.attr('y', 15)
+					.attr('font-size', 13)
+					.attr('font-weight', 600)
+					.attr('fill', 'currentColor')
+					.text(row.title);
 
-			rowsG
-				.selectAll('rect')
-				.data((d) => [
-					{ key: 'tod', value: d.tod, color: '#0f766e' },
-					{ key: 'nonTod', value: d.nonTod, color: '#c96b3b' },
-					{ key: 'minimal', value: d.minimal, color: '#64748b' }
-				])
-				.join('rect')
-				.attr('x', x(0))
-				.attr('y', (d) => sub(d.key))
-				.attr('width', (d) => Math.max(0, x(d.value) - x(0)))
-				.attr('height', sub.bandwidth())
-				.attr('fill', (d) => d.color)
-				.attr('rx', 6);
+				blockG
+					.append('text')
+					.attr('x', 0)
+					.attr('y', 31)
+					.attr('font-size', 10)
+					.attr('fill', 'currentColor')
+					.attr('opacity', 0.72)
+					.text(row.subtitle);
 
-			rowsG
-				.append('text')
-				.attr('x', innerW + 8)
-				.attr('y', y.bandwidth() / 2 + 4)
-				.attr('fill', '#374151')
-				.attr('font-size', 11)
-				.text((d) => significanceStars(d.pValue) || 'n.s.');
+				const stars = significanceStars(row.pValue);
+				const pNote =
+					stars ||
+					(Number.isFinite(row.pValue) ? `p = ${row.pValue.toFixed(3)} (TOD vs non-TOD)` : '');
+				blockG
+					.append('text')
+					.attr('x', innerW)
+					.attr('y', 15)
+					.attr('text-anchor', 'end')
+					.attr('font-size', 11)
+					.attr('font-weight', 600)
+					.attr('fill', 'currentColor')
+					.text(pNote);
+
+				const barTop = 44;
+				const barH = 72;
+				const sub = d3.scaleBand().domain(['tod', 'nonTod', 'minimal']).range([0, barH]).padding(0.06);
+
+				for (const d of vals) {
+					const v = d.value;
+					if (!Number.isFinite(v)) continue;
+					const xStart = x(Math.min(0, v));
+					const xEnd = x(Math.max(0, v));
+					const w = Math.max(0.5, xEnd - xStart);
+					blockG
+						.append('rect')
+						.attr('x', xStart)
+						.attr('y', barTop + sub(d.key))
+						.attr('width', w)
+						.attr('height', sub.bandwidth())
+						.attr('fill', d.color)
+						.attr('rx', 4)
+						.attr('opacity', 0.92);
+
+					const labelX = v >= 0 ? xEnd + 5 : xStart - 5;
+					const anchor = v >= 0 ? 'start' : 'end';
+					blockG
+						.append('text')
+						.attr('x', labelX)
+						.attr('y', barTop + sub(d.key) + sub.bandwidth() / 2 + 4)
+						.attr('text-anchor', anchor)
+						.attr('font-size', 10)
+						.attr('font-weight', 600)
+						.attr('fill', '#334155')
+						.text(row.fmt(v));
+				}
+
+				if (minV < 0 && maxV > 0) {
+					blockG
+						.append('line')
+						.attr('x1', x(0))
+						.attr('x2', x(0))
+						.attr('y1', barTop)
+						.attr('y2', barTop + barH)
+						.attr('stroke', '#94a3b8')
+						.attr('stroke-width', 1)
+						.attr('stroke-dasharray', '4 3');
+				}
+
+				const axisG = blockG
+					.append('g')
+					.attr('transform', `translate(0,${barTop + barH + 6})`)
+					.call(d3.axisBottom(x).ticks(5).tickFormat((d) => row.tickFmt(d)));
+				axisG.selectAll('path,line').attr('stroke', 'currentColor').attr('opacity', 0.35);
+				axisG.selectAll('text').attr('fill', 'currentColor').attr('opacity', 0.7).attr('font-size', 9);
+
+				blockG
+					.append('text')
+					.attr('x', innerW / 2)
+					.attr('y', barTop + barH + 34)
+					.attr('text-anchor', 'middle')
+					.attr('font-size', 10)
+					.attr('fill', 'currentColor')
+					.attr('opacity', 0.65)
+					.text(row.xAxisLabel);
+			});
 		}
 	}
 
@@ -920,7 +1050,7 @@ export function drawMainPocTractCharts(cfg) {
 				.append('p')
 				.attr('class', 'mpc-chart-note')
 				.text(
-					`Travel-time change (2010–20, pop.-weighted means): TOD-dom. ${Number.isFinite(mTod) ? `${mTod.toFixed(2)} min` : '—'} · non-TOD ${Number.isFinite(mNon) ? `${mNon.toFixed(2)} min` : '—'} · minimal dev. ${Number.isFinite(mMin) ? `${mMin.toFixed(2)} min` : '—'}. TOD vs non-TOD gap ${diff >= 0 ? '+' : ''}${Number.isFinite(diff) ? diff.toFixed(2) : '—'} min ${significanceStars(pVal) || 'n.s.'}`
+					`Travel-time change (2010–20, pop.-weighted means): TOD-dom. ${Number.isFinite(mTod) ? `${mTod.toFixed(2)} min` : '—'} · non-TOD ${Number.isFinite(mNon) ? `${mNon.toFixed(2)} min` : '—'} · minimal development ${Number.isFinite(mMin) ? `${mMin.toFixed(2)} min` : '—'}. TOD vs non-TOD gap ${diff >= 0 ? '+' : ''}${Number.isFinite(diff) ? diff.toFixed(2) : '—'} min ${significanceStars(pVal) || 'n.s.'}`
 				);
 		}
 	}
@@ -954,7 +1084,7 @@ export function drawMainPocTractCharts(cfg) {
 				.attr('class', 'mpc-chart-note')
 				.style('margin-top', '6px')
 				.text(
-					`Minimal dev.: ${Number.isFinite(minimal) ? metric.fmt(minimal) : '—'} (weighted)`
+					`Minimal development: ${Number.isFinite(minimal) ? metric.fmt(minimal) : '—'} (weighted)`
 				);
 		}
 	}

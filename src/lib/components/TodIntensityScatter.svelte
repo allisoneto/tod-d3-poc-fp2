@@ -12,7 +12,13 @@
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import { splitChartTitle } from '$lib/utils/chartTitles.js';
 
-	let { panelState, domainOverride = null, wideLayout = false } = $props();
+	let {
+		panelState,
+		domainOverride = null,
+		wideLayout = false,
+		/** When false, hide the axis-trim checkbox and plot full data extent (POC income/education embeds). */
+		showTrimControl = true
+	} = $props();
 
 	let containerEl = $state(null);
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
@@ -46,7 +52,7 @@
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
 			minStops: panelState.minStopsPerSqMi,
-			trim: panelState.trimOutliers,
+			trim: showTrimControl && panelState.trimOutliers,
 			dom: domainOverride?.todIntensity ? 'on' : 'off',
 			dx: domainOverride?.todIntensity?.xDomain,
 			dy: domainOverride?.todIntensity?.yDomain,
@@ -182,7 +188,7 @@
 		if (domainOverride?.todIntensity?.xDomain) {
 			xDomain = domainOverride.todIntensity.xDomain;
 			yDomain = domainOverride.todIntensity.yDomain;
-		} else if (panelState.trimOutliers && sigPts.length > 2) {
+		} else if (showTrimControl && panelState.trimOutliers && sigPts.length > 2) {
 			const xVals = sigPts.map((d) => d.x);
 			const yVals = sigPts.map((d) => d.y);
 			const xMu = d3.mean(xVals);
@@ -492,7 +498,7 @@
 				});
 		}
 
-		// Minimal (grey) first
+		// Minimal development (grey) first
 		chart
 			.append('g')
 			.attr('class', 'tod-intensity-minimal')
@@ -705,7 +711,7 @@
 				.attr('y', miniY + 8)
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', '7px')
-				.text('Minimal dev. (no fit)');
+				.text('Minimal development (no fit)');
 		} else {
 			const sizeY = chartOffsetTop + innerHeight + 50;
 			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');
@@ -788,10 +794,12 @@
 </script>
 
 <div class="tod-intensity-wrap" class:wide={wideLayout}>
-	<label class="trim-check">
-		<input type="checkbox" bind:checked={panelState.trimOutliers} />
-		<span>Trim axes (exclude &gt;10σ on significant tracts)</span>
-	</label>
+	{#if showTrimControl}
+		<label class="trim-check">
+			<input type="checkbox" bind:checked={panelState.trimOutliers} />
+			<span>Trim axes (exclude &gt;10σ on significant tracts)</span>
+		</label>
+	{/if}
 	<div bind:this={containerEl} class="tod-intensity-chart"></div>
 	{#if tooltip.visible}
 		<div
