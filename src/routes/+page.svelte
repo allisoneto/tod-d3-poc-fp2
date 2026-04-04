@@ -537,12 +537,12 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="hero-full card">
 		<div class="eyebrow">Proof of Concept</div>
-		<h1>TOD can expand access. The question is who benefits.</h1>
+		<h1>TOD can expand access. Do lower-income residents benefit too?</h1>
 		<p class="subtitle">
 			Transit-oriented development is widely viewed as a positive planning strategy: it can support housing growth,
-			reduce car dependence, and place more homes near transit. This project asks a narrower question:
-			when TOD is built, are lower-income residents as likely to benefit as everyone else? The patterns below
-			are <strong>descriptive associations, not causal proof</strong>, but they suggest TOD should be paired
+			reduce car dependence, and place more homes near transit. This dashboard focuses on one policy question:
+			<strong>whether TOD's gains appear to be shared with lower-income residents, or concentrated in ways that point to affordability as the missing guardrail.</strong>
+			The patterns below are <strong>descriptive associations, not causal proof</strong>, but they suggest TOD should be paired
 			with stronger affordable-housing requirements if the goal is inclusive growth.
 		</p>
 	</section>
@@ -694,31 +694,31 @@
 
 				<div class="finding-list">
 					<div class="finding-item">
-						<div class="finding-kicker">Key finding 1</div>
-						<p>TOD-dominant municipalities tend to be lower-income municipalities, measured here by the share of households under $125k.</p>
+						<div class="finding-kicker">Step 1</div>
+						<p>TOD-dominant municipalities tend to be lower-income municipalities, so the equity question matters most in the places seeing the most TOD.</p>
 					</div>
 					<div class="finding-item">
-						<div class="finding-kicker">Key finding 2</div>
+						<div class="finding-kicker">Step 2</div>
 						<p>Recent production is not evenly distributed: a disproportionate share of new units is landing in places that already appear more vulnerable to gentrification pressures.</p>
 					</div>
 					<div class="finding-item">
-						<div class="finding-kicker">Key finding 3</div>
-						<p>TOD still offers real planning benefits, but the municipal pattern suggests it should be paired with affordability requirements rather than treated as automatically equitable.</p>
+						<div class="finding-kicker">Step 3</div>
+						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
 					</div>
 				</div>
 			</section>
 
-			<!-- ── 2. How much TOD? ─────────────────────── -->
 			<section class="story card">
-				<h2>How much TOD is actually being built?</h2>
+				<h2>Setting up the question</h2>
 				<p>
 					Despite policy efforts, most new housing being built consists of non-TOD units. However, total development has increased over time,
-					so the volume of TOD units has also been increasing. This pattern may change as the incentives of the MBTA Communities Act begin to take effect.
+					so the volume of TOD units has also been increasing. That matters because the core question here is not whether TOD should happen,
+					but whether its benefits are broadly shared in the neighborhoods where it is concentrated.
 				</p>
 			</section>
 
 			<section class="story card">
-				<h3>What the municipal trend suggests</h3>
+				<h3>Why the municipal pattern matters</h3>
 				<p>
 					Across the visible time window, most new housing is still non-TOD, even though TOD production has grown in absolute terms. At the same time, affordability has not kept pace with total production, which is why this project treats TOD as a strategy that still needs policy guardrails.
 				</p>
@@ -740,16 +740,15 @@
 				</details>
 			</section>
 
-			<!-- ── 3. Where is it happening? ────────────── -->
 			<section class="story card">
-				<h2>Where is TOD taking place?</h2>
+				<h2>Where the equity question is most urgent</h2>
 				<p>
 					Development is not distributed evenly across Massachusetts, and transit-oriented development is mostly concentrated in lower-income municipalities.
 				</p>
 			</section>
 
 			<section class="story card">
-				<h3>What the location pattern suggests</h3>
+				<h3>What the location pattern adds</h3>
 				<p>
 					TOD is not happening evenly across Massachusetts. In this dataset, it is more concentrated in lower-income municipalities, and recent unit growth is concentrated in a relatively small set of places. That is the setup for the equity question explored in the tract analysis below.
 				</p>
@@ -787,7 +786,7 @@
 			<section class="card story-chart-panel">
 				<div class="story-chart-panel__grid">
 					<div class="story-chart-panel__text">
-						<h2>The issue of affordability</h2>
+						<h2>Why affordability is the key policy lever</h2>
 						<p>
 							A primary concern for many residents is the gap between housing supply and genuine affordability.
 							Although TOD projects often increase the total number of housing units, a greater proportion
@@ -852,13 +851,12 @@
 	     PART 2 — TRACT ANALYSIS
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="tract-section">
-		<!-- ── 7. Transition to tract analysis ──────────── -->
 		<section class="story card full-width">
-			<h2>How is TOD associated with demographic change?</h2>
+			<h2>The one question this tract analysis is trying to answer</h2>
 			<p>
-				The next section looks at whether TOD-dominated tracts are associated with different demographic
-				patterns than non-TOD or minimal-development tracts. These are not direct measures of displacement;
-				they are tract-level comparisons using demographic proxies.
+				The next section asks whether TOD-dominated tracts show different socioeconomic change than comparable
+				non-TOD or minimal-development tracts, and whether higher affordable-housing shares appear to moderate that pattern.
+				These are not direct measures of displacement; they are tract-level comparisons using demographic proxies.
 			</p>
 			<h4>Data analysis methodology</h4>
 			<p>
@@ -913,7 +911,6 @@
 				<div class="chart-wrap chart-tall" bind:this={elTractChoroNhgis}></div>
 			</section>
 
-			<!-- ── 8. Income analysis ──────────────────── -->
 			<div class="story-chart-row story-chart-row--tract full-width">
 				<section class="story card story-chart-text">
 					<h2>Income analysis</h2>
@@ -948,7 +945,6 @@
 				</section>
 			</div>
 
-			<!-- ── 9. Education analysis ───────────────── -->
 			<div class="story-chart-row story-chart-row--tract full-width">
 				<section class="story card story-chart-text">
 					<h2>Education analysis</h2>
@@ -988,7 +984,6 @@
 				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
 			</section>
 
-			<!-- ── 10. How affordability could help ──────────── -->
 			<section class="story card full-width">
 				<h2>How affordability could help</h2>
 				<p>
@@ -1015,12 +1010,11 @@
 				</p> -->
 			</section>
 
-			<!-- ── 11. Bottom line ──────────────────────── -->
 			<section class="summary card full-width">
 				<h2>Bottom line</h2>
 				<p class="chart-note">
-					The tract-level evidence points in the same direction as the municipal patterns:
-					TOD appears most equitable when affordability grows with it.
+					The tract-level evidence is organized around one takeaway:
+					TOD looks more broadly inclusive when affordability grows with it.
 				</p>
 
 				<h3>TOD-dominated vs non-TOD-dominated</h3>
@@ -1086,7 +1080,6 @@
 				<div class="chart-wrap" style="margin-top: 16px;" bind:this={elTakeaway}></div>
 			</section>
 
-			<!-- ── 12. Conclusion ──────────────────────── -->
 			<section class="story card full-width conclusion">
 				<h2>Conclusion</h2>
 				<p>
