@@ -1142,13 +1142,10 @@
 
 		font-family: var(--font-body);
 		color: var(--ink);
-		background:
-			radial-gradient(circle at top left, rgba(0, 132, 61, 0.08), transparent 28%),
-			radial-gradient(circle at top right, rgba(0, 61, 165, 0.09), transparent 24%),
-			var(--bg);
+		background: var(--bg);
 		max-width: 1680px;
 		margin: 0 auto;
-		padding: 24px 28px 44px;
+		padding: 18px 22px 36px;
 	}
 
 	* { box-sizing: border-box; }
@@ -1164,27 +1161,27 @@
 
 	.card {
 		background: var(--paper);
-		border: 1px solid rgba(120, 114, 102, 0.18);
-		border-radius: var(--radius);
-		box-shadow: var(--shadow);
+		border: 1px solid rgba(120, 114, 102, 0.14);
+		border-radius: 12px;
+		box-shadow: none;
 	}
 
 	/* ── Hero ─────────────────────────────────────────── */
 	.hero-full {
-		padding: 28px;
-		margin-bottom: 20px;
+		padding: 20px 22px;
+		margin-bottom: 14px;
 	}
 
 	.eyebrow {
 		display: inline-block;
-		margin-bottom: 10px;
-		padding: 6px 10px;
-		border-radius: 999px;
-		background: var(--accent-soft);
-		color: #0b5e2c;
+		margin-bottom: 8px;
+		padding: 0;
+		border-radius: 0;
+		background: transparent;
+		color: var(--accent);
 		font-weight: 700;
-		font-size: 0.78rem;
-		letter-spacing: 0.04em;
+		font-size: 0.74rem;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
 
@@ -1194,7 +1191,7 @@
 	.dashboard {
 		display: grid;
 		grid-template-columns: 300px 1fr;
-		gap: 18px;
+		gap: 14px;
 		align-items: start;
 	}
 
@@ -1211,7 +1208,7 @@
 	}
 
 	.controls-inner {
-		padding: 20px;
+		padding: 16px;
 		overflow-y: auto;
 		-webkit-overflow-scrolling: touch;
 		min-height: 0;
@@ -1221,8 +1218,8 @@
 	.controls-note { color: var(--muted); line-height: 1.58; font-size: 0.9rem; }
 
 	.control-block + .control-block {
-		margin-top: 18px;
-		padding-top: 18px;
+		margin-top: 14px;
+		padding-top: 14px;
 		border-top: 1px solid var(--line);
 	}
 
@@ -1253,9 +1250,9 @@
 
 	input[type="number"], select, input[type="search"] {
 		width: 100%;
-		padding: 10px 12px;
+		padding: 9px 10px;
 		border: 1px solid #c9c1b4;
-		border-radius: 10px;
+		border-radius: 8px;
 		background: #fff;
 		color: var(--ink);
 		font: inherit;
@@ -1288,44 +1285,44 @@
 
 	button {
 		font: inherit;
-		border: 0;
-		border-radius: 999px;
-		padding: 9px 14px;
-		background: var(--ink);
-		color: #fff;
+		border: 1px solid #cfc6b8;
+		border-radius: 8px;
+		padding: 8px 12px;
+		background: #fff;
+		color: var(--ink);
 		cursor: pointer;
-		transition: transform 120ms ease, opacity 120ms ease;
+		transition: background 120ms ease, border-color 120ms ease;
 	}
 
 	button.secondary {
-		background: #ece6db;
+		background: #fff;
 		color: var(--ink);
 	}
 
 	button:hover {
-		opacity: 0.92;
-		transform: translateY(-1px);
+		background: #faf7f0;
+		border-color: #bdb3a4;
 	}
 
 	/* ── Content area ─────────────────────────────────── */
 	.content {
 		display: grid;
-		gap: 18px;
+		gap: 14px;
 	}
 
-	.summary { padding: 20px; }
+	.summary { padding: 16px; }
 
 	.summary-grid {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
-		gap: 12px;
-		margin: 14px 0;
+		gap: 10px;
+		margin: 12px 0;
 	}
 
 	.summary-stat {
-		padding: 14px;
-		border-radius: 14px;
-		background: #faf7f0;
+		padding: 12px;
+		border-radius: 10px;
+		background: transparent;
 		border: 1px solid var(--line);
 	}
 
@@ -1354,14 +1351,14 @@
 	.finding-list {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 12px;
-		margin-top: 16px;
+		gap: 10px;
+		margin-top: 12px;
 	}
 
 	.finding-item {
-		padding: 14px;
-		border-radius: 14px;
-		background: #faf7f0;
+		padding: 12px;
+		border-radius: 10px;
+		background: transparent;
 		border: 1px solid var(--line);
 	}
 
@@ -1381,17 +1378,18 @@
 	}
 
 	.chip {
-		padding: 6px 10px;
-		border-radius: 999px;
-		background: #efe9dc;
+		padding: 5px 8px;
+		border-radius: 8px;
+		background: transparent;
+		border: 1px solid var(--line);
 		color: #433d34;
 		font-size: 0.85rem;
-		font-weight: 600;
+		font-weight: 500;
 	}
 
 	/* ── Story / narrative cards ──────────────────────── */
 	.story {
-		padding: 22px 24px;
+		padding: 18px;
 	}
 
 	.story h2 { font-size: 1.2rem; margin-bottom: 10px; }
@@ -1408,8 +1406,8 @@
 	.story-list li { margin-bottom: 6px; }
 
 	.supplemental {
-		margin-top: 14px;
-		padding-top: 14px;
+		margin-top: 12px;
+		padding-top: 12px;
 		border-top: 1px solid var(--line);
 	}
 
@@ -1443,6 +1441,7 @@
 
 	/* ── Chart cards ──────────────────────────────────── */
 	.chart-card { padding: 20px; }
+	.chart-card { padding: 16px; }
 
 	.chart-card h2 { font-size: 1.15rem; margin-bottom: 8px; }
 	.chart-card h3 { font-size: 1.05rem; margin-bottom: 8px; }
@@ -1472,7 +1471,7 @@
 	.small-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 18px;
+		gap: 14px;
 	}
 
 	.small-chart { min-height: 320px; }
@@ -1499,18 +1498,18 @@
 	/* Story + chart side-by-side */
 	.story-chart-row {
 		display: grid;
-		gap: 18px;
+		gap: 14px;
 		align-items: start;
 	}
 
 	/* Narrative + chart in one white card (municipal affordability & vulnerability) */
 	.story-chart-panel {
-		padding: 22px 24px;
+		padding: 18px;
 	}
 
 	.story-chart-panel__grid {
 		display: grid;
-		gap: 18px;
+		gap: 14px;
 		align-items: start;
 		grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr);
 	}
@@ -1820,9 +1819,9 @@
 
 	/* ── Tract section ────────────────────────────────── */
 	.tract-section {
-		margin-top: 28px;
+		margin-top: 18px;
 		display: grid;
-		gap: 18px;
+		gap: 14px;
 	}
 
 	.full-width { grid-column: 1 / -1; }
@@ -1831,14 +1830,14 @@
 	.takeaway-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 12px;
+		gap: 10px;
 		margin-top: 10px;
 	}
 
 	.takeaway-card {
-		padding: 14px;
-		border-radius: 14px;
-		background: #faf7f0;
+		padding: 12px;
+		border-radius: 10px;
+		background: transparent;
 		border: 1px solid var(--line);
 	}
 
