@@ -1146,9 +1146,9 @@
 			radial-gradient(circle at top left, rgba(0, 132, 61, 0.08), transparent 28%),
 			radial-gradient(circle at top right, rgba(0, 61, 165, 0.09), transparent 24%),
 			var(--bg);
-		max-width: 1240px;
+		max-width: 1680px;
 		margin: 0 auto;
-		padding: 28px 20px 44px;
+		padding: 24px 28px 44px;
 	}
 
 	* { box-sizing: border-box; }

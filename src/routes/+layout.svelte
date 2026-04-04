@@ -1,6 +1,5 @@
 <script>
 	import '../app.css';
-	import NavBar from '$lib/components/NavBar.svelte';
 	import { loadAllData } from '$lib/stores/data.svelte.js';
 	import { page } from '$app/state';
 
@@ -28,8 +27,6 @@
 	});
 </script>
 
-<NavBar />
-
 {#if needsTractData(page.route.id)}
 	{#if error}
 		<div class="error-screen">
@@ -54,7 +51,7 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		min-height: calc(100vh - 56px);
+		min-height: 100vh;
 		gap: 16px;
 	}
 	.spinner {
