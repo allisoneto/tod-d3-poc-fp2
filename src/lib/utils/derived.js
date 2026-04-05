@@ -84,7 +84,7 @@ export function tractMatchesTransitModes(tract, transitModes) {
 
 /**
  * Census tract passes overall universe filters (population, density, minimum
- * stops/mi²). Does not apply TOD vs. non-TOD cohort rules.
+ * transit stop count). Does not apply TOD vs. non-TOD cohort rules.
  *
  * Parameters
  * ----------
@@ -101,8 +101,8 @@ export function passesTractUniverse(tract, panelState) {
 	const gj = tract.gisjoin;
 	if (!gj || typeof gj !== 'string' || !gj.startsWith('G')) return false;
 
-	const stopsPerSqMi = Number(tract.stops_per_sq_mi) || 0;
-	if (stopsPerSqMi < (panelState.minStopsPerSqMi || 0)) return false;
+	const nStops = Number(tract.transit_stops) || 0;
+	if (nStops < (panelState.minStops ?? 0)) return false;
 
 	const pop = Number(tract[`pop_${startY}`]) || 0;
 	if (pop < (panelState.minPopulation || 0)) return false;
@@ -219,9 +219,9 @@ export function passesCohortMinHousingStockIncreasePct(tract, panelState, cohort
 
 /**
  * Tract qualifies for the user-defined non-TOD (control) cohort: optional max
- * stops/mi² ceiling plus non-TOD transit mode toggles.
+ * stop-count ceiling plus non-TOD transit mode toggles.
  *
- * When ``nonTodMaxStopsPerSqMi > 0``, a tract must satisfy **stops/mi² ≤ max**
+ * When ``nonTodMaxStops > 0``, a tract must satisfy **stops ≤ max**
  * (equal counts as control). When max is 0, no upper bound is applied.
  *
  * Parameters
@@ -234,9 +234,9 @@ export function passesCohortMinHousingStockIncreasePct(tract, panelState, cohort
  * boolean
  */
 export function isNonTodCohortTract(tract, panelState) {
-	const stopsPerSqMi = Number(tract.stops_per_sq_mi) || 0;
-	const maxStops = panelState.nonTodMaxStopsPerSqMi ?? 0;
-	if (maxStops > 0 && stopsPerSqMi > maxStops) return false;
+	const nStops = Number(tract.transit_stops) || 0;
+	const maxStops = panelState.nonTodMaxStops ?? 0;
+	if (maxStops > 0 && nStops > maxStops) return false;
 	const modes = panelState.nonTodTransitModes ?? panelState.transitModes;
 	if (!tractMatchesTransitModes(tract, modes)) return false;
 	return true;
@@ -255,7 +255,7 @@ export function isNonTodCohortTract(tract, panelState) {
  * boolean
  */
 export function isTodCohortTract(tract, panelState) {
-	if (!isTodTract(tract, panelState.todMinStopsPerSqMi ?? 0)) return false;
+	if (!isTodTract(tract, panelState.todMinStops ?? 0)) return false;
 	const modes = panelState.todTransitModes ?? panelState.transitModes;
 	if (!tractMatchesTransitModes(tract, modes)) return false;
 	return true;
@@ -281,47 +281,26 @@ export function filterTractsByTract(tracts, panelState) {
 }
 
 /**
- * Test whether a tract qualifies as TOD under a given stops/mi² threshold.
+ * Test whether a tract qualifies as TOD under a given minimum stop count.
  *
- * When ``todMinStopsPerSqMi > 0``, the tract must satisfy **stops/mi² ≥ min**
- * (equal counts as TOD). When min is 0, any tract with at least one MBTA stop
- * in the buffer qualifies (``transit_stops > 0``).
+ * When ``todMinStops > 0``, the tract must satisfy **transit_stops ≥ min**.
+ * When min is 0, any tract with at least one MBTA stop in the buffer qualifies.
  *
  * Parameters
  * ----------
  * tract : object
- * todMinStopsPerSqMi : number
- *     When > 0, the tract must meet or exceed this density.
+ * todMinStops : number
+ *     When > 0, the tract must meet or exceed this count.
  *     When 0, any tract with at least one transit stop qualifies.
  *
  * Returns
  * -------
  * boolean
  */
-export function isTodTract(tract, todMinStopsPerSqMi = 0) {
-	const density = Number(tract.stops_per_sq_mi) || 0;
-	if (todMinStopsPerSqMi > 0) return density >= todMinStopsPerSqMi;
-	return (Number(tract.transit_stops) || 0) > 0;
-}
-
-/**
- * Stops per mi² for display: **0** when there are no stops in/near the tract,
- * otherwise the stored density when finite (null if stops exist but density is missing).
- *
- * Parameters
- * ----------
- * tract : object | null | undefined
- *
- * Returns
- * -------
- * number | null
- */
-export function tractStopsDensityForDisplay(tract) {
-	const n = Number(tract?.transit_stops);
-	const stops = Number.isFinite(n) ? n : 0;
-	if (stops <= 0) return 0;
-	const d = Number(tract?.stops_per_sq_mi);
-	return Number.isFinite(d) ? d : null;
+export function isTodTract(tract, todMinStops = 0) {
+	const n = Number(tract.transit_stops) || 0;
+	if (todMinStops > 0) return n >= todMinStops;
+	return n > 0;
 }
 
 /**

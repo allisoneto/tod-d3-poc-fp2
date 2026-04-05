@@ -17,18 +17,18 @@
 		getTodTracts,
 		developmentMbtaProximity,
 		isDevelopmentTransitAccessible,
-		tractStopsDensityForDisplay,
 		transitDistanceMiToMetres,
 		transitModeUiLabel
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
+	import { MBTA_BLUE, MBTA_GREEN, MBTA_MAP_NEUTRAL, MBTA_RED } from '$lib/utils/mbtaColors.js';
 
 	let { panelState, domainOverride = null } = $props();
 
 	let containerEl = $state(null);
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
 
-	/* Map canvas + optional left (dev MF) and right (Viridis) legend columns; no extra height below map. */
+	/* Map canvas + optional left (dev MF) and right (choropleth) legend columns; no extra height below map. */
 	const VIRIDIS_LEGEND_COL_W = 34;
 	const DEV_LEGEND_COL_W = 40;
 	const mapW = 420;
@@ -44,7 +44,7 @@
 	const MAP_DIM_TOWARD_HEX = '#05070c';
 
 	/**
-	 * Linear RGB blend for overlaying cohort highlights on Viridis fills.
+	 * Linear RGB blend for overlaying cohort highlights on choropleth fills.
 	 *
 	 * Parameters
 	 * ----------
@@ -94,7 +94,7 @@
 		JSON.stringify({
 			tp: panelState.timePeriod,
 			y: panelState.yVar,
-			stops: panelState.minStopsPerSqMi,
+			stops: panelState.minStops,
 			tdMi: panelState.transitDistanceMi,
 			sig: panelState.sigDevMinPctStockIncrease,
 			todCut: panelState.todFractionCutoff,
@@ -289,7 +289,7 @@
 
 		svg.call(zoom).on('dblclick.zoom', null).style('touch-action', 'none');
 
-		// Choropleth legend (Viridis) — placeholder; filled in ``updateChoropleth``
+		// Choropleth legend — placeholder; filled in ``updateChoropleth``
 		svg.append('g').attr('class', 'map-legend-group');
 	}
 
@@ -323,12 +323,16 @@
 		const showTodShade = panelState.showMapTodCohortShade;
 		const showCtrlShade = panelState.showMapControlCohortShade;
 
+		/** MBTA red (negative) → neutral → MBTA blue (positive). */
+		const divergingMap = d3.piecewise(d3.interpolateRgb, [MBTA_RED, MBTA_MAP_NEUTRAL, MBTA_BLUE]);
+
 		let colorScale;
 		if (values.length === 0) {
 			colorScale = () => 'var(--bg-card)';
 		} else if (domainOverride?.colorDomain) {
 			const [lo, hi] = domainOverride.colorDomain;
-			colorScale = d3.scaleSequential(d3.interpolateViridis).domain([lo, hi]).clamp(true);
+			const maxAbs = Math.max(Math.abs(lo), Math.abs(hi), 1e-9);
+			colorScale = d3.scaleDiverging(divergingMap).domain([-maxAbs, 0, maxAbs]).clamp(true);
 		} else {
 			// Clip colorbar range to exclude >3-sigma outliers
 			const mean = d3.mean(values);
@@ -338,7 +342,8 @@
 			const clipped = values.filter((v) => v >= clipLo && v <= clipHi);
 			const lo = clipped.length > 0 ? d3.min(clipped) : d3.min(values);
 			const hi = clipped.length > 0 ? d3.max(clipped) : d3.max(values);
-			colorScale = d3.scaleSequential(d3.interpolateViridis).domain([lo, hi]).clamp(true);
+			const maxAbs = Math.max(Math.abs(lo), Math.abs(hi), 1e-9);
+			colorScale = d3.scaleDiverging(divergingMap).domain([-maxAbs, 0, maxAbs]).clamp(true);
 		}
 
 		const cohortMode = showTodShade || showCtrlShade;
@@ -354,7 +359,7 @@
 				const inCtrl = controlSet.has(id);
 				const cohortLit =
 					(showTodShade && inTod) || (showCtrlShade && inCtrl);
-				// Cohort map tints: blend with Viridis when possible; solid tint when no Y value.
+				// Cohort map tints: blend with choropleth fill when possible; solid tint when no Y value.
 				if (showTodShade && inTod) {
 					fill =
 						typeof fill === 'string' && fill.startsWith('#')
@@ -393,7 +398,7 @@
 				return 0.1;
 			});
 
-		// Legend — compact vertical Viridis colorbar to the right of the map
+		// Legend — compact vertical diverging colorbar (red neg. → blue pos.) to the right of the map
 		const svg = svgRef;
 		const legGroup = svg.select('.map-legend-group');
 		legGroup.selectAll('*').remove();
@@ -547,7 +552,8 @@
 		const hi = Math.max(lo + 1e-6, huMax);
 		const rScale = d3.scaleSqrt().domain([lo, hi]).range([1.4, 8]);
 
-		const mfColor = d3.scaleSequential(d3.interpolateYlGnBu).domain([0, 1]);
+		const mfInterp = (t) => d3.interpolateRgb('#ffffff', MBTA_GREEN)(Math.min(1, Math.max(0, t)));
+		const mfColor = d3.scaleSequential(mfInterp).domain([0, 1]);
 
 		// Left margin: multifamily share colorbar (matches dot fill scale)
 		const y0mf = 18;
@@ -560,7 +566,7 @@
 			.attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
 		for (let i = 0; i <= 48; i++) {
 			const t = i / 48;
-			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', d3.interpolateYlGnBu(t));
+			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', mfInterp(t));
 		}
 		const mfLegG = devLeg.append('g').attr('class', 'map-dev-legend-inner').attr('transform', 'translate(2,0)');
 		mfLegG.append('text')
@@ -698,12 +704,8 @@
 				const sign = diff >= 0 ? '+' : '';
 				lines.push({ bold: false, text: `HU change (census): ${sign}${fmtInt(diff)}` });
 			}
-			const densityDisp = tractStopsDensityForDisplay(t);
-			if (densityDisp !== null) {
-				lines.push({ bold: false, text: `Transit stops/mi\u00b2: ${fmt(densityDisp)}` });
-			}
 			const stopsRaw = Number(t.transit_stops) || 0;
-			lines.push({ bold: false, text: `Stops in buffer: ${stopsRaw}` });
+			lines.push({ bold: false, text: `MBTA stops (tract + buffer): ${stopsRaw}` });
 			const minPct = t[`minority_pct_${startY}`];
 			if (minPct != null) lines.push({ bold: false, text: `Minority %: ${fmt(minPct)}%` });
 		} else {

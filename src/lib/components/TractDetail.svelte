@@ -9,7 +9,6 @@
 		filterTractsByTract,
 		buildFilteredData,
 		getScatterXValue,
-		tractStopsDensityForDisplay,
 		developmentAffordableUnitsCapped
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
@@ -214,15 +213,6 @@
 	}
 
 	/**
-	 * @param {object | null | undefined} tract
-	 * @returns {string}
-	 */
-	function fmtStopsPerSqMi(tract) {
-		const d = tractStopsDensityForDisplay(tract);
-		return d !== null ? d3.format(',.1f')(d) : '\u2014';
-	}
-
-	/**
 	 * @param {unknown} v
 	 * @returns {string}
 	 */
@@ -329,8 +319,10 @@
 		return fmtInt(v);
 	}
 
-	const raceKeys = ['white', 'black', 'asian', 'other'];
-	const raceColors = ['#c5cad8', '#8b7bff', '#e8a54b', '#5dbb7a'];
+	/** Stacked-bar keys (order); Hispanic uses ``hispanic_*`` when present in tract JSON, else 0. */
+	const raceKeys = ['white', 'black', 'hispanic', 'asian', 'other'];
+	const raceColors = ['#c5cad8', '#5c4d9e', '#c2410c', '#e8a54b', '#5dbb7a'];
+	const raceLegendLabels = ['White', 'Black', 'Hispanic', 'Asian', 'Other'];
 
 	/**
 	 * D3 stacked horizontal bars for two census years (start / end of period).
@@ -355,7 +347,7 @@
 			const rowH = 12;
 			const gap = 6;
 			const labelH = 14;
-			const legendH = 14;
+			const legendH = 22;
 			const svgH = labelH + rowH + gap + labelH + rowH + 6 + legendH;
 
 			const svg = d3
@@ -369,14 +361,16 @@
 			const rows = [startY, endY].map((y) => {
 				const white = +tract[`white_${y}`] || 0;
 				const black = +tract[`black_${y}`] || 0;
+				const hisp = +tract[`hispanic_${y}`] || 0;
 				const asian = +tract[`asian_${y}`] || 0;
 				const other = +tract[`other_race_${y}`] || 0;
-				const sum = white + black + asian + other;
+				const sum = white + black + hisp + asian + other;
 				const k = sum ? 1 / sum : 0;
 				return {
 					year: y,
 					white: white * k,
 					black: black * k,
+					hispanic: hisp * k,
 					asian: asian * k,
 					other: other * k
 				};
@@ -415,26 +409,26 @@
 					.text(y);
 			});
 
-			const abbrev = { white: 'W', black: 'B', asian: 'A', other: 'O' };
-			const legY = labelH + rowH + gap + labelH + rowH + 10;
+			const legY = labelH + rowH + gap + labelH + rowH + 8;
 			const leg = svg.append('g').attr('transform', `translate(0,${legY})`);
-			const slot = w / 4;
+			const nLeg = raceKeys.length;
+			const slot = w / nLeg;
 			raceKeys.forEach((k, i) => {
 				const lx = i * slot;
 				leg
 					.append('rect')
 					.attr('x', lx)
 					.attr('y', 0)
-					.attr('width', 7)
-					.attr('height', 7)
+					.attr('width', 6)
+					.attr('height', 6)
 					.attr('fill', raceColors[i]);
 				leg
 					.append('text')
-					.attr('x', lx + 10)
-					.attr('y', 6)
+					.attr('x', lx + 8)
+					.attr('y', 5)
 					.attr('fill', 'var(--text-muted)')
-					.attr('font-size', '9px')
-					.text(abbrev[k]);
+					.attr('font-size', '8px')
+					.text(raceLegendLabels[i] ?? k);
 			});
 		}
 
@@ -763,12 +757,8 @@
 							<h4 class="subhead">Transit access</h4>
 							<ul class="transit-row">
 								<li>
-									<span class="lbl">Stops in tract</span>
+									<span class="lbl">MBTA stops (tract + buffer)</span>
 									<span class="val">{fmtInt(t.transit_stops)}</span>
-								</li>
-								<li>
-									<span class="lbl">Stops / mi²</span>
-									<span class="val">{fmtStopsPerSqMi(t)}</span>
 								</li>
 								<li>
 									<span class="lbl">Rapid transit</span>

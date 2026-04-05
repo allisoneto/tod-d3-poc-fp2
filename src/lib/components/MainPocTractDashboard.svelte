@@ -34,7 +34,7 @@
 	let timePeriod = $state(/** @type {'90_00' | '00_10' | '10_20' | '00_20' | '90_20'} */ ('10_20'));
 	let minPopulation = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopulation);
 	let minPopDensity = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopDensity);
-	let minStopsPerSqMi = $state(DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi);
+	let minStops = $state(DEFAULT_MAIN_POC_UNIVERSE.minStops);
 
 	// --- Development filters (same as tract ``FilterPanel`` development section) ---
 	let minUnitsPerProject = $state(DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject);
@@ -63,7 +63,7 @@
 
 	const universePanel = $derived({
 		timePeriod,
-		minStopsPerSqMi,
+		minStops,
 		minPopulation,
 		minPopDensity
 	});
@@ -79,7 +79,7 @@
 		if (!tractData.length) return;
 		mpcMapPanel.transitDistanceMi = threshold;
 		mpcMapPanel.timePeriod = timePeriod;
-		mpcMapPanel.minStopsPerSqMi = minStopsPerSqMi;
+		mpcMapPanel.minStops = minStops;
 		mpcMapPanel.sigDevMinPctStockIncrease = sigDevMinPctStockIncrease;
 		mpcMapPanel.todFractionCutoff = todFractionCutoff;
 		mpcMapPanel.huChangeSource = 'massbuilds';
@@ -187,7 +187,7 @@
 		timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod;
 		minPopulation = DEFAULT_MAIN_POC_UNIVERSE.minPopulation;
 		minPopDensity = DEFAULT_MAIN_POC_UNIVERSE.minPopDensity;
-		minStopsPerSqMi = DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi;
+		minStops = DEFAULT_MAIN_POC_UNIVERSE.minStops;
 		minUnitsPerProject = DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject;
 		minDevMfPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct;
 		minDevAffPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct;
@@ -334,8 +334,8 @@
 					<input type="number" min="0" step="100" bind:value={minPopDensity} />
 				</label>
 				<label class="mpc-field">
-					<span class="mpc-field-label">Min. transit stops / mi²</span>
-					<input type="number" min="0" step="0.5" bind:value={minStopsPerSqMi} />
+					<span class="mpc-field-label">Min. MBTA stops (tract + buffer)</span>
+					<input type="number" min="0" step="1" bind:value={minStops} />
 				</label>
 			</details>
 

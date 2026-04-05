@@ -11,6 +11,13 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import { splitChartTitle } from '$lib/utils/chartTitles.js';
+	import { niceHousingUnitsLabel } from '$lib/utils/chartFormat.js';
+	import {
+		MBTA_CHART_NEUTRAL,
+		MBTA_GREEN,
+		MBTA_ORANGE,
+		MBTA_YELLOW
+	} from '$lib/utils/mbtaColors.js';
 
 	let {
 		panelState,
@@ -30,12 +37,14 @@
 	const INNER_H_DEFAULT = 340;
 	const marginBottom = 52;
 
-	const LINE_TOD = '#2563eb';
-	const LINE_NONTOD = '#dc2626';
-	const LINE_ALL = '#7c3aed';
-	/** Manual selection (map + scatter); distinct from cohort non-TOD line ``LINE_NONTOD``. */
+	/** Weighted fit lines for significant-tract cohorts (shared yellow). */
+	const LINE_TOD = MBTA_YELLOW;
+	const LINE_NONTOD = MBTA_YELLOW;
+	const LINE_ALL = MBTA_YELLOW;
+	/** Manual selection (map + scatter); distinct from cohort fit lines. */
 	const LINE_SELECTED = '#b91c1c';
-	const GREY_MINIMAL = '#94a3b8';
+	/** Minimal-development dots: muted tone between green/orange ramp. */
+	const GREY_MINIMAL = '#a8908c';
 
 	const plotKey = $derived(
 		JSON.stringify({
@@ -53,7 +62,7 @@
 			redev: panelState.includeRedevelopment,
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
-			minStops: panelState.minStopsPerSqMi,
+			minStops: panelState.minStops,
 			trim: showTrimControl && panelState.trimOutliers,
 			dom: domainOverride?.todIntensity ? 'on' : 'off',
 			dx: domainOverride?.todIntensity?.xDomain,
@@ -68,7 +77,7 @@
 	const plotUid = `ti-${Math.random().toString(36).slice(2, 9)}`;
 
 	/**
-	 * Diverging red–white–blue by TOD fraction; white at ``cut``.
+	 * Diverging MBTA green–white–orange by TOD fraction; neutral at ``cut``.
 	 *
 	 * @param {number | null} todFraction
 	 * @param {number} cut
@@ -80,14 +89,14 @@
 		const c = Math.min(1, Math.max(0, cut));
 		const t = Math.min(1, Math.max(0, tf));
 		if (c <= 1e-9) {
-			return d3.interpolateRgb('#dc2626', '#2563eb')(t);
+			return d3.interpolateRgb(MBTA_GREEN, MBTA_ORANGE)(t);
 		}
 		if (t <= c) {
 			const u = c < 1e-9 ? 0 : t / c;
-			return d3.interpolateRgb('#dc2626', '#ffffff')(u);
+			return d3.interpolateRgb(MBTA_GREEN, MBTA_CHART_NEUTRAL)(u);
 		}
 		const u = 1 - c < 1e-9 ? 1 : (t - c) / (1 - c);
-		return d3.interpolateRgb('#ffffff', '#2563eb')(u);
+		return d3.interpolateRgb(MBTA_CHART_NEUTRAL, MBTA_ORANGE)(u);
 	}
 
 	$effect(() => {
@@ -258,9 +267,9 @@
 			.attr('y1', '100%')
 			.attr('x2', '0%')
 			.attr('y2', '0%');
-		lg.append('stop').attr('offset', '0%').attr('stop-color', '#dc2626');
-		lg.append('stop').attr('offset', `${Math.min(100, Math.max(0, cut * 100))}%`).attr('stop-color', '#ffffff');
-		lg.append('stop').attr('offset', '100%').attr('stop-color', '#2563eb');
+		lg.append('stop').attr('offset', '0%').attr('stop-color', MBTA_GREEN);
+		lg.append('stop').attr('offset', `${Math.min(100, Math.max(0, cut * 100))}%`).attr('stop-color', MBTA_CHART_NEUTRAL);
+		lg.append('stop').attr('offset', '100%').attr('stop-color', MBTA_ORANGE);
 
 		const plotTitle = svg
 			.append('text')
@@ -313,7 +322,7 @@
 				.append('line')
 				.attr('x1', 0)
 				.attr('y1', 5)
-				.attr('x2', 22)
+				.attr('x2', 15)
 				.attr('y2', 5)
 				.attr('stroke', stroke)
 				.attr('stroke-width', wideLayout ? 2 : 2.4)
@@ -658,7 +667,7 @@
 		cbG
 			.append('text')
 			.attr('x', 0)
-			.attr('y', -4)
+			.attr('y', -11)
 			.attr('fill', 'var(--text-muted)')
 			.attr('font-size', '8px')
 			.attr('font-weight', '600')
@@ -699,12 +708,16 @@
 
 		/* Size + minimal-development legend: default = centered under plot; wide = stacked in the right column */
 		const wMid = (wMin + wMax) / 2;
-		const sizeSamples = [{ w: wMin }, { w: wMid }, { w: wMax }];
+		const sizeSamples = [
+			{ w: wMin, disp: niceHousingUnitsLabel(wMin) },
+			{ w: wMid, disp: niceHousingUnitsLabel(wMid) },
+			{ w: wMax, disp: niceHousingUnitsLabel(wMax) }
+		];
 
 		if (wideLayout) {
 			const sideX = marginLeft + innerWidth + 10;
 			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');
-			const sizeTop = chartOffsetTop + innerHeight + 10;
+			const sizeTop = chartOffsetTop + innerHeight + 8;
 			sizeG
 				.append('text')
 				.attr('x', sideX)
@@ -712,19 +725,19 @@
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', '7.5px')
 				.attr('font-weight', '600')
-				.text('Dot size ∝ units');
+				.text('# of Housing Units');
 			sizeG
 				.append('text')
 				.attr('x', sideX)
-				.attr('y', sizeTop + 11)
+				.attr('y', sizeTop + 10)
 				.attr('fill', 'var(--text-muted)')
-				.attr('font-size', '7px')
-				.text(`(${startY} HU)`);
+				.attr('font-size', '6.5px')
+				.text(`Dot size ∝ (${startY})`);
 
-			const span = Math.max(52, legendColW - 14);
-			const sizeRowY = sizeTop + 20;
+			const span = Math.max(44, legendColW - 18);
+			const sizeRowY = sizeTop + 18;
 			sizeSamples.forEach((s, i) => {
-				const cx = sideX + 10 + (i * span) / 2;
+				const cx = sideX + 8 + (i * span) / 2;
 				const rr = rScale(s.w);
 				sizeG
 					.append('circle')
@@ -737,44 +750,55 @@
 				sizeG
 					.append('text')
 					.attr('x', cx)
-					.attr('y', sizeRowY + rr * 2 + 10)
+					.attr('y', sizeRowY + rr * 2 + 8)
 					.attr('text-anchor', 'middle')
 					.attr('fill', 'var(--text-muted)')
 					.attr('font-size', '6.5px')
-					.text(`${huFmt(s.w)}`);
+					.text(`${huFmt(s.disp)}`);
 			});
 
-			const miniY = sizeRowY + 36;
+			const miniY = sizeRowY + 32;
 			sizeG
 				.append('rect')
 				.attr('x', sideX)
 				.attr('y', miniY)
-				.attr('width', 9)
-				.attr('height', 9)
+				.attr('width', 8)
+				.attr('height', 8)
 				.attr('rx', 2)
 				.attr('fill', GREY_MINIMAL);
 			sizeG
 				.append('text')
-				.attr('x', sideX + 14)
-				.attr('y', miniY + 8)
+				.attr('x', sideX + 12)
+				.attr('y', miniY + 7)
 				.attr('fill', 'var(--text-muted)')
-				.attr('font-size', '7px')
+				.attr('font-size', '6.5px')
 				.text('Minimal development (no fit)');
 		} else {
-			const sizeY = chartOffsetTop + innerHeight + 50;
+			const sizeY = chartOffsetTop + innerHeight + 46;
 			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');
+			const titleX = marginLeft + innerWidth / 2;
 			sizeG
 				.append('text')
-				.attr('x', marginLeft + innerWidth / 2)
+				.attr('x', titleX)
 				.attr('y', sizeY)
 				.attr('text-anchor', 'middle')
 				.attr('fill', 'var(--text-muted)')
-				.attr('font-size', '8px')
-				.text(`Dot size ∝ housing units (${startY})`);
+				.attr('font-size', '7.5px')
+				.attr('font-weight', '600')
+				.text('# of Housing Units');
+			sizeG
+				.append('text')
+				.attr('x', titleX)
+				.attr('y', sizeY + 9)
+				.attr('text-anchor', 'middle')
+				.attr('fill', 'var(--text-muted)')
+				.attr('font-size', '6.5px')
+				.text(`Dot size ∝ (${startY})`);
 
-			const sizeRowY = sizeY + 16;
-			const span = Math.min(200, innerWidth - 40);
+			const sizeRowY = sizeY + 18;
+			const span = Math.min(132, innerWidth - 36);
 			const x0s = marginLeft + (innerWidth - span) / 2;
+			const cbColX = marginLeft + innerWidth + 12;
 			sizeSamples.forEach((s, i) => {
 				const cx = x0s + (i * span) / 2;
 				const rr = rScale(s.w);
@@ -789,28 +813,29 @@
 				sizeG
 					.append('text')
 					.attr('x', cx)
-					.attr('y', sizeRowY + rr * 2 + 12)
+					.attr('y', sizeRowY + rr * 2 + 9)
 					.attr('text-anchor', 'middle')
 					.attr('fill', 'var(--text-muted)')
-					.attr('font-size', '7px')
-					.text(`${huFmt(s.w)}`);
+					.attr('font-size', '6.5px')
+					.text(`${huFmt(s.disp)}`);
 			});
 
+			const miniTop = sizeRowY - 2;
 			sizeG
 				.append('rect')
-				.attr('x', marginLeft)
-				.attr('y', sizeRowY - 6)
-				.attr('width', 9)
-				.attr('height', 9)
+				.attr('x', cbColX)
+				.attr('y', miniTop)
+				.attr('width', 8)
+				.attr('height', 8)
 				.attr('rx', 2)
 				.attr('fill', GREY_MINIMAL);
 			sizeG
 				.append('text')
-				.attr('x', marginLeft + 14)
-				.attr('y', sizeRowY + 1)
+				.attr('x', cbColX + 11)
+				.attr('y', miniTop + 7)
 				.attr('fill', 'var(--text-muted)')
-				.attr('font-size', '7.5px')
-				.text('Minimal development (no fit)');
+				.attr('font-size', '6.5px')
+				.text('Minimal dev. (no fit)');
 		}
 	});
 

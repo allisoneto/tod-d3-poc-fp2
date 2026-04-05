@@ -20,7 +20,7 @@ import {
  */
 export const DEFAULT_MAIN_POC_UNIVERSE = {
 	timePeriod: '10_20',
-	minStopsPerSqMi: 0,
+	minStops: 0,
 	minPopulation: 0,
 	minPopDensity: 200
 };
@@ -187,7 +187,7 @@ export function buildTractPocRows(tractList, developments, thresholdMi, minDevMu
  *     If null/empty, all counties pass.
  * searchLower : string
  *     Matches ``gisjoin``, ``geoid``, ``label`` substring.
- * universePanel : {{ timePeriod: string, minStopsPerSqMi?: number, minPopulation?: number, minPopDensity?: number }}
+ * universePanel : {{ timePeriod: string, minStops?: number, minPopulation?: number, minPopDensity?: number }}
  *     Same shape as tract ``panelState`` for ``filterTractsByTract`` / ``passesTractUniverse``.
  *
  * Returns

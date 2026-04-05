@@ -127,7 +127,7 @@
 		rightPanel.nonTodMinAffordableSharePct = leftPanel.nonTodMinAffordableSharePct;
 		rightPanel.todMinStockIncreasePct = leftPanel.todMinStockIncreasePct;
 		rightPanel.nonTodMinStockIncreasePct = leftPanel.nonTodMinStockIncreasePct;
-		rightPanel.minStopsPerSqMi = leftPanel.minStopsPerSqMi;
+		rightPanel.minStops = leftPanel.minStops;
 		rightPanel.minPopulation = leftPanel.minPopulation;
 		rightPanel.minPopDensity = leftPanel.minPopDensity;
 		rightPanel.minUnitsPerProject = leftPanel.minUnitsPerProject;

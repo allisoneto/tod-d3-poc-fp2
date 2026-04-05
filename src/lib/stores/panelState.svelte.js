@@ -31,7 +31,8 @@ export function createPanelState(id) {
 		nonTodMinStockIncreasePct = $state(0);
 
 		// ── Overall census tract universe ───────────────────────
-		minStopsPerSqMi = $state(0);
+		/** Min. MBTA stops in tract + buffer (count); 0 = no floor. */
+		minStops = $state(0);
 		minPopulation = $state(0);
 		// Tract-universe defaults (same floors as Policy Insights).
 		minPopDensity = $state(200);

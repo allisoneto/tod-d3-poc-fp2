@@ -24,8 +24,7 @@
 	let transitDistanceMi = $state(0.5);
 	let sigDevMinPctStockIncrease = $state(2);
 	let todFractionCutoff = $state(0.5);
-	let huChangeSource = $state('massbuilds');
-	let minStopsPerSqMi = $state(0);
+	let minStops = $state(0);
 	let minPopulation = $state(0);
 	// Match dashboard createPanelState() tract-universe defaults.
 	let minPopDensity = $state(200);
@@ -48,11 +47,11 @@
 
 	const panelConfig = $derived({
 		timePeriod,
-		minStopsPerSqMi,
+		minStops,
 		transitDistanceMi,
 		sigDevMinPctStockIncrease,
 		todFractionCutoff,
-		huChangeSource,
+		huChangeSource: 'massbuilds',
 		minPopulation,
 		minPopDensity,
 		minUnitsPerProject,
@@ -337,9 +336,9 @@
 					<span class="filter-label">Pop/mi²</span>
 					<input type="number" min="0" step="100" bind:value={minPopDensity} />
 				</label>
-				<label class="filter-field" title="Min stops/mi² (analysis universe)">
+				<label class="filter-field" title="Min. MBTA stops in tract + buffer (analysis universe)">
 					<span class="filter-label">Min stops</span>
-					<input type="number" min="0" step="0.5" bind:value={minStopsPerSqMi} />
+					<input type="number" min="0" step="1" bind:value={minStops} />
 				</label>
 			</div>
 			<p class="filter-sub">TOD tiers (MassBuilds — matches dashboard TOD Analysis)</p>
@@ -355,13 +354,6 @@
 				<label class="filter-field" title="TOD share of new units at or above this value → TOD-dominated tract">
 					<span class="filter-label">TOD-dom. cut</span>
 					<input type="number" min="0" max="1" step="0.05" bind:value={todFractionCutoff} />
-				</label>
-				<label class="filter-field" title="How % housing growth is computed for thresholds">
-					<span class="filter-label">HU growth</span>
-					<select bind:value={huChangeSource}>
-						<option value="massbuilds">MassBuilds</option>
-						<option value="census">Census</option>
-					</select>
 				</label>
 			</div>
 		</fieldset>

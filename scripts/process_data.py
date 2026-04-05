@@ -329,6 +329,8 @@ def load_standardized():
         out[f"other_race_{Y}"] = (
             sum(other_parts) if other_parts else pd.Series(0.0, index=df.index)
         )
+        # Hispanic ethnicity: not in this NHGIS extract; zeros reserve a UI category for future data.
+        out[f"hispanic_{Y}"] = 0.0
 
         # Housing
         out[f"total_hu_{Y}"] = pd.to_numeric(df[f"CM7AA{Y}"], errors="coerce")
@@ -1377,14 +1379,6 @@ def main():
     merged["centlat"] = merged["gisjoin"].map(lambda g: geoid_map.get(g, {}).get("centlat"))
     merged["centlon"] = merged["gisjoin"].map(lambda g: geoid_map.get(g, {}).get("centlon"))
     merged["area_sq_mi"] = merged["gisjoin"].map(lambda g: geoid_map.get(g, {}).get("area_sq_mi"))
-
-    # Transit density: stops per square mile (tract boundary + 0.1mi buffer).
-    # When there are no stops, force 0.0 so JSON is not null (0 density is meaningful).
-    area = merged["area_sq_mi"].replace(0, np.nan)
-    if "transit_stops" in merged.columns:
-        ts = merged["transit_stops"].fillna(0)
-        dens = (ts / area).round(2)
-        merged["stops_per_sq_mi"] = dens.where(ts != 0, 0.0)
 
     # Census net housing unit change by period (decennial counts; scatter X-axis, distinct from MassBuilds)
     for s, e, tag in [

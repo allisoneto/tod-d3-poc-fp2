@@ -239,7 +239,7 @@
 		if (!tractReady) return;
 		pocMapPanel.transitDistanceMi = threshold;
 		pocMapPanel.timePeriod = tractTimePeriod;
-		pocMapPanel.minStopsPerSqMi = DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi;
+		pocMapPanel.minStops = DEFAULT_MAIN_POC_UNIVERSE.minStops;
 		pocMapPanel.sigDevMinPctStockIncrease = tractSigDevMin;
 		pocMapPanel.todFractionCutoff = tractTodFractionCutoff;
 		pocMapPanel.huChangeSource = 'massbuilds';
@@ -268,7 +268,7 @@
 	// Shared TOD threshold from Part 1
 	const tractPanelConfig = $derived({
 		timePeriod: tractTimePeriod,
-		minStopsPerSqMi: DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi,
+		minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops,
 		transitDistanceMi: threshold,
 		sigDevMinPctStockIncrease: tractSigDevMin,
 		todFractionCutoff: tractTodFractionCutoff,
@@ -297,7 +297,7 @@
 		if (!tractData.length) return [];
 		return filterTractsForMainPoc(tractData, tractCounties, '', {
 			timePeriod: tractTimePeriod,
-			minStopsPerSqMi: DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi,
+			minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops,
 			minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation,
 			minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity
 		});
@@ -311,7 +311,7 @@
 		buildTractDevClassMap(
 			tractListFiltered,
 			tractWindowDevs,
-			{ timePeriod: tractTimePeriod, minStopsPerSqMi: DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi, minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation, minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity },
+			{ timePeriod: tractTimePeriod, minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops, minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation, minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity },
 			threshold,
 			tractDevOpts,
 			tractSigDevMin,
@@ -432,7 +432,7 @@
 			huChangeSource: 'massbuilds',
 			minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation,
 			minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity,
-			minStopsPerSqMi: DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi,
+			minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops,
 			minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
 			minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
 			minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,

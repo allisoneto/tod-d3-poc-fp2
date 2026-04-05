@@ -15,11 +15,17 @@
 		developmentMultifamilyShare,
 		developmentMbtaProximity,
 		isDevelopmentTransitAccessible,
-		tractStopsDensityForDisplay,
 		transitDistanceMiToMetres,
 		transitModeUiLabel
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
+	import {
+		MBTA_BLUE,
+		MBTA_GREEN,
+		MBTA_MAP_NEUTRAL,
+		MBTA_ORANGE,
+		MBTA_RED
+	} from '$lib/utils/mbtaColors.js';
 
 	/**
 	 * Tract-dashboard–style map: census % housing change choropleth (2010–20), TOD-tier
@@ -42,9 +48,61 @@
 	let containerEl = $state(null);
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
 
-	const CHORO_LEGEND_COL_W = 52;
-	const DEV_LEGEND_COL_W = 44;
+	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
+	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
+
+	/** Reserved width per map colorbar (ticks + bar + vertical title, inset from map). */
+	const CHORO_LEGEND_COL_W = 70;
+	const DEV_LEGEND_COL_W = 70;
 	const mapUid = Math.random().toString(36).slice(2, 11);
+
+	/** Lighter grey for minimal-development tract outline (half stroke vs TOD tiers); legend ring matches. */
+	const MINIMAL_TRACT_STROKE = '#94a3b8';
+
+	/**
+	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
+	 * Excluded (tan / no reliable % change) → minimal → non-TOD → TOD.
+	 *
+	 * Parameters
+	 * ----------
+	 * row : object | undefined
+	 *     Row with ``census_hu_change_10_20`` and optional ``devClass``.
+	 *
+	 * Returns
+	 * -------
+	 * number
+	 *     Integer 0–3 (0 lowest).
+	 */
+	function tractTierRankFromRow(row) {
+		if (!row) return 0;
+		const v = Number(row.census_hu_change_10_20);
+		if (!Number.isFinite(v)) return 0;
+		const dc = row.devClass;
+		if (dc === 'tod_dominated') return 3;
+		if (dc === 'nontod_dominated') return 2;
+		if (dc === 'minimal') return 1;
+		return 0;
+	}
+
+	/** Re-append tract paths so stroke precedence follows ``tractTierRankFromRow`` after data updates. */
+	function reorderTractLayerPaths() {
+		if (!containerEl) return;
+		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const layer = d3.select(containerEl).select('.tract-layer');
+		const nodes = layer.selectAll('path.tract-poly').nodes();
+		if (nodes.length === 0) return;
+		nodes.sort((na, nb) => {
+			const da = d3.select(na).datum();
+			const db = d3.select(nb).datum();
+			const ra = tractTierRankFromRow(rowByGj.get(da.properties?.gisjoin));
+			const rb = tractTierRankFromRow(rowByGj.get(db.properties?.gisjoin));
+			if (ra !== rb) return ra - rb;
+			return String(da.properties?.gisjoin ?? '').localeCompare(String(db.properties?.gisjoin ?? ''));
+		});
+		const parent = nodes[0].parentNode;
+		if (!parent) return;
+		for (const n of nodes) parent.appendChild(n);
+	}
 
 	let mapCanvasLeft = 0;
 	let mapW = 520;
@@ -71,7 +129,7 @@
 	const dataKey = $derived(
 		JSON.stringify({
 			tp: panelState.timePeriod,
-			stops: panelState.minStopsPerSqMi,
+			stops: panelState.minStops,
 			tdMi: panelState.transitDistanceMi,
 			sig: panelState.sigDevMinPctStockIncrease,
 			todCut: panelState.todFractionCutoff,
@@ -124,6 +182,51 @@
 		return 'other';
 	}
 
+	/** Multifamily share ramp: MBTA orange → MBTA green (matches SVG MF legend and dots). */
+	function interpolateOrangeGreen(t) {
+		return d3.interpolateRgb(MBTA_ORANGE, MBTA_GREEN)(Math.min(1, Math.max(0, t)));
+	}
+
+	/**
+	 * Pick human-friendly unit values between ``lo`` and ``hi`` for a sqrt-sized dot legend.
+	 *
+	 * Parameters
+	 * ----------
+	 * lo : number
+	 *     Domain minimum (same as ``rScale`` domain lower bound).
+	 * hi : number
+	 *     Domain maximum.
+	 * rScale : d3.ScaleContinuousNumeric<number, number>
+	 *     Sqrt scale mapping units → dot radius in SVG px (same as map).
+	 *
+	 * Returns
+	 * -------
+	 * Array<{ units: number, rPx: number }>
+	 */
+	function computeDevSizeLegendTicks(lo, hi, rScale) {
+		if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return [];
+		const raw = d3.ticks(lo, hi, 5).filter((t) => t >= lo && t <= hi);
+		if (raw.length === 0) {
+			const u = (lo + hi) / 2;
+			return [{ units: u, rPx: rScale(u) }];
+		}
+		let vals = raw;
+		if (raw.length > 4) {
+			const pick = (i) => raw[Math.min(Math.max(0, i), raw.length - 1)];
+			const idxs = [0, Math.floor(raw.length / 3), Math.floor((2 * raw.length) / 3), raw.length - 1];
+			vals = [...new Set(idxs.map(pick))];
+		}
+		vals.sort((a, b) => a - b);
+		return vals.map((units) => ({ units, rPx: rScale(units) }));
+	}
+
+	/** Format unit counts for the dot-size legend (comma-separated integers). */
+	function formatDevUnitsLegend(u) {
+		const n = Math.round(Number(u));
+		if (!Number.isFinite(n)) return '—';
+		return d3.format(',.0f')(n);
+	}
+
 	function buildTractLookup() {
 		const m = new Map();
 		for (const t of tractList) {
@@ -174,8 +277,16 @@
 			return;
 		}
 
+		const rowByGjForOrder = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const sortedFeatures = [...features].sort((a, b) => {
+			const ra = tractTierRankFromRow(rowByGjForOrder.get(a.properties?.gisjoin));
+			const rb = tractTierRankFromRow(rowByGjForOrder.get(b.properties?.gisjoin));
+			if (ra !== rb) return ra - rb;
+			return String(a.properties?.gisjoin ?? '').localeCompare(String(b.properties?.gisjoin ?? ''));
+		});
+
 		const cw = containerEl.clientWidth || 900;
-		mapW = Math.max(400, Math.min(1100, cw - CHORO_LEGEND_COL_W - DEV_LEGEND_COL_W - 24));
+		mapW = Math.max(400, Math.min(1100, cw - CHORO_LEGEND_COL_W - DEV_LEGEND_COL_W - 16));
 
 		const showDevs = panelState.showDevelopments;
 		mapCanvasLeft = showDevs ? DEV_LEGEND_COL_W : 0;
@@ -221,7 +332,7 @@
 			.append('g')
 			.attr('class', 'tract-layer')
 			.selectAll('path.tract-poly')
-			.data(features, (d) => d.properties?.gisjoin)
+			.data(sortedFeatures, (d) => d.properties?.gisjoin)
 			.join('path')
 			.attr('class', 'tract-poly')
 			.attr('vector-effect', 'non-scaling-stroke')
@@ -308,7 +419,10 @@
 			.map((r) => Number(r.census_hu_change_10_20))
 			.filter(Number.isFinite);
 		const maxAbs = Math.max(1, d3.max(values, (d) => Math.abs(d)) || 1);
-		const color = d3.scaleLinear().domain([-maxAbs, 0, maxAbs]).range(['#ed8b00', '#fffdf8', '#003da5']);
+		const color = d3
+			.scaleLinear()
+			.domain([-maxAbs, 0, maxAbs])
+			.range([MBTA_RED, MBTA_MAP_NEUTRAL, MBTA_BLUE]);
 
 		d3.select(containerEl)
 			.selectAll('path.tract-poly')
@@ -324,26 +438,28 @@
 				const dc = row?.devClass;
 				if (dc === 'tod_dominated') return 'var(--accent, #0d9488)';
 				if (dc === 'nontod_dominated') return 'var(--warning, #ea580c)';
-				if (dc === 'minimal') return '#64748b';
+				if (dc === 'minimal') return MINIMAL_TRACT_STROKE;
 				return 'rgba(60,64,67,0.22)';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				return row?.devClass ? 0.75 : 0.25;
+				const dc = row?.devClass;
+				if (!dc) return 0.5;
+				return dc === 'minimal' ? 0.75 : 1.5;
 			});
 
 		const svg = svgRef;
 		const legGroup = svg.select('.map-legend-group');
 		legGroup.selectAll('*').remove();
-		legGroup.attr('transform', `translate(${mapCanvasLeft + mapW + 8},0)`);
+		const mapRight = mapCanvasLeft + mapW;
+		legGroup.attr('transform', `translate(${mapRight + 6},0)`);
 
-		const titleBlockH = 22;
-		const yTitleTop = 4;
-		const y0 = yTitleTop + titleBlockH;
-		const legBarW = 14;
-		const axisPad = 4;
-		const legBarH = Math.max(140, mapH - y0 - 16);
+		const y0 = 10;
+		const legBarH = Math.max(120, mapH - y0 - 14);
+		const barW = 10;
+		const barRight = 58;
+		const barLeft = barRight - barW;
 		const fmtTick = (v) => {
 			const n = Number(v);
 			if (!Number.isFinite(n)) return '';
@@ -364,23 +480,6 @@
 			.attr('x2', '0%')
 			.attr('y2', '0%');
 
-		legendG
-			.append('text')
-			.attr('x', 0)
-			.attr('y', yTitleTop + 14)
-			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '11px')
-			.attr('font-weight', 600)
-			.text('Housing change');
-
-		legendG
-			.append('text')
-			.attr('x', 0)
-			.attr('y', yTitleTop + 28)
-			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '9px')
-			.text('Census 2010→2020 (%)');
-
 		const d0 = -maxAbs;
 		const d1 = maxAbs;
 		const nStops = 48;
@@ -391,25 +490,42 @@
 		}
 		legendG
 			.append('rect')
-			.attr('x', 0)
+			.attr('x', barLeft)
 			.attr('y', y0)
-			.attr('width', legBarW)
+			.attr('width', barW)
 			.attr('height', legBarH)
-			.attr('rx', 3)
+			.attr('rx', 2)
 			.attr('fill', `url(#${gradId})`)
 			.attr('stroke', 'var(--border)')
-			.attr('stroke-width', 0.6);
+			.attr('stroke-width', 0.5);
 
 		const yScale = d3.scaleLinear().domain([d0, d1]).range([y0 + legBarH, y0]);
+		const choroAxisX = barLeft - 0.5;
 		legendG
 			.append('g')
-			.attr('transform', `translate(${legBarW + axisPad},0)`)
-			.call(d3.axisRight(yScale).ticks(5).tickFormat((v) => `${fmtTick(v)}%`))
+			.attr('transform', `translate(${choroAxisX},0)`)
+			.call(
+				d3
+					.axisLeft(yScale)
+					.ticks(5)
+					.tickFormat((v) => `${fmtTick(v)}%`)
+					.tickSize(3)
+			)
 			.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
-			.call((g) => g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '9.5px'));
+			.call((g) => g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '8px'));
+
+		legendG
+			.append('text')
+			.attr('transform', `translate(4, ${y0 + legBarH * 0.5}) rotate(-90)`)
+			.attr('text-anchor', 'middle')
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '7.5px')
+			.attr('font-weight', 600)
+			.text('Housing change (%, 2010–20)');
 
 		containerEl.__pocChoroMaxAbs = maxAbs;
 		containerEl.__pocRowByGj = rowByGj;
+		reorderTractLayerPaths();
 	}
 
 	function updateDevelopments() {
@@ -422,7 +538,10 @@
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		devLayer.selectAll('*').remove();
 
-		if (!panelState.showDevelopments) return;
+		if (!panelState.showDevelopments) {
+			devSizeLegendTicks = null;
+			return;
+		}
 
 		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
 		const projection = projectionRef;
@@ -438,55 +557,51 @@
 		const hi = Math.max(lo + 1e-6, huMax);
 		const rScale = d3.scaleSqrt().domain([lo, hi]).range([1.4, 8]);
 
-		const mfColor = d3.scaleSequential(d3.interpolateYlGnBu).domain([0, 1]);
+		devSizeLegendTicks = filteredDevs.length ? computeDevSizeLegendTicks(lo, hi, rScale) : [];
 
-		const y0mf = 22;
-		const legBarHmf = Math.max(120, mapH - y0mf - 12);
-		const legBarWmf = 12;
-		const barLeft = 30;
+		const mfColor = d3.scaleSequential((t) => interpolateOrangeGreen(t)).domain([0, 1]).clamp(true);
+
+		const y0mf = 10;
+		const legBarHmf = Math.max(120, mapH - y0mf - 14);
+		const legBarWmf = 10;
+		const mfBarLeft = 0;
+		const mfBarRight = mfBarLeft + legBarWmf;
 		const gradMfId = `poc-dev-mf-grad-${mapUid}`;
 		svg.select('defs').selectAll(`#${gradMfId}`).remove();
 		const gradMf = svg.select('defs').append('linearGradient').attr('id', gradMfId)
 			.attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
 		for (let i = 0; i <= 48; i++) {
 			const t = i / 48;
-			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', d3.interpolateYlGnBu(t));
+			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', interpolateOrangeGreen(t));
 		}
-		const mfLegG = devLeg.append('g').attr('class', 'map-dev-legend-inner').attr('transform', 'translate(2,0)');
-		mfLegG
-			.append('text')
-			.attr('x', 0)
-			.attr('y', 13)
-			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '10px')
-			.attr('font-weight', 600)
-			.text('MF share');
-		mfLegG
-			.append('text')
-			.attr('x', 0)
-			.attr('y', 26)
-			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '8px')
-			.text('(dot fill)');
+		const mfLegG = devLeg.append('g').attr('class', 'map-dev-legend-inner').attr('transform', 'translate(6,0)');
 		mfLegG
 			.append('rect')
-			.attr('x', barLeft)
+			.attr('x', mfBarLeft)
 			.attr('y', y0mf)
 			.attr('width', legBarWmf)
 			.attr('height', legBarHmf)
-			.attr('rx', 3)
+			.attr('rx', 2)
 			.attr('fill', `url(#${gradMfId})`)
 			.attr('stroke', 'var(--border)')
-			.attr('stroke-width', 0.6);
+			.attr('stroke-width', 0.5);
 		const yMf = d3.scaleLinear().domain([0, 1]).range([y0mf + legBarHmf, y0mf]);
 		mfLegG
 			.append('g')
-			.attr('transform', `translate(${barLeft},0)`)
-			.call(d3.axisLeft(yMf).ticks(4).tickFormat(d3.format('.0%')))
+			.attr('transform', `translate(${mfBarRight + 5},0)`)
+			.call(d3.axisRight(yMf).ticks(4).tickFormat(d3.format('.0%')).tickSize(3))
 			.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
 			.call((g) =>
-				g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '9px')
+				g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '8px')
 			);
+		mfLegG
+			.append('text')
+			.attr('transform', `translate(11.5, ${y0mf + legBarHmf * 0.5}) rotate(-90)`)
+			.attr('text-anchor', 'middle')
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '7.5px')
+			.attr('font-weight', 600)
+			.text('MF share (dot fill)');
 
 		const glyphData = filteredDevs.map((d) => {
 			const hu = Number(d.hu) || 0;
@@ -566,15 +681,17 @@
 				const dc = row?.devClass;
 				if (dc === 'tod_dominated') return 'var(--accent, #0d9488)';
 				if (dc === 'nontod_dominated') return 'var(--warning, #ea580c)';
-				if (dc === 'minimal') return '#64748b';
+				if (dc === 'minimal') return MINIMAL_TRACT_STROKE;
 				return 'rgba(60,64,67,0.22)';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
-				if (id === hoveredId) return 1.6;
-				if (selectedSet.has(id)) return 1.4;
 				const row = rowByGj?.get(id);
-				return row?.devClass ? 0.75 : 0.25;
+				const dc = row?.devClass;
+				if (id === hoveredId) return dc === 'minimal' ? 1.6 : 3.2;
+				if (selectedSet.has(id)) return dc === 'minimal' ? 1.4 : 2.8;
+				if (!dc) return 0.5;
+				return dc === 'minimal' ? 0.75 : 1.5;
 			});
 	}
 
@@ -656,12 +773,8 @@
 				});
 			}
 
-			const densityDisp = tractStopsDensityForDisplay(t);
-			if (densityDisp !== null) {
-				lines.push({ bold: false, text: `Transit stops / mi² (display): ${fmt(densityDisp)}` });
-			}
 			const stopsRaw = Number(t.transit_stops) || 0;
-			lines.push({ bold: false, text: `Stops in tract buffer: ${stopsRaw}` });
+			lines.push({ bold: false, text: `MBTA stops (tract + buffer): ${stopsRaw}` });
 
 			const medInc = t.median_income_change_pct_10_20;
 			if (medInc != null && Number.isFinite(medInc)) {
@@ -816,62 +929,120 @@
 </script>
 
 <div class="poc-nhgis-map">
-	<fieldset class="poc-map-overlays section--map">
-		<legend class="section-title">Map overlays</legend>
-		<div class="overlay-grid">
-			<div class="overlay-header"></div>
-			<div class="overlay-header overlay-col-label">Lines</div>
-			<div class="overlay-header overlay-col-label">Stops</div>
+	<label class="poc-dev-toggle">
+		<input type="checkbox" bind:checked={panelState.showDevelopments} />
+		<span>Show MassBuilds developments on map</span>
+	</label>
 
-			<span class="overlay-row-label">Bus</span>
-			<label class="overlay-toggle"><input type="checkbox" bind:checked={panelState.showBusLines} /></label>
-			<label class="overlay-toggle"><input type="checkbox" bind:checked={panelState.showBusStops} /></label>
-
-			<span class="overlay-row-label">Rapid transit</span>
-			<label class="overlay-toggle"><input type="checkbox" bind:checked={panelState.showRailLines} /></label>
-			<label class="overlay-toggle"><input type="checkbox" bind:checked={panelState.showRailStops} /></label>
-
-			<span class="overlay-row-label">Commuter rail</span>
-			<label class="overlay-toggle"
-				><input type="checkbox" bind:checked={panelState.showCommuterRailLines} /></label
-			>
-			<label class="overlay-toggle"
-				><input type="checkbox" bind:checked={panelState.showCommuterRailStops} /></label
-			>
-		</div>
-		<div class="toggles toggles-follow">
-			<label class="toggle-item show-devs">
-				<input type="checkbox" bind:checked={panelState.showDevelopments} />
-				<span>Show developments</span>
-			</label>
-		</div>
-	</fieldset>
-
-	<div class="poc-map-key card-key" role="region" aria-label="Map legend">
-		<div class="poc-map-key-grid">
-			<div>
-				<h4 class="poc-map-key-title">Tract fill</h4>
-				<p class="poc-map-key-line">
-					<span class="poc-k-swatch poc-k-swatch--div"></span>
-					Diverging scale: <strong>orange</strong> = larger decreases in housing stock (%), <strong>blue</strong>
-					= larger increases (Census 2010–20).
-				</p>
-				<h4 class="poc-map-key-title">Tract outline (development cohort)</h4>
-				<ul class="poc-map-key-list">
-					<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (MassBuilds TOD share ≥ cutoff)</li>
-					<li>
-						<span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated, significant development
-					</li>
-					<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
-				</ul>
+	<div class="poc-legend-row">
+		<fieldset class="poc-transit-field">
+			<legend class="poc-transit-legend">MBTA</legend>
+			<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
+				<div class="poc-t-row">
+					<span class="poc-t-h"></span>
+					<span class="poc-t-h">Lines</span>
+					<span class="poc-t-h">Stops</span>
+				</div>
+				<div class="poc-t-row">
+					<span class="poc-t-l">Bus</span>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusLines} /></label>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusStops} /></label>
+				</div>
+				<div class="poc-t-row">
+					<span class="poc-t-l">Rapid Transit</span>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailLines} /></label>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailStops} /></label>
+				</div>
+				<div class="poc-t-row">
+					<span class="poc-t-l">Commuter Rail</span>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailLines} /></label>
+					<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailStops} /></label>
+				</div>
 			</div>
-			<div>
-				<h4 class="poc-map-key-title">Developments (when enabled)</h4>
-				<p class="poc-map-key-line">
-					<strong>Fill</strong> = multifamily share of units (see left colorbar on map). <strong>Size</strong> ≈
-					unit count. <strong>Outline</strong>: white = transit-accessible at the TOD distance and MF floor;
-					dark = not.
-				</p>
+		</fieldset>
+
+		<div class="poc-map-key card-key" role="region" aria-label="Map legend">
+			<div
+				class="poc-map-key-compact"
+				class:poc-map-key-compact--split={panelState.showDevelopments}
+			>
+				<div class="poc-map-key-col poc-map-key-col--tract">
+					<p class="poc-key-one poc-key-tract-fill">
+						<strong>Tract fill</strong>
+						<span class="poc-key-tract-fill-body">
+							<span class="poc-key-tract-fill-line">
+								Census housing change (%, 2010–20). Full scale on map colorbar.
+							</span>
+							<!-- Inline diverging strip matches tract choropleth (same anchors as map scale). -->
+							<span
+								class="poc-key-tract-bar"
+								style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
+								role="img"
+								aria-label="Housing change scale: more negative toward red, more positive toward blue"
+							></span>
+						</span>
+					</p>
+					<p class="poc-key-no-data">
+						<span
+							class="poc-key-fill-swatch poc-key-fill-swatch--no-data"
+							style="background: #e7e0d5;"
+							role="img"
+							aria-hidden="true"
+						></span>
+						<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
+					</p>
+					<ul class="poc-key-rings">
+						<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
+						<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
+						<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
+					</ul>
+				</div>
+				{#if panelState.showDevelopments}
+					<div class="poc-map-key-col poc-map-key-col--dev">
+						<p class="poc-key-one poc-key-dev">
+							<strong>Developments</strong>
+							<span class="poc-key-tract-fill-body">
+								<span class="poc-key-tract-fill-line">
+									Fill = share of new units that are multi-family. Full scale on map colorbar.
+								</span>
+								<!-- Same ramp as dev dots / SVG MF legend (interpolateOrangeGreen). -->
+								<span
+									class="poc-key-tract-bar"
+									style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
+									role="img"
+									aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
+								></span>
+							</span>
+						</p>
+						{#if devSizeLegendTicks && devSizeLegendTicks.length > 0}
+							<div class="poc-key-dev-sizes" aria-label="Development dot size by unit count">
+								<p class="poc-key-dev-sizes-title">Units (radius ∝ √units, same as map)</p>
+								<ul class="poc-key-dev-sizes-list">
+									{#each devSizeLegendTicks as t, i (i)}
+										<li class="poc-key-dev-size-item">
+											<span class="poc-key-dev-size-dot-wrap">
+												<span
+													class="poc-key-dev-size-dot"
+													style:width="{2 * t.rPx}px"
+													style:height="{2 * t.rPx}px"
+												></span>
+											</span>
+											<span class="poc-key-dev-size-num">{formatDevUnitsLegend(t.units)}</span>
+										</li>
+									{/each}
+								</ul>
+							</div>
+						{/if}
+						<ul class="poc-key-rings" aria-label="Development dot outlines">
+							<li>
+								<span class="poc-k-ring poc-k-ring--dev-access"></span> Transit-accessible
+							</li>
+							<li>
+								<span class="poc-k-ring poc-k-ring--dev-noaccess"></span> Not transit-accessible
+							</li>
+						</ul>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -897,154 +1068,327 @@
 	.poc-nhgis-map {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 6px;
 		min-width: 0;
 	}
 
-	.poc-map-overlays {
+	.poc-dev-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		padding: 8px 10px;
+		border-radius: var(--radius-sm);
+		border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+		background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text);
+		cursor: pointer;
+		user-select: none;
+		line-height: 1.25;
+	}
+
+	.poc-dev-toggle input {
+		width: 1.1rem;
+		height: 1.1rem;
+		accent-color: var(--accent);
+		margin: 0;
+		flex-shrink: 0;
+	}
+
+	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */
+	.poc-legend-row {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		align-items: stretch;
+		min-width: 0;
+	}
+
+		@media (min-width: 640px) {
+		.poc-legend-row {
+			flex-direction: row;
+			align-items: flex-start;
+		}
+
+		/* Transit block was capped at 25% width, which crushed the label column; size to content instead. */
+		.poc-transit-field {
+			flex: 0 0 auto;
+			max-width: none;
+			min-width: min-content;
+		}
+
+		.poc-map-key {
+			flex: 1 1 0;
+			min-width: 0;
+		}
+	}
+
+	.poc-transit-field {
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		background: var(--bg-card);
-		padding: 6px 8px 8px;
+		padding: 2px 5px 4px;
 		margin: 0;
 	}
 
-	.section-title {
-		font-size: 0.65rem;
+	.poc-transit-legend {
+		padding: 0 2px;
+		font-size: 0.58rem;
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
-		color: var(--accent);
-		padding: 0 2px;
-	}
-
-	.overlay-grid {
-		display: grid;
-		grid-template-columns: auto 1fr 1fr;
-		gap: 4px 8px;
-		align-items: center;
-		font-size: 0.7rem;
 		color: var(--text-muted);
 	}
 
-	.overlay-header {
-		min-height: 4px;
+	.poc-transit-compact {
+		display: block;
+		width: max-content;
+		max-width: 100%;
+		min-width: 0;
 	}
 
-	.overlay-col-label {
+	/* auto label column + fixed narrow checkbox columns keeps rows on one line with less dead space */
+	.poc-t-row {
+		display: grid;
+		grid-template-columns: auto 1.575rem 1.575rem;
+		column-gap: 0.525rem;
+		row-gap: 2px;
+		align-items: center;
+		font-size: 0.6rem;
+		line-height: 1.2;
+		color: var(--text-muted);
+	}
+
+	.poc-t-h {
 		text-align: center;
-		font-weight: 600;
-		font-size: 0.62rem;
+		font-weight: 700;
+		font-size: 0.52rem;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.02em;
+		color: var(--text-muted);
 	}
 
-	.overlay-row-label {
+	.poc-t-l {
 		font-weight: 500;
 		color: var(--text);
+		padding-right: 0.15rem;
+		white-space: nowrap;
 	}
 
-	.overlay-toggle {
+	.poc-t-cell {
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		cursor: pointer;
-		min-height: 26px;
+		min-height: 23px;
+		margin: 0;
+		padding: 0;
 	}
 
-	.overlay-toggle input {
+	.poc-t-cell input {
 		accent-color: var(--accent);
 		margin: 0;
-	}
-
-	.toggles {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px 14px;
-		margin-top: 6px;
-	}
-
-	.toggle-item {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		cursor: pointer;
-	}
-
-	.toggle-item input {
-		accent-color: var(--accent);
-		margin: 0;
-	}
-
-	.show-devs {
-		color: var(--accent);
-		font-weight: 600;
 	}
 
 	.card-key {
-		border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
-		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+		background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
 		border-radius: var(--radius-sm);
-		padding: 10px 12px;
+		padding: 5px 8px;
 	}
 
-	.poc-map-key-grid {
+	.poc-map-key-compact {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.65rem;
+		line-height: 1.35;
+		color: var(--text-muted);
+	}
+
+	/* Tract (left) vs developments (right) when MassBuilds overlay is on */
+	.poc-map-key-compact--split {
 		display: grid;
-		grid-template-columns: 1fr;
-		gap: 12px;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 8px 14px;
+		align-items: start;
 	}
 
-	@media (min-width: 720px) {
-		.poc-map-key-grid {
-			grid-template-columns: 1fr 1fr;
-			gap: 16px;
+	@media (max-width: 639px) {
+		.poc-map-key-compact--split {
+			grid-template-columns: 1fr;
+		}
+
+		.poc-map-key-col--dev {
+			border-left: none;
+			padding-left: 0;
+			border-top: 1px dashed var(--border);
+			padding-top: 8px;
 		}
 	}
 
-	.poc-map-key-title {
-		margin: 0 0 6px;
-		font-size: 0.78rem;
-		font-weight: 700;
-		color: var(--text);
-	}
-
-	.poc-map-key-line {
-		margin: 0;
-		font-size: 0.75rem;
-		line-height: 1.45;
-		color: var(--text-muted);
-	}
-
-	.poc-map-key-list {
-		margin: 4px 0 0;
-		padding-left: 0;
-		list-style: none;
-		font-size: 0.72rem;
-		line-height: 1.5;
-		color: var(--text-muted);
-	}
-
-	.poc-map-key-list li {
+	.poc-map-key-col {
+		min-width: 0;
 		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 4px;
+		flex-direction: column;
+		gap: 4px;
 	}
 
-	.poc-k-swatch {
+	.poc-map-key-col--dev {
+		border-left: 1px dashed var(--border);
+		padding-left: 10px;
+	}
+
+	.poc-map-key-col--dev .poc-key-dev {
+		padding-top: 0;
+		border-top: none;
+	}
+
+	.poc-key-no-data {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		margin: 0;
+		font-size: 0.6rem;
+		line-height: 1.35;
+		color: var(--text-muted);
+	}
+
+	.poc-key-fill-swatch {
 		display: inline-block;
-		width: 28px;
-		height: 10px;
-		border-radius: 2px;
-		vertical-align: middle;
-		margin-right: 6px;
+		width: 14px;
+		height: 14px;
+		border-radius: 3px;
 		border: 1px solid var(--border);
+		flex-shrink: 0;
+		margin-top: 0.1rem;
+		box-sizing: border-box;
 	}
 
-	.poc-k-swatch--div {
-		background: linear-gradient(90deg, #ed8b00, #fffdf8, #003da5);
+	.poc-key-no-data-text {
+		color: var(--text-muted);
+	}
+
+	.poc-key-one {
+		margin: 0;
+		display: flex;
+		align-items: flex-start;
+		gap: 4px;
+	}
+
+	.poc-key-tract-fill {
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.poc-key-tract-fill-body {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		min-width: 0;
+		flex: 1 1 12rem;
+	}
+
+	.poc-key-tract-fill-line {
+		display: block;
+	}
+
+	.poc-key-tract-bar {
+		display: block;
+		width: 100%;
+		max-width: 9rem;
+		height: 5px;
+		border-radius: 2px;
+		border: 1px solid var(--border);
+		flex-shrink: 0;
+	}
+
+	.poc-key-one strong {
+		color: var(--text);
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+
+	.poc-key-dev {
+		padding-top: 2px;
+		border-top: 1px dashed var(--border);
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.poc-key-dev-sizes {
+		margin: 0;
+		padding: 4px 0 0;
+	}
+
+	.poc-key-dev-sizes-title {
+		margin: 0 0 5px;
+		font-size: 0.58rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		line-height: 1.25;
+	}
+
+	.poc-key-dev-sizes-list {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 6px 14px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.poc-key-dev-size-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+	}
+
+	/* Match map max r (8); keeps small circles bottom-aligned with large ones. */
+	.poc-key-dev-size-dot-wrap {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		min-height: 18px;
+		width: 100%;
+	}
+
+	.poc-key-dev-size-dot {
+		display: block;
+		border-radius: 999px;
+		flex-shrink: 0;
+		box-sizing: border-box;
+		/* Neutral grey: size legend encodes area only; MF fill is the colorbar above. */
+		background: #94a3b8;
+		border: 1px solid rgba(15, 23, 42, 0.35);
+	}
+
+	.poc-key-dev-size-num {
+		font-size: 0.58rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--text);
+		font-weight: 600;
+	}
+
+	.poc-key-rings {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px 10px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 0.62rem;
+	}
+
+	.poc-key-rings li {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 	}
 
 	.poc-k-ring {
@@ -1064,7 +1408,22 @@
 		border-color: var(--warning, #ea580c);
 	}
 	.poc-k-ring--min {
-		border-color: #64748b;
+		border-color: #94a3b8;
+	}
+
+	/* Dev outline swatches: grey fill so stroke semantics stay visible (map dots stay orange–green by MF). */
+	.poc-k-ring--dev-access,
+	.poc-k-ring--dev-noaccess {
+		background: #94a3b8;
+	}
+
+	.poc-k-ring--dev-access {
+		border-color: #ffffff;
+		box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.38);
+	}
+
+	.poc-k-ring--dev-noaccess {
+		border-color: rgba(15, 23, 42, 0.55);
 	}
 
 	.map-wrap {

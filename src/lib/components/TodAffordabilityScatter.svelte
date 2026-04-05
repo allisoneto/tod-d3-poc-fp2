@@ -11,6 +11,13 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import { splitChartTitle } from '$lib/utils/chartTitles.js';
+	import { niceHousingUnitsLabel } from '$lib/utils/chartFormat.js';
+	import {
+		MBTA_BLUE,
+		MBTA_CHART_NEUTRAL,
+		MBTA_RED,
+		MBTA_YELLOW
+	} from '$lib/utils/mbtaColors.js';
 
 	let { panelState, domainOverride = null } = $props();
 
@@ -41,7 +48,7 @@
 			redev: panelState.includeRedevelopment,
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
-			minStops: panelState.minStopsPerSqMi,
+			minStops: panelState.minStops,
 			trim: panelState.trimOutliers,
 			dom: domainOverride?.todAffordability ? 'on' : 'off',
 			dx: domainOverride?.todAffordability?.xDomain,
@@ -55,6 +62,8 @@
 
 	/** Manual selection (map + scatter); matches ``TodIntensityScatter`` cohort styling. */
 	const LINE_SELECTED = '#b91c1c';
+	/** Main WLS fit (yellow). */
+	const LINE_FIT = MBTA_YELLOW;
 
 	$effect(() => {
 		void plotKey;
@@ -165,9 +174,16 @@
 		const stockVals = points.map((d) => d.stockPct);
 		const cMin = d3.min(stockVals) ?? 0;
 		const cMax = d3.max(stockVals) ?? 1;
+		const cHi = cMax === cMin ? cMin + 1e-6 : cMax;
+		const midVal = (() => {
+			const m = d3.median(stockVals);
+			if (Number.isFinite(m) && m >= cMin && m <= cHi) return m;
+			return (cMin + cHi) / 2;
+		})();
+		// Stock-% diverging: red (lower) → neutral → blue (higher), aligned with map choropleth.
 		const colorScale = d3
-			.scaleSequential(d3.interpolateYlOrRd)
-			.domain([cMin, cMax === cMin ? cMin + 1e-6 : cMax]);
+			.scaleDiverging(d3.piecewise(d3.interpolateRgb, [MBTA_RED, MBTA_CHART_NEUTRAL, MBTA_BLUE]))
+			.domain([cMin, midVal, cHi]);
 
 		const xScale = d3
 			.scaleLinear()
@@ -199,7 +215,7 @@
 			.attr('preserveAspectRatio', 'xMidYMid meet')
 			.style('display', 'block');
 
-		const stockSpan = Math.max(1e-9, cMax - cMin);
+		const stockSpan = Math.max(1e-9, cHi - cMin);
 		const gradId = `aff-stock-grad-${plotUid}`;
 		const defs = svg.append('defs');
 		const lg = defs
@@ -213,10 +229,9 @@
 		for (let i = 0; i <= nGradStops; i++) {
 			const u = i / nGradStops;
 			const v = cMin + u * stockSpan;
-			const t = (v - cMin) / stockSpan;
 			lg.append('stop')
 				.attr('offset', `${u * 100}%`)
-				.attr('stop-color', d3.interpolateYlOrRd(Math.min(1, Math.max(0, t))));
+				.attr('stop-color', colorScale(v));
 		}
 
 		const plotTitle = svg
@@ -240,9 +255,9 @@
 			.append('line')
 			.attr('x1', 0)
 			.attr('y1', 5)
-			.attr('x2', 28)
+			.attr('x2', 18)
 			.attr('y2', 5)
-			.attr('stroke', '#7c3aed')
+			.attr('stroke', LINE_FIT)
 			.attr('stroke-width', 2.4)
 			.attr('stroke-linecap', 'round');
 		wlsRow
@@ -278,7 +293,7 @@
 				.append('line')
 				.attr('x1', 0)
 				.attr('y1', 5)
-				.attr('x2', 28)
+				.attr('x2', 18)
 				.attr('y2', 5)
 				.attr('stroke', LINE_SELECTED)
 				.attr('stroke-width', 2.4)
@@ -345,7 +360,7 @@
 				.attr('y1', yScale(wls.slope * d0 + wls.intercept))
 				.attr('x2', xScale(d1))
 				.attr('y2', yScale(wls.slope * d1 + wls.intercept))
-				.attr('stroke', '#7c3aed')
+				.attr('stroke', LINE_FIT)
 				.attr('stroke-width', 2.5)
 				.attr('stroke-linecap', 'round')
 				.attr('pointer-events', 'none');
@@ -452,7 +467,7 @@
 		cbG
 			.append('text')
 			.attr('x', 0)
-			.attr('y', -4)
+			.attr('y', -11)
 			.attr('fill', 'var(--text-muted)')
 			.attr('font-size', '8px')
 			.attr('font-weight', '600')
@@ -469,7 +484,7 @@
 			.attr('stroke', 'var(--border)')
 			.attr('stroke-width', 0.5);
 
-		const stockAxis = d3.scaleLinear().domain([cMin, cMax]).range([innerHeight, 0]);
+		const stockAxis = d3.scaleLinear().domain([cMin, cHi]).range([innerHeight, 0]);
 		cbG
 			.append('g')
 			.attr('transform', `translate(${cbW + 4}, 0)`)
@@ -490,21 +505,35 @@
 			.attr('font-size', '7px')
 			.text(`(${huSrcLabel})`);
 
-		const sizeY = chartOffsetTop + innerHeight + 50;
+		const sizeY = chartOffsetTop + innerHeight + 48;
 		const sizeG = svg.append('g').attr('class', 'tod-aff-size-legend').attr('pointer-events', 'none');
+
+		const wMid = (wMin + wMax) / 2;
+		const sizeSamples = [
+			{ w: wMin, disp: niceHousingUnitsLabel(wMin) },
+			{ w: wMid, disp: niceHousingUnitsLabel(wMid) },
+			{ w: wMax, disp: niceHousingUnitsLabel(wMax) }
+		];
+		const titleX = marginLeft + innerWidth / 2;
 		sizeG
 			.append('text')
-			.attr('x', marginLeft + innerWidth / 2)
+			.attr('x', titleX)
 			.attr('y', sizeY)
 			.attr('text-anchor', 'middle')
 			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '8px')
-			.text(`Dot size ∝ housing units (${startY})`);
-
-		const wMid = (wMin + wMax) / 2;
-		const sizeSamples = [{ w: wMin }, { w: wMid }, { w: wMax }];
-		const sizeRowY = sizeY + 16;
-		const span = Math.min(200, innerWidth - 40);
+			.attr('font-size', '7.5px')
+			.attr('font-weight', '600')
+			.text('# of Housing Units');
+		sizeG
+			.append('text')
+			.attr('x', titleX)
+			.attr('y', sizeY + 9)
+			.attr('text-anchor', 'middle')
+			.attr('fill', 'var(--text-muted)')
+			.attr('font-size', '6.5px')
+			.text(`Dot size ∝ (${startY})`);
+		const sizeRowY = sizeY + 18;
+		const span = Math.min(132, innerWidth - 36);
 		const x0s = marginLeft + (innerWidth - span) / 2;
 		sizeSamples.forEach((s, i) => {
 			const cx = x0s + (i * span) / 2;
@@ -520,11 +549,11 @@
 			sizeG
 				.append('text')
 				.attr('x', cx)
-				.attr('y', sizeRowY + rr * 2 + 12)
+				.attr('y', sizeRowY + rr * 2 + 9)
 				.attr('text-anchor', 'middle')
 				.attr('fill', 'var(--text-muted)')
-				.attr('font-size', '7px')
-				.text(`${huFmt(s.w)}`);
+				.attr('font-size', '6.5px')
+				.text(`${huFmt(s.disp)}`);
 		});
 	});
 

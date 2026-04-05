@@ -47,7 +47,7 @@
 			y: explorePanel.yVar,
 			n: tractData.length,
 			dn: developments.length,
-			stops: explorePanel.minStopsPerSqMi,
+			stops: explorePanel.minStops,
 			tdMi: explorePanel.transitDistanceMi,
 			sig: explorePanel.sigDevMinPctStockIncrease,
 			todCut: explorePanel.todFractionCutoff,

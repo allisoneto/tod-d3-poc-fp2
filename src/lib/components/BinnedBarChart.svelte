@@ -32,7 +32,7 @@
 			n: tractData.length,
 			dn: developments.length,
 			ms: mbtaStops.length,
-			stops: panelState.minStopsPerSqMi,
+			stops: panelState.minStops,
 			tdMi: panelState.transitDistanceMi,
 			sig: panelState.sigDevMinPctStockIncrease,
 			todCut: panelState.todFractionCutoff,
