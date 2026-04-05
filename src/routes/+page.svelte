@@ -176,15 +176,15 @@
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
-		if (!muniData || !elScatter) return;
+		if (!muniData) return;
 		const cb = { onSelectionChange: () => { selected = new Set(selected); } };
-		renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
-		renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
-		renderMuniTimeline(elTimeline, projectRows, muniState);
-		renderMuniComposition(elComposition, projectRows, muniState);
-		renderMuniRankedGrowth(elRanked, visibleRows);
-		renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
-		renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
+		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
+		if (elChoro) renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
+		if (elTimeline) renderMuniTimeline(elTimeline, projectRows, muniState);
+		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
+		if (elRanked) renderMuniRankedGrowth(elRanked, visibleRows);
+		if (elAffordMix) renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
+		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
 	}
 
 	// Debounce draw during playback via rAF
@@ -576,8 +576,7 @@
 	     PART 1 — MUNICIPAL DASHBOARD
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
-		<div class="content">
-			<!-- ── Summary stats ─────────────────────────── -->
+		<section class="top-row">
 			<section class="summary card">
 				<h2>Summary of Selected Data</h2>
 				<p class="chart-note">
@@ -604,40 +603,56 @@
 					{/if}
 				</div>
 
-				<details class="supplemental controls-inline">
-					<summary>Adjust municipal filters</summary>
-					<div class="controls-header">
-						<p class="controls-note">Use these only if you want to change the municipal comparison window or scope.</p>
-						<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
+				<div class="finding-list">
+					<div class="finding-item">
+						<div class="finding-kicker">Step 1</div>
+						<p>TOD-dominant municipalities tend to be lower-income municipalities, so the equity question matters most in the places seeing the most TOD.</p>
+					</div>
+					<div class="finding-item">
+						<div class="finding-kicker">Step 2</div>
+						<p>Recent production is not evenly distributed: a disproportionate share of new units is landing in places that already appear more vulnerable to gentrification pressures.</p>
+					</div>
+					<div class="finding-item">
+						<div class="finding-kicker">Step 3</div>
+						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
+					</div>
+				</div>
+			</section>
+
+			<aside class="filters-side card">
+				<div class="filters-side__inner">
+					<h3>Municipal filters</h3>
+					<p class="controls-note">A small set of controls is enough for most reading. The rest are optional.</p>
+
+					<div class="control-block">
+						<label class="label">Completion year range</label>
+						<div class="range-row">
+							<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
+							<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
+						</div>
 					</div>
 
-					<div class="controls-grid">
-						<div class="control-field control-field--range">
-							<label class="label">Completion year range</label>
-							<div class="range-row">
-								<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
-								<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
-							</div>
-						</div>
+					<div class="control-block">
+						<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
+						<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
+					</div>
 
-						<div class="control-field">
-							<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
-							<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
-						</div>
+					<div class="control-block">
+						<label class="label" for="poc-dom-filter">Show municipalities</label>
+						<select id="poc-dom-filter" bind:value={dominanceFilter}>
+							<option value="all">All municipalities</option>
+							<option value="tod">TOD-dominant only</option>
+							<option value="nonTod">Non-TOD-dominant only</option>
+						</select>
+					</div>
 
-						<div class="control-field">
-							<label class="label" for="poc-dom-filter">Show municipalities</label>
-							<select id="poc-dom-filter" bind:value={dominanceFilter}>
-								<option value="all">All municipalities</option>
-								<option value="tod">TOD-dominant only</option>
-								<option value="nonTod">Non-TOD-dominant only</option>
-							</select>
-						</div>
+					<div class="button-row">
+						<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
 					</div>
 
 					<details class="supplemental controls-advanced">
 						<summary>Open advanced filters</summary>
-						<div class="advanced-grid">
+						<div class="advanced-grid advanced-grid--stacked">
 							<div class="control-block">
 								<div class="play-row">
 									<button class="secondary" type="button" onclick={togglePlayback}>
@@ -706,23 +721,11 @@
 							</div>
 						</div>
 					</details>
-				</details>
-
-				<div class="finding-list">
-					<div class="finding-item">
-						<div class="finding-kicker">Step 1</div>
-						<p>TOD-dominant municipalities tend to be lower-income municipalities, so the equity question matters most in the places seeing the most TOD.</p>
-					</div>
-					<div class="finding-item">
-						<div class="finding-kicker">Step 2</div>
-						<p>Recent production is not evenly distributed: a disproportionate share of new units is landing in places that already appear more vulnerable to gentrification pressures.</p>
-					</div>
-					<div class="finding-item">
-						<div class="finding-kicker">Step 3</div>
-						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
-					</div>
 				</div>
-			</section>
+			</aside>
+		</section>
+
+		<div class="content">
 
 			<section class="story card">
 				<h2>Setting up the question</h2>
@@ -799,28 +802,19 @@
 			</section>
 
 			<!-- ── 4. Most not affordable (single card: narrative + chart) ───────────────── -->
-			<section class="card story-chart-panel">
-				<div class="story-chart-panel__grid">
-					<div class="story-chart-panel__text">
-						<h2>Why affordability is the key policy lever</h2>
-						<p>
-							A primary concern for many residents is the gap between housing supply and genuine affordability.
-							Although TOD projects often increase the total number of housing units, a greater proportion
-							are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
-							of reduced transportation costs may be offset by rising housing costs. That does not prove
-							displacement in each municipality, but it is one reason affordability should remain central
-							to TOD policy.
-						</p>
-					</div>
-					<div class="story-chart-panel__chart">
-						<h3>Most new housing is still market-rate</h3>
-						<p class="chart-note">
-							The percentage of new development that is affordable has decreased significantly in recent years,
-							which likely indicates that lower-income residents are benefitting much less from the new development.
-						</p>
-						<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordMix}></div>
-					</div>
-				</div>
+			<section class="story card">
+				<h2>Why affordability is the key policy lever</h2>
+				<p>
+					A primary concern for many residents is the gap between housing supply and genuine affordability.
+					Although TOD projects often increase the total number of housing units, a greater proportion
+					are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
+					of reduced transportation costs may be offset by rising housing costs. That does not prove
+					displacement in each municipality, but it is one reason affordability should remain central
+					to TOD policy.
+				</p>
+				<p>
+					In other words, the policy issue is not just how much housing is built near transit, but how much of that housing remains accessible to the residents most likely to face rising costs.
+				</p>
 			</section>
 
 			<!-- ── 5. Displacement explanation ──────────── -->
@@ -1217,6 +1211,29 @@
 		gap: 14px;
 	}
 
+	.top-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 320px;
+		gap: 14px;
+		align-items: start;
+	}
+
+	.filters-side {
+		position: sticky;
+		top: 16px;
+		padding: 14px 16px;
+	}
+
+	.filters-side__inner {
+		display: grid;
+		gap: 12px;
+	}
+
+	.filters-side h3 {
+		font-size: 1rem;
+		margin-bottom: 0;
+	}
+
 	.controls-header {
 		display: flex;
 		justify-content: space-between;
@@ -1238,14 +1255,17 @@
 	}
 
 	.controls-grid {
-		grid-template-columns: minmax(260px, 1.35fr) minmax(220px, 1fr) minmax(220px, 1fr);
-		align-items: end;
-		margin-top: 14px;
+		grid-template-columns: 1fr;
 	}
 
 	.advanced-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		margin-top: 14px;
+	}
+
+	.advanced-grid--stacked {
+		grid-template-columns: 1fr;
+		margin-top: 12px;
 	}
 
 	.control-field {
@@ -1257,9 +1277,9 @@
 	}
 
 	.control-block + .control-block {
-		margin-top: 0;
-		padding-top: 0;
-		border-top: 0;
+		margin-top: 10px;
+		padding-top: 10px;
+		border-top: 1px solid var(--line);
 	}
 
 	.label {
@@ -1621,6 +1641,14 @@
 	}
 
 	@media (max-width: 920px) {
+		.top-row {
+			grid-template-columns: 1fr;
+		}
+
+		.filters-side {
+			position: static;
+		}
+
 		.controls-grid,
 		.advanced-grid {
 			grid-template-columns: 1fr;
