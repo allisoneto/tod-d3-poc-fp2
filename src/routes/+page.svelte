@@ -503,10 +503,6 @@
 		eduPanelState = makeTodScatterPanelState('bachelors_pct_change');
 	});
 
-	/* ── Tract chart element refs ─────────────────────── */
-	let elTractEdu = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elTakeaway = $state(/** @type {HTMLElement | undefined} */ (undefined));
-
 	$effect(() => {
 		if (!tractReady || !tractData.length || !developments.length) return;
 		const devOpts2 = tractDevOpts;
@@ -525,9 +521,9 @@
 			elRanked: null,
 			elAffordMix: null,
 			elGrowthCapture: null,
-			elTractEdu,
+			elTractEdu: null,
 			elMobility: null,
-			elTakeaway,
+			elTakeaway: null,
 			state: {
 				yearStart: 1990,
 				yearEnd: 2026,
@@ -984,17 +980,6 @@
 				</section>
 			</div>
 
-			<section class="chart-card card full-width">
-				<h3>Income & education — TOD-dominated vs non-TOD vs minimal development</h3>
-				<p class="chart-note">
-					Population-weighted means (MassBuilds cohort tiers); bars compare TOD-dominated,
-					non-TOD-dominated significant development, and minimal development tracts.
-					TOD-dominated tracts see greater income and education increases than both non-TOD
-					dominated and minimal development tracts.
-				</p>
-				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
-			</section>
-
 			<section class="story card full-width">
 				<h2>How affordability could help</h2>
 				<p>
@@ -1088,7 +1073,6 @@
 					<p class="chart-note">No affordable-share data available to compare.</p>
 				{/if}
 
-				<div class="chart-wrap" style="margin-top: 16px;" bind:this={elTakeaway}></div>
 			</section>
 
 			<section class="story card full-width conclusion">
