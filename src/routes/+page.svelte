@@ -49,7 +49,6 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
-	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
@@ -580,7 +579,7 @@
 			<section class="summary card">
 				<h2>Summary of Selected Data</h2>
 				<p class="chart-note">
-					From <strong>{yearStart}</strong> through <strong>{yearEnd}</strong>, the visible municipalities
+					Within the current development window
 					average <strong>{summary.avgIncome.toFixed(1)}%</strong> of households under $125k.
 					<strong>{summary.todDominantCount}</strong> of the {summary.selectionCount} selected-or-visible
 					municipalities are currently TOD-dominant by unit count.
@@ -622,15 +621,7 @@
 			<aside class="filters-side card">
 				<div class="filters-side__inner">
 					<h3>Municipal filters</h3>
-					<p class="controls-note">A small set of controls is enough for most reading. The rest are optional.</p>
-
-					<div class="control-block">
-						<label class="label">Completion year range</label>
-						<div class="range-row">
-							<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
-							<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
-						</div>
-					</div>
+					<p class="controls-note">These mainly shape the municipal summary and supplemental charts.</p>
 
 					<div class="control-block">
 						<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
@@ -653,6 +644,14 @@
 					<details class="supplemental controls-advanced">
 						<summary>Open advanced filters</summary>
 						<div class="advanced-grid advanced-grid--stacked">
+							<div class="control-block">
+								<label class="label">Completion year range</label>
+								<div class="range-row">
+									<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
+									<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
+								</div>
+							</div>
+
 							<div class="control-block">
 								<div class="play-row">
 									<button class="secondary" type="button" onclick={togglePlayback}>
@@ -1110,7 +1109,6 @@
 				</p>
 			</section>
 
-			<ExploreTractSection />
 		{/if}
 	</section>
 
