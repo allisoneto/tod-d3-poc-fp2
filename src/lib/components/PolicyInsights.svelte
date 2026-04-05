@@ -7,7 +7,6 @@
 		getTodTracts,
 		getNonTodTracts,
 		aggregateDevsByTract,
-		transitDistanceMiToMetres,
 		computeRegression,
 		filterPointsTenSigmaMarginals,
 		filterDevelopments,
@@ -143,10 +142,7 @@
 		const tractMap = new Map();
 		for (const t of tractData) if (t.gisjoin) tractMap.set(t.gisjoin, t);
 		const filteredDevs = filterDevelopments(developments, panelConfig);
-		return aggregateDevsByTract(filteredDevs, tractMap, timePeriod, {
-			transitDistanceM: transitDistanceMiToMetres(transitDistanceMi),
-			minMultifamilyShare: (Number(minDevMultifamilyRatioPct) || 0) / 100
-		});
+		return aggregateDevsByTract(filteredDevs, tractMap, timePeriod, panelConfig);
 	});
 
 	/** TOD tracts with filtered MassBuilds affordable-share data; split into high / low per user rules. */

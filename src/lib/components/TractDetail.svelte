@@ -2,8 +2,6 @@
 	/**
 	 * Tract detail cards: joins ``panelState.selectedTracts`` to ``tractData`` rows and surfaces
 	 * period-aware census / development / transit fields plus a D3 stacked race composition mini-chart.
-	 * ``panelState.detailFocusGisjoin`` controls which tract the sidebar emphasizes (last clicked), including
-	 * after deselect so that tract stays visible with a deselected styling hint.
 	 */
 	import * as d3 from 'd3';
 	import { tractData, developments, meta } from '$lib/stores/data.svelte.js';
@@ -16,7 +14,31 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 
-	let { panelState } = $props();
+	let {
+		panelState,
+		/**
+		 * ``full`` — aggregate (2+ tracts) plus up to 10 per-tract cards (tract dashboard).
+		 * ``compact`` — tabs: combined totals vs a single “latest” tract only (home explore sidebar).
+		 */
+		sidebarMode = 'full',
+		/** When true, hide “Select all” (avoid huge selections in compact sidebars). */
+		hideBulkActions = false,
+		/** If set, aggregate / tract X-axis inspection tables only list these ``meta.xVariables`` keys. */
+		allowedXAxisKeys = null
+	} = $props();
+
+	/** @type {'aggregate' | 'latest'} */
+	let activeTab = $state('aggregate');
+
+	const minAggregateTracts = $derived(sidebarMode === 'compact' ? 1 : 2);
+
+	/** X-axis rows for inspection tables (optionally restricted to ``allowedXAxisKeys``). */
+	const xVarsForDisplay = $derived.by(() => {
+		const all = meta.xVariables ?? [];
+		if (!allowedXAxisKeys?.length) return all;
+		const allow = new Set(allowedXAxisKeys);
+		return all.filter((v) => allow.has(v.key));
+	});
 
 	/** Aggregate development stats per tract per decade, plus 1990–2020 window from completion year. */
 	const devByTractDecade = $derived.by(() => {
@@ -59,6 +81,16 @@
 
 	const selectedList = $derived([...panelState.selectedTracts]);
 
+	/**
+	 * Tract to show in the compact “Latest” tab: last clicked/toggled, else last in selection order.
+	 */
+	const focusGisjoin = $derived.by(() => {
+		if (selectedList.length === 0) return null;
+		const last = panelState.lastInteractedGisjoin;
+		if (last && selectedList.some((g) => g === last)) return last;
+		return selectedList[selectedList.length - 1];
+	});
+
 	/** All tracts currently passing census tract filters (for select-all). */
 	const filteredGisjoins = $derived.by(() => {
 		return filterTractsByTract(tractData, panelState).map((t) => t.gisjoin);
@@ -91,7 +123,7 @@
 
 	/** Aggregate summary of all selected tracts. */
 	const aggregate = $derived.by(() => {
-		if (selectedList.length < 2) return null;
+		if (selectedList.length < minAggregateTracts) return null;
 		const { startY, endY, tag } = periodCensusBounds(panelState.timePeriod);
 		const byGj = new Map();
 		for (const t of tractData) if (t.gisjoin) byGj.set(t.gisjoin, t);
@@ -136,7 +168,7 @@
 		/** Per X metric: sum for unit counts, mean otherwise (aligned with per-tract scatter values). */
 		const xStats = {};
 		const devAgg = panelDevAgg;
-		for (const xv of meta.xVariables ?? []) {
+		for (const xv of xVarsForDisplay) {
 			const vals = [];
 			for (const gid of selectedList) {
 				const tr = byGj.get(gid);
@@ -288,8 +320,8 @@
 		if (xKey === 'census_hu_change') return fmtInt(v);
 		if (
 			xKey === 'pct_stock_increase' ||
-			xKey === 'pct_stock_increase_tod' ||
-			xKey === 'pct_stock_increase_non_tod'
+			xKey === 'tod_pct_stock_increase' ||
+			xKey === 'nontod_pct_stock_increase'
 		) {
 			return fmtPctChange(v);
 		}
@@ -425,22 +457,14 @@
 
 <div class="tract-detail" data-meta-y-vars={meta.yVariables?.length ?? 0}>
 	<div class="head">
-		<h3 class="title">
-			{#if detailFocusGisjoin}
-				Tract details · focus <span class="mono focus-id">{detailFocusGisjoin}</span>
-				<span class="title-n">· Selected ({selectedList.length})</span>
-				{#if !selectedList.includes(detailFocusGisjoin)}
-					<span class="badge-deselected">(removed from selection)</span>
-				{/if}
-			{:else}
-				Selected tracts ({selectedList.length})
-			{/if}
-		</h3>
+		<h3 class="title">Selected tracts ({selectedList.length})</h3>
 		<div class="head-actions">
-			<button type="button" class="action-btn" onclick={selectAllFiltered}
-				title="Select all {filteredGisjoins.length} tracts that pass current filters">
-				Select all ({filteredGisjoins.length})
-			</button>
+			{#if !hideBulkActions}
+				<button type="button" class="action-btn" onclick={selectAllFiltered}
+					title="Select all {filteredGisjoins.length} tracts that pass current filters">
+					Select all ({filteredGisjoins.length})
+				</button>
+			{/if}
 			{#if selectedList.length > 0}
 				<button type="button" class="action-btn clear" onclick={() => panelState.clearSelection()}>
 					Clear
@@ -451,9 +475,54 @@
 
 	{#if selectedList.length === 0}
 		<p class="empty">Click tracts on the map or points on the scatter plot to see details here.</p>
+	{:else if sidebarMode === 'compact'}
+		<div class="detail-tabs" role="tablist" aria-label="Detail view">
+			<button
+				type="button"
+				role="tab"
+				class="detail-tab"
+				aria-selected={activeTab === 'aggregate'}
+				onclick={() => (activeTab = 'aggregate')}
+			>
+				Aggregate
+			</button>
+			<button
+				type="button"
+				role="tab"
+				class="detail-tab"
+				aria-selected={activeTab === 'latest'}
+				onclick={() => (activeTab = 'latest')}
+			>
+				Latest tract
+			</button>
+		</div>
+		<div class="scroll scroll--compact">
+			{#if activeTab === 'aggregate'}
+				{#if aggregate}
+					{@render aggregateCard()}
+				{/if}
+			{:else if focusGisjoin}
+				{@render tractCard(focusGisjoin)}
+			{/if}
+		</div>
 	{:else}
 		<div class="scroll">
 			{#if aggregate}
+				{@render aggregateCard()}
+			{/if}
+
+			{#if selectedList.length <= 10}
+			{#each selectedList as gid (gid)}
+				{@render tractCard(gid)}
+			{/each}
+			{:else}
+				<p class="overflow-note">Individual tract cards are hidden when more than 10 tracts are selected. See aggregate summary above.</p>
+			{/if}
+		</div>
+	{/if}
+</div>
+
+{#snippet aggregateCard()}
 				<article class="card aggregate-card">
 					<header class="card-head">
 						<div>
@@ -490,7 +559,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each meta.xVariables ?? [] as xv (xv.key)}
+								{#each xVarsForDisplay as xv (xv.key)}
 									<tr>
 										<td class="axis-metric-label">{xv.label}</td>
 										<td class="num">{formatXAxisValue(xv.key, aggregate.xStats[xv.key])}</td>
@@ -537,16 +606,12 @@
 						</ul>
 					</section>
 				</article>
-			{/if}
 
-			{#if cardsForDetail.length}
-			{#each cardsForDetail as gid (gid)}
-				{@const t = tractByGisjoin.get(gid)}
-				<article
-					class="card"
-					class:card--focus={gid === detailFocusGisjoin}
-					class:card--deselected={detailFocusGisjoin === gid && !selectedList.includes(gid)}
-				>
+{/snippet}
+
+{#snippet tractCard(gid)}
+	{@const t = tractByGisjoin.get(gid)}
+				<article class="card">
 					{#if !t}
 						<p class="missing">No tract data for <span class="mono">{gid}</span>.</p>
 					{:else}
@@ -629,7 +694,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each meta.xVariables ?? [] as xv (xv.key)}
+									{#each xVarsForDisplay as xv (xv.key)}
 										<tr>
 											<td class="axis-metric-label">{xv.label}</td>
 											<td class="num">
@@ -729,13 +794,8 @@
 						</section>
 					{/if}
 				</article>
-			{/each}
-			{:else if selectedList.length > 10}
-				<p class="overflow-note">Individual tract cards are hidden when more than 10 tracts are selected. The focused tract (last clicked) is shown above when applicable. See aggregate summary.</p>
-			{/if}
-		</div>
-	{/if}
-</div>
+
+{/snippet}
 
 <style>
 	.tract-detail {
@@ -764,12 +824,6 @@
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-muted);
-	}
-
-	.title-n {
-		font-weight: 600;
-		text-transform: none;
-		letter-spacing: 0;
 	}
 
 	.action-btn {
@@ -817,39 +871,45 @@
 		padding-right: 2px;
 	}
 
+	.scroll--compact {
+		max-height: min(72vh, 900px);
+	}
+
+	.detail-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		padding: 3px;
+		margin-bottom: 8px;
+		background: var(--bg-panel);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+	}
+
+	.detail-tab {
+		flex: 1;
+		min-width: 6rem;
+		padding: 6px 10px;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		color: var(--text-muted);
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.detail-tab[aria-selected='true'] {
+		background: var(--bg-hover);
+		color: var(--accent);
+	}
+
 	.card {
 		padding: 10px 12px;
 		background: var(--bg-panel);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		color: var(--text);
-	}
-
-	.card--focus {
-		border-color: color-mix(in srgb, #b91c1c 45%, var(--border));
-		box-shadow: 0 0 0 1px color-mix(in srgb, #b91c1c 25%, transparent);
-	}
-
-	.card--deselected {
-		border-style: dashed;
-		opacity: 0.96;
-	}
-
-	.focus-id {
-		font-weight: 700;
-	}
-
-	.badge-deselected {
-		display: inline-block;
-		margin-left: 6px;
-		padding: 2px 8px;
-		font-size: 0.65rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-muted);
-		background: color-mix(in srgb, #64748b 12%, var(--bg-panel));
-		border-radius: 999px;
 	}
 
 	.card-head {

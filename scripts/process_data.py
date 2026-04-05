@@ -1252,29 +1252,52 @@ def build_variable_meta():
         {"key": "drove_alone_pct_change", "label": "Drove-Alone Share Change (pp)", "cat": "C", "catLabel": "TOD Outcomes"},
         {"key": "avg_travel_time_change", "label": "Avg Travel Time Change (min)", "cat": "C", "catLabel": "TOD Outcomes"},
     ]
-    # X-axis: MassBuilds-derived metrics only (values computed client-side from filtered devs).
     x_vars = [
         {
+            "key": "census_hu_change",
+            "label": "Net HU change (decennial census)",
+            "source": "census",
+            "sourceLabel": "Census (decennial)",
+        },
+        {
             "key": "pct_stock_increase",
-            "label": "Total housing stock increase (%)",
+            "label": "Housing stock increase (%)",
             "source": "massbuilds",
             "sourceLabel": "MassBuilds (filtered developments)",
         },
         {
-            "key": "pct_stock_increase_tod",
-            "label": "TOD housing stock increase (%)",
+            "key": "multifam_share",
+            "label": "Multifamily share of new dev",
             "source": "massbuilds",
-            "sourceLabel": "MassBuilds (TOD multifamily near transit, same radius as dashboard)",
-        },
-        {
-            "key": "pct_stock_increase_non_tod",
-            "label": "Non-TOD housing stock increase (%)",
-            "source": "massbuilds",
-            "sourceLabel": "MassBuilds (non-TOD share of filtered units)",
+            "sourceLabel": "MassBuilds (filtered developments)",
         },
         {
             "key": "affordable_share",
-            "label": "Affordable share of new development (%)",
+            "label": "Affordable share of new dev",
+            "source": "massbuilds",
+            "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)",
+        },
+        {
+            "key": "affordable_stock_pct",
+            "label": "Affordable increase / housing stock (%)",
+            "source": "massbuilds",
+            "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)",
+        },
+        {
+            "key": "multifam_stock_pct",
+            "label": "Multifamily increase / housing stock (%)",
+            "source": "massbuilds",
+            "sourceLabel": "MassBuilds (filtered developments)",
+        },
+        {
+            "key": "new_units",
+            "label": "Total new units",
+            "source": "massbuilds",
+            "sourceLabel": "MassBuilds (filtered developments)",
+        },
+        {
+            "key": "new_affordable",
+            "label": "New affordable units",
             "source": "massbuilds",
             "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)",
         },
@@ -1399,11 +1422,10 @@ def main():
     # ── Export JSON ──────────────────────────────────────────────
 
     # 1. tract_data.json -- one record per tract (NaN -> null)
-    # Compact separators (no extra spaces) shrink the client download for deferred tract loading.
     merged = merged.where(merged.notna(), None)
     records = json.loads(merged.to_json(orient="records"))
     (OUT / "tract_data.json").write_text(
-        json.dumps(records, default=str, separators=(",", ":")), encoding="utf-8"
+        json.dumps(records, default=str), encoding="utf-8"
     )
     print(f"  tract_data.json  ({len(records)} tracts)")
 
@@ -1421,13 +1443,13 @@ def main():
 
     # 3. developments.json – individual project records for client-side filtering
     (OUT / "developments.json").write_text(
-        json.dumps(projects_export, separators=(",", ":")), encoding="utf-8"
+        json.dumps(projects_export), encoding="utf-8"
     )
     print(f"  developments.json ({len(projects_export)} projects)")
 
     # 4. mbta_stops.json
     (OUT / "mbta_stops.json").write_text(
-        json.dumps(stops_export, separators=(",", ":")), encoding="utf-8"
+        json.dumps(stops_export), encoding="utf-8"
     )
     print(f"  mbta_stops.json  ({len(stops_export)} stops)")
 

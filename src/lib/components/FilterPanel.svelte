@@ -1,7 +1,11 @@
 <script>
 	import { meta } from '$lib/stores/data.svelte.js';
 
-	let { panelState } = $props();
+	let {
+		panelState,
+		/** If set, only these ``meta.xVariables`` keys appear in the X-axis dropdown (e.g. home explore). */
+		allowedXKeys = null
+	} = $props();
 
 	const groupedYVars = $derived.by(() => {
 		const groups = [];
@@ -21,6 +25,7 @@
 		const bySrc = new Map();
 		const order = [];
 		for (const v of meta.xVariables ?? []) {
+			if (allowedXKeys && !allowedXKeys.includes(v.key)) continue;
 			const src = v.source ?? 'other';
 			if (!bySrc.has(src)) {
 				bySrc.set(src, {

@@ -24,6 +24,20 @@
 	explorePanel.xVar = 'pct_stock_increase';
 	explorePanel.yVar = 'median_income_change_pct';
 
+	/** Home explore: X-axis dropdown and tract detail tables only use these MassBuilds / stock metrics. */
+	const EXPLORE_X_AXIS_KEYS = [
+		'pct_stock_increase',
+		'tod_pct_stock_increase',
+		'nontod_pct_stock_increase',
+		'affordable_share'
+	];
+
+	$effect(() => {
+		if (!EXPLORE_X_AXIS_KEYS.includes(explorePanel.xVar)) {
+			explorePanel.xVar = 'pct_stock_increase';
+		}
+	});
+
 	/** Scatter: first TOD Analysis plot (intensity) vs second (affordable TOD share, TOD-dominated only). */
 	let scatterMode = $state(/** @type {'intensity' | 'affordability'} */ ('intensity'));
 
@@ -80,7 +94,7 @@
 
 	<div class="explore-grid">
 		<aside class="explore-filters">
-			<FilterPanel panelState={explorePanel} />
+			<FilterPanel panelState={explorePanel} allowedXKeys={EXPLORE_X_AXIS_KEYS} />
 		</aside>
 
 		<div class="explore-center">
@@ -181,7 +195,12 @@
 
 		<aside class="explore-sidebar card explore-card">
 			<div class="explore-detail-wrap">
-				<TractDetail panelState={explorePanel} />
+				<TractDetail
+					panelState={explorePanel}
+					sidebarMode="compact"
+					hideBulkActions
+					allowedXAxisKeys={EXPLORE_X_AXIS_KEYS}
+				/>
 			</div>
 			<div class="explore-method">
 				<MethodologyNote />

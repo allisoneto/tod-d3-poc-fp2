@@ -19,7 +19,7 @@
 		computeMuniSummary
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments, tractGeo, meta, mbtaStops } from '$lib/stores/data.svelte.js';
-	import { createBeginTractDashboardLoad } from '$lib/utils/tractDashboardDeferred.js';
+	import { loadAllData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
@@ -41,7 +41,6 @@
 		getTodTracts,
 		getNonTodTracts,
 		aggregateDevsByTract,
-		transitDistanceMiToMetres,
 		filterDevelopments,
 		computeGroupMean,
 		popWeightKey,
@@ -226,38 +225,9 @@
 	/* ═══════════════════════════════════════════════════════
 	   TRACT STATE (Part 2)
 	   ═══════════════════════════════════════════════════════ */
-	/** Tract JSON bundle: idle until the sentinel intersects the viewport or the user clicks Load (no idle prefetch). */
-	let tractDataPhase = $state(/** @type {'idle' | 'loading' | 'ready' | 'error'} */ ('idle'));
+	let tractLoading = $state(true);
 	let tractError = $state(/** @type {string | null} */ (null));
-	const tractReady = $derived(tractDataPhase === 'ready');
-	const tractLoading = $derived(tractDataPhase === 'loading');
-
-	let tractDataSentinel = $state(/** @type {HTMLElement | undefined} */ (undefined));
-
-	const beginTractDataLoad = createBeginTractDashboardLoad(
-		() => tractDataPhase,
-		(p) => {
-			tractDataPhase = p;
-		},
-		(e) => {
-			tractError = e;
-		}
-	);
-
-	/** Start loading when the tract block actually enters the viewport (no early prefetch margin). */
-	$effect(() => {
-		if (tractDataPhase !== 'idle') return;
-		const el = tractDataSentinel;
-		if (!el || typeof IntersectionObserver === 'undefined') return;
-		const io = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((e) => e.isIntersecting)) beginTractDataLoad();
-			},
-			{ root: null, rootMargin: '0px', threshold: 0 }
-		);
-		io.observe(el);
-		return () => io.disconnect();
-	});
+	let tractReady = $state(false);
 
 	// Tract analysis defaults (sensible, no user controls)
 	const tractTimePeriod = '10_20';
@@ -281,6 +251,20 @@
 		pocMapPanel.minDevMultifamilyRatioPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct;
 		pocMapPanel.minDevAffordableRatioPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct;
 		pocMapPanel.includeRedevelopment = DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment;
+	});
+
+	$effect(() => {
+		loadAllData()
+			.then(() => {
+				tractReady = true;
+				tractError = null;
+			})
+			.catch((e) => {
+				tractError = e instanceof Error ? e.message : String(e);
+			})
+			.finally(() => {
+				tractLoading = false;
+			});
 	});
 
 	// Shared TOD threshold from Part 1
@@ -391,10 +375,7 @@
 		const tractMap = new Map();
 		for (const t of tractData) if (t.gisjoin) tractMap.set(t.gisjoin, t);
 		const filteredDevs = filterDevelopments(developments, tractPanelConfig);
-		return aggregateDevsByTract(filteredDevs, tractMap, tractTimePeriod, {
-			transitDistanceM: transitDistanceMiToMetres(tractPanelConfig.transitDistanceMi),
-			minMultifamilyShare: (Number(tractPanelConfig.minDevMultifamilyRatioPct) || 0) / 100
-		});
+		return aggregateDevsByTract(filteredDevs, tractMap, tractTimePeriod, tractPanelConfig);
 	});
 
 	/** High vs low affordable TOD tracts: ≥50% affordable share vs &lt;50% (not a median split). */
@@ -498,14 +479,9 @@
 			trimOutliers: false,
 			hoveredTract: null,
 			selectedTracts: new Set(),
-			detailFocusGisjoin: /** @type {string | null} */ (null),
 			/** @param {string | null} gisjoin */
 			setHovered(gisjoin) {
 				this.hoveredTract = gisjoin;
-			},
-			/** @param {string | null} gisjoin */
-			setDetailFocus(gisjoin) {
-				this.detailFocusGisjoin = gisjoin;
 			},
 			/** @param {string} gisjoin */
 			toggleTract(gisjoin) {
@@ -513,11 +489,6 @@
 				if (next.has(gisjoin)) next.delete(gisjoin);
 				else next.add(gisjoin);
 				this.selectedTracts = next;
-				this.detailFocusGisjoin = gisjoin;
-			},
-			clearSelection() {
-				this.selectedTracts = new Set();
-				this.detailFocusGisjoin = null;
 			}
 		};
 	}
@@ -929,22 +900,7 @@
 			</p>
 		</section>
 
-		<!-- Invisible anchor for deferred load: tract JSON starts fetching when this nears the viewport. -->
-		<div class="tract-data-sentinel" bind:this={tractDataSentinel} aria-hidden="true"></div>
-
-		{#if tractDataPhase === 'idle'}
-			<section class="card full-width tract-data-idle">
-				<h3 class="tract-data-idle-title">Tract dashboard data (on demand)</h3>
-				<p class="chart-note">
-					Census tracts, MassBuilds developments, and MBTA layers for the interactive analysis below are loaded
-					separately so the municipal maps above stay responsive. They start when you scroll to this section or
-					when you use the button below — not automatically in the background.
-				</p>
-				<button type="button" class="secondary tract-data-idle-btn" onclick={() => beginTractDataLoad()}>
-					Load tract data now
-				</button>
-			</section>
-		{:else if tractLoading}
+		{#if tractLoading}
 			<div class="loading-status">
 				<div class="spinner" aria-hidden="true"></div>
 				<p>Loading tract data…</p>
@@ -953,7 +909,6 @@
 			<div class="loading-status loading-status--error">
 				<h3>Failed to load tract data</h3>
 				<p>{tractError}</p>
-				<button type="button" class="secondary" onclick={() => beginTractDataLoad()}>Retry</button>
 			</div>
 		{:else}
 			<!-- Tract cohort map -->
@@ -1914,27 +1869,6 @@
 		margin-top: 18px;
 		display: grid;
 		gap: 14px;
-	}
-
-	.tract-data-sentinel {
-		height: 1px;
-		margin: 0;
-		padding: 0;
-		pointer-events: none;
-		visibility: hidden;
-	}
-
-	.tract-data-idle {
-		padding: 14px 16px;
-	}
-
-	.tract-data-idle-title {
-		margin: 0 0 8px;
-		font-size: 1rem;
-	}
-
-	.tract-data-idle-btn {
-		margin-top: 10px;
 	}
 
 	.full-width { grid-column: 1 / -1; }

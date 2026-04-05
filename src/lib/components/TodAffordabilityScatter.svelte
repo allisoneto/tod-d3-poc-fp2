@@ -46,8 +46,7 @@
 			dom: domainOverride?.todAffordability ? 'on' : 'off',
 			dx: domainOverride?.todAffordability?.xDomain,
 			dy: domainOverride?.todAffordability?.yDomain,
-			sel: [...panelState.selectedTracts].sort().join('\t'),
-			focus: panelState.detailFocusGisjoin ?? ''
+			sel: [...panelState.selectedTracts].sort().join('\t')
 		})
 	);
 
@@ -114,7 +113,6 @@
 		}
 
 		const selectedSet = panelState.selectedTracts;
-		const focusId = panelState.detailFocusGisjoin ?? null;
 		const selPts = points.filter((p) => selectedSet.has(p.tract.gisjoin));
 		const regSelPts = filterPointsTenSigmaMarginals(selPts);
 		const wRegSel =
@@ -383,17 +381,15 @@
 				const yMin = Math.min(yScale.invert(by0), yScale.invert(by1));
 				const yMax = Math.max(yScale.invert(by0), yScale.invert(by1));
 				const next = new Set(panelState.selectedTracts);
-				let lastAdded = /** @type {string | null} */ (null);
+				let lastInBrush = /** @type {string | null} */ (null);
 				for (const d of points) {
 					if (d.x >= xMin && d.x <= xMax && d.y >= yMin && d.y <= yMax) {
 						next.add(d.tract.gisjoin);
-						lastAdded = d.tract.gisjoin;
+						lastInBrush = d.tract.gisjoin;
 					}
 				}
 				panelState.selectedTracts = next;
-				if (lastAdded != null && typeof panelState.setDetailFocus === 'function') {
-					panelState.setDetailFocus(lastAdded);
-				}
+				if (lastInBrush != null) panelState.setLastInteracted(lastInBrush);
 				brushG.call(brush.move, null);
 			});
 
@@ -412,8 +408,8 @@
 			.attr('r', (d) => d.dotR ?? 4)
 			.attr('fill', (d) => colorScale(d.stockPct))
 			.attr('opacity', 0.92)
-			.attr('stroke', (d) => dotStrokeAfford(d.tract.gisjoin, selectedSet, focusId).stroke)
-			.attr('stroke-width', (d) => dotStrokeAfford(d.tract.gisjoin, selectedSet, focusId).width)
+			.attr('stroke', (d) => (selectedSet.has(d.tract.gisjoin) ? LINE_SELECTED : '#1e293b'))
+			.attr('stroke-width', (d) => (selectedSet.has(d.tract.gisjoin) ? 2 : 0.35))
 			.style('cursor', 'pointer')
 			.on('mouseenter', function (event, d) {
 				panelState.setHovered(d.tract.gisjoin);
@@ -535,20 +531,18 @@
 	$effect(() => {
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
-		void panelState.detailFocusGisjoin;
 		if (!containerEl) return;
 		const root = d3.select(containerEl);
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
-		const focusId = panelState.detailFocusGisjoin ?? null;
 		root.selectAll('.tod-aff-dot').each(function () {
 			const el = d3.select(this);
 			const d = el.datum();
 			const gj = d?.tract?.gisjoin;
 			const h = gj && gj === hoveredId;
+			const sel = gj && selectedSet.has(gj);
 			el.attr('opacity', h ? 1 : 0.92);
-			const st = dotStrokeAfford(gj, selectedSet, focusId);
-			el.attr('stroke', st.stroke).attr('stroke-width', st.width);
+			el.attr('stroke', sel ? LINE_SELECTED : '#1e293b').attr('stroke-width', sel ? 2 : 0.35);
 		});
 	});
 

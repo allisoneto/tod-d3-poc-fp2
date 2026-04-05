@@ -75,20 +75,20 @@ export function createPanelState(id) {
 		// ── Selection / interaction ────────────────────────────
 		selectedTracts = $state(new Set());
 		hoveredTract = $state(null);
-		/** Tract whose details the sidebar shows; updated on each map/scatter click (select or deselect). */
-		detailFocusGisjoin = $state(/** @type {string | null} */ (null));
+		/** GISJOIN of the tract most recently toggled (map/scatter click); used for “latest tract” sidebar focus. */
+		lastInteractedGisjoin = $state(/** @type {string | null} */ (null));
 
 		toggleTract(gisjoin) {
 			const next = new Set(this.selectedTracts);
 			if (next.has(gisjoin)) next.delete(gisjoin);
 			else next.add(gisjoin);
 			this.selectedTracts = next;
-			this.detailFocusGisjoin = gisjoin;
+			this.lastInteractedGisjoin = gisjoin;
 		}
 
 		clearSelection() {
 			this.selectedTracts = new Set();
-			this.detailFocusGisjoin = null;
+			this.lastInteractedGisjoin = null;
 		}
 
 		/**
@@ -100,16 +100,20 @@ export function createPanelState(id) {
 		 */
 		selectAll(gisjoins) {
 			this.selectedTracts = new Set(gisjoins);
-			this.detailFocusGisjoin = null;
+			this.lastInteractedGisjoin = null;
 		}
 
 		/**
+		 * Record which tract the user last interacted with when selection changes outside ``toggleTract``
+		 * (e.g. scatter brush). Does not modify ``selectedTracts``.
+		 *
 		 * Parameters
 		 * ----------
 		 * gisjoin : string | null
+		 *     Tract to mark as focused, or ``null`` to clear.
 		 */
-		setDetailFocus(gisjoin) {
-			this.detailFocusGisjoin = gisjoin;
+		setLastInteracted(gisjoin) {
+			this.lastInteractedGisjoin = gisjoin;
 		}
 
 		/**

@@ -75,26 +75,62 @@
   ],
   "xVariables": [
     {
+      "key": "census_hu_change",
+      "label": "Net HU change (decennial census)",
+      "source": "census",
+      "sourceLabel": "Census (decennial)"
+    },
+    {
       "key": "pct_stock_increase",
       "label": "Total housing stock increase (%)",
       "source": "massbuilds",
       "sourceLabel": "MassBuilds (filtered developments)"
     },
     {
-      "key": "pct_stock_increase_tod",
+      "key": "tod_pct_stock_increase",
       "label": "TOD housing stock increase (%)",
       "source": "massbuilds",
-      "sourceLabel": "MassBuilds (TOD multifamily near transit, same radius as dashboard)"
+      "sourceLabel": "MassBuilds (filtered developments)"
     },
     {
-      "key": "pct_stock_increase_non_tod",
+      "key": "nontod_pct_stock_increase",
       "label": "Non-TOD housing stock increase (%)",
       "source": "massbuilds",
-      "sourceLabel": "MassBuilds (non-TOD share of filtered units)"
+      "sourceLabel": "MassBuilds (filtered developments)"
+    },
+    {
+      "key": "multifam_share",
+      "label": "Multifamily share of new dev",
+      "source": "massbuilds",
+      "sourceLabel": "MassBuilds (filtered developments)"
     },
     {
       "key": "affordable_share",
       "label": "Affordable share of new development (%)",
+      "source": "massbuilds",
+      "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)"
+    },
+    {
+      "key": "affordable_stock_pct",
+      "label": "Affordable increase / housing stock (%)",
+      "source": "massbuilds",
+      "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)"
+    },
+    {
+      "key": "multifam_stock_pct",
+      "label": "Multifamily increase / housing stock (%)",
+      "source": "massbuilds",
+      "sourceLabel": "MassBuilds (filtered developments)"
+    },
+    {
+      "key": "new_units",
+      "label": "Total new units",
+      "source": "massbuilds",
+      "sourceLabel": "MassBuilds (filtered developments)"
+    },
+    {
+      "key": "new_affordable",
+      "label": "New affordable units",
       "source": "massbuilds",
       "sourceLabel": "MassBuilds + HUD LIHTC (matched fills)"
     }

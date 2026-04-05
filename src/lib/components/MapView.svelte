@@ -646,21 +646,16 @@
 		if (!containerEl) return;
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
-		const focusId = panelState.detailFocusGisjoin ?? null;
-		const SEL = '#b91c1c';
-		const FOCUS_DESEL = '#64748b';
 		d3.select(containerEl).selectAll('path.tract-poly')
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
-				if (id === focusId) return selectedSet.has(id) ? SEL : FOCUS_DESEL;
-				if (selectedSet.has(id)) return SEL;
+				if (selectedSet.has(id)) return '#b91c1c';
 				return 'var(--border)';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return 1.5;
-				if (id === focusId) return 3.2;
 				if (selectedSet.has(id)) return 1.5;
 				return 0.5;
 			});
@@ -850,7 +845,6 @@
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
-		void panelState.detailFocusGisjoin;
 		if (!containerEl || !svgRef) return;
 		updateSelection();
 	});
