@@ -576,112 +576,6 @@
 	     PART 1 — MUNICIPAL DASHBOARD
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
-		<section class="controls-bar card">
-			<div class="controls-header">
-				<div>
-					<h2>Municipal filters</h2>
-					<p class="controls-note">Keep these lightweight unless you want to explore the supplemental charts in more detail.</p>
-				</div>
-				<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
-			</div>
-
-			<div class="controls-grid">
-				<div class="control-field control-field--range">
-					<label class="label">Completion year range</label>
-					<div class="range-row">
-						<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
-						<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
-					</div>
-				</div>
-
-				<div class="control-field">
-					<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
-					<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
-				</div>
-
-				<div class="control-field">
-					<label class="label" for="poc-dom-filter">Show municipalities</label>
-					<select id="poc-dom-filter" bind:value={dominanceFilter}>
-						<option value="all">All municipalities</option>
-						<option value="tod">TOD-dominant only</option>
-						<option value="nonTod">Non-TOD-dominant only</option>
-					</select>
-				</div>
-			</div>
-
-			<details class="supplemental controls-advanced">
-				<summary>Open advanced filters</summary>
-				<div class="advanced-grid">
-					<div class="control-block">
-						<div class="play-row">
-							<button class="secondary" type="button" onclick={togglePlayback}>
-								{playTimer ? 'Pause' : 'Play years'}
-							</button>
-							<div class="play-slider-wrap">
-								<input type="range" min="1990" max="2026" bind:value={yearEnd} oninput={() => stopPlayback()} />
-								<div class="play-caption">Showing cumulative development from {yearStart} through {yearEnd}.</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="control-block">
-						<label class="label" for="poc-growth-scale">Growth scale</label>
-						<select id="poc-growth-scale" bind:value={growthScale}>
-							<option value="units">Raw units</option>
-							<option value="share">Share of visible-window growth</option>
-						</select>
-					</div>
-
-					<div class="control-block">
-						<label class="check-item">
-							<input type="checkbox" bind:checked={showTrendline} />
-							<span>Show trendline on main scatter</span>
-						</label>
-					</div>
-
-					<div class="control-block">
-						<label class="label" for="poc-search">Municipality search</label>
-						<input id="poc-search" type="search" placeholder="Search municipality..." bind:value={search} />
-					</div>
-
-					<div class="control-block">
-						<label class="label">Zoning profile</label>
-						<div class="check-grid">
-							{#if muniData}
-								{#each muniData.zoningOptions as z (z)}
-									<label class="check-item">
-										<input type="checkbox" checked={zoning.has(z)} onchange={() => {
-											const next = new Set(zoning);
-											if (next.has(z)) next.delete(z); else next.add(z);
-											zoning = next;
-										}} />
-										<span>{z}</span>
-									</label>
-								{/each}
-							{/if}
-						</div>
-					</div>
-
-					<div class="control-block">
-						<div class="button-row">
-							<button class="secondary" type="button" onclick={() => { selected = new Set(); }}>Clear selection</button>
-						</div>
-					</div>
-
-					<div class="control-block">
-						<label class="label">Quick compare presets</label>
-						<div class="preset-row">
-							{#each presets as p}
-								<button class="secondary" type="button" onclick={() => {
-									selected = new Set(p.munis.filter((m) => muniData.allMunicipalities.includes(m)));
-								}}>{p.label}</button>
-							{/each}
-						</div>
-					</div>
-				</div>
-			</details>
-		</section>
-
 		<div class="content">
 			<!-- ── Summary stats ─────────────────────────── -->
 			<section class="summary card">
@@ -709,6 +603,110 @@
 						{/each}
 					{/if}
 				</div>
+
+				<details class="supplemental controls-inline">
+					<summary>Adjust municipal filters</summary>
+					<div class="controls-header">
+						<p class="controls-note">Use these only if you want to change the municipal comparison window or scope.</p>
+						<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
+					</div>
+
+					<div class="controls-grid">
+						<div class="control-field control-field--range">
+							<label class="label">Completion year range</label>
+							<div class="range-row">
+								<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
+								<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
+							</div>
+						</div>
+
+						<div class="control-field">
+							<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
+							<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
+						</div>
+
+						<div class="control-field">
+							<label class="label" for="poc-dom-filter">Show municipalities</label>
+							<select id="poc-dom-filter" bind:value={dominanceFilter}>
+								<option value="all">All municipalities</option>
+								<option value="tod">TOD-dominant only</option>
+								<option value="nonTod">Non-TOD-dominant only</option>
+							</select>
+						</div>
+					</div>
+
+					<details class="supplemental controls-advanced">
+						<summary>Open advanced filters</summary>
+						<div class="advanced-grid">
+							<div class="control-block">
+								<div class="play-row">
+									<button class="secondary" type="button" onclick={togglePlayback}>
+										{playTimer ? 'Pause' : 'Play years'}
+									</button>
+									<div class="play-slider-wrap">
+										<input type="range" min="1990" max="2026" bind:value={yearEnd} oninput={() => stopPlayback()} />
+										<div class="play-caption">Showing cumulative development from {yearStart} through {yearEnd}.</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="control-block">
+								<label class="label" for="poc-growth-scale">Growth scale</label>
+								<select id="poc-growth-scale" bind:value={growthScale}>
+									<option value="units">Raw units</option>
+									<option value="share">Share of visible-window growth</option>
+								</select>
+							</div>
+
+							<div class="control-block">
+								<label class="check-item">
+									<input type="checkbox" bind:checked={showTrendline} />
+									<span>Show trendline on main scatter</span>
+								</label>
+							</div>
+
+							<div class="control-block">
+								<label class="label" for="poc-search">Municipality search</label>
+								<input id="poc-search" type="search" placeholder="Search municipality..." bind:value={search} />
+							</div>
+
+							<div class="control-block">
+								<label class="label">Zoning profile</label>
+								<div class="check-grid">
+									{#if muniData}
+										{#each muniData.zoningOptions as z (z)}
+											<label class="check-item">
+												<input type="checkbox" checked={zoning.has(z)} onchange={() => {
+													const next = new Set(zoning);
+													if (next.has(z)) next.delete(z); else next.add(z);
+													zoning = next;
+												}} />
+												<span>{z}</span>
+											</label>
+										{/each}
+									{/if}
+								</div>
+							</div>
+
+							<div class="control-block">
+								<div class="button-row">
+									<button class="secondary" type="button" onclick={() => { selected = new Set(); }}>Clear selection</button>
+								</div>
+							</div>
+
+							<div class="control-block">
+								<label class="label">Quick compare presets</label>
+								<div class="preset-row">
+									{#each presets as p}
+										<button class="secondary" type="button" onclick={() => {
+											selected = new Set(p.munis.filter((m) => muniData.allMunicipalities.includes(m)));
+										}}>{p.label}</button>
+									{/each}
+								</div>
+							</div>
+						</div>
+					</details>
+				</details>
 
 				<div class="finding-list">
 					<div class="finding-item">
@@ -1219,10 +1217,6 @@
 		gap: 14px;
 	}
 
-	.controls-bar {
-		padding: 14px 16px;
-	}
-
 	.controls-header {
 		display: flex;
 		justify-content: space-between;
@@ -1231,9 +1225,11 @@
 		flex-wrap: wrap;
 	}
 
-	.controls-bar h2 { margin-bottom: 6px; font-size: 1.05rem; }
 	.controls-note { color: var(--muted); line-height: 1.5; font-size: 0.9rem; margin: 0; }
 	.controls-reset { white-space: nowrap; }
+	.controls-inline {
+		margin-top: 14px;
+	}
 
 	.controls-grid,
 	.advanced-grid {
