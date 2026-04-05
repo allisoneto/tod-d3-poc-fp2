@@ -572,8 +572,7 @@
 	     PART 1 — MUNICIPAL DASHBOARD
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
-		<section class="top-row">
-			<section class="summary card">
+		<section class="summary card">
 				<h2>Summary of Selected Data</h2>
 				<p class="chart-note">
 					Within the current development window
@@ -613,112 +612,6 @@
 						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
 					</div>
 				</div>
-			</section>
-
-			<aside class="filters-side card">
-				<div class="filters-side__inner">
-					<h3>Municipal filters</h3>
-					<p class="controls-note">These mainly shape the municipal summary and supplemental charts.</p>
-
-					<div class="control-block">
-						<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
-						<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
-					</div>
-
-					<div class="control-block">
-						<label class="label" for="poc-dom-filter">Show municipalities</label>
-						<select id="poc-dom-filter" bind:value={dominanceFilter}>
-							<option value="all">All municipalities</option>
-							<option value="tod">TOD-dominant only</option>
-							<option value="nonTod">Non-TOD-dominant only</option>
-						</select>
-					</div>
-
-					<div class="button-row">
-						<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
-					</div>
-
-					<details class="supplemental controls-advanced">
-						<summary>Open advanced filters</summary>
-						<div class="advanced-grid advanced-grid--stacked">
-							<div class="control-block">
-								<label class="label">Completion year range</label>
-								<div class="range-row">
-									<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
-									<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
-								</div>
-							</div>
-
-							<div class="control-block">
-								<div class="play-row">
-									<button class="secondary" type="button" onclick={togglePlayback}>
-										{playTimer ? 'Pause' : 'Play years'}
-									</button>
-									<div class="play-slider-wrap">
-										<input type="range" min="1990" max="2026" bind:value={yearEnd} oninput={() => stopPlayback()} />
-										<div class="play-caption">Showing cumulative development from {yearStart} through {yearEnd}.</div>
-									</div>
-								</div>
-							</div>
-
-							<div class="control-block">
-								<label class="label" for="poc-growth-scale">Growth scale</label>
-								<select id="poc-growth-scale" bind:value={growthScale}>
-									<option value="units">Raw units</option>
-									<option value="share">Share of visible-window growth</option>
-								</select>
-							</div>
-
-							<div class="control-block">
-								<label class="check-item">
-									<input type="checkbox" bind:checked={showTrendline} />
-									<span>Show trendline on main scatter</span>
-								</label>
-							</div>
-
-							<div class="control-block">
-								<label class="label" for="poc-search">Municipality search</label>
-								<input id="poc-search" type="search" placeholder="Search municipality..." bind:value={search} />
-							</div>
-
-							<div class="control-block">
-								<label class="label">Zoning profile</label>
-								<div class="check-grid">
-									{#if muniData}
-										{#each muniData.zoningOptions as z (z)}
-											<label class="check-item">
-												<input type="checkbox" checked={zoning.has(z)} onchange={() => {
-													const next = new Set(zoning);
-													if (next.has(z)) next.delete(z); else next.add(z);
-													zoning = next;
-												}} />
-												<span>{z}</span>
-											</label>
-										{/each}
-									{/if}
-								</div>
-							</div>
-
-							<div class="control-block">
-								<div class="button-row">
-									<button class="secondary" type="button" onclick={() => { selected = new Set(); }}>Clear selection</button>
-								</div>
-							</div>
-
-							<div class="control-block">
-								<label class="label">Quick compare presets</label>
-								<div class="preset-row">
-									{#each presets as p}
-										<button class="secondary" type="button" onclick={() => {
-											selected = new Set(p.munis.filter((m) => muniData.allMunicipalities.includes(m)));
-										}}>{p.label}</button>
-									{/each}
-								</div>
-							</div>
-						</div>
-					</details>
-				</div>
-			</aside>
 		</section>
 
 		<div class="content">
@@ -1196,136 +1089,6 @@
 		gap: 14px;
 	}
 
-	.top-row {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 320px;
-		gap: 14px;
-		align-items: start;
-	}
-
-	.filters-side {
-		position: sticky;
-		top: 16px;
-		padding: 14px 16px;
-	}
-
-	.filters-side__inner {
-		display: grid;
-		gap: 12px;
-	}
-
-	.filters-side h3 {
-		font-size: 1rem;
-		margin-bottom: 0;
-	}
-
-	.controls-header {
-		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		align-items: end;
-		flex-wrap: wrap;
-	}
-
-	.controls-note { color: var(--muted); line-height: 1.5; font-size: 0.9rem; margin: 0; }
-	.controls-reset { white-space: nowrap; }
-	.controls-inline {
-		margin-top: 14px;
-	}
-
-	.controls-grid,
-	.advanced-grid {
-		display: grid;
-		gap: 12px;
-	}
-
-	.controls-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.advanced-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		margin-top: 14px;
-	}
-
-	.advanced-grid--stacked {
-		grid-template-columns: 1fr;
-		margin-top: 12px;
-	}
-
-	.control-field {
-		min-width: 0;
-	}
-
-	.control-field--range {
-		max-width: 420px;
-	}
-
-	.control-block + .control-block {
-		margin-top: 10px;
-		padding-top: 10px;
-		border-top: 1px solid var(--line);
-	}
-
-	.label {
-		display: block;
-		margin-bottom: 8px;
-		font-weight: 700;
-		font-size: 0.9rem;
-	}
-
-	.range-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 10px;
-	}
-
-	.play-row {
-		display: flex;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.play-row button { flex: 0 0 auto; min-width: 92px; }
-
-	.play-slider-wrap { flex: 1 1 auto; }
-	.play-caption { margin-top: 6px; font-size: 0.84rem; color: var(--muted); }
-
-	input[type="number"], select, input[type="search"] {
-		width: 100%;
-		padding: 9px 10px;
-		border: 1px solid #c9c1b4;
-		border-radius: 8px;
-		background: #fff;
-		color: var(--ink);
-		font: inherit;
-	}
-
-	input[type="range"] { width: 100%; }
-
-	.check-grid {
-		display: grid;
-		gap: 8px;
-		max-height: 180px;
-		overflow: auto;
-		padding-right: 4px;
-	}
-
-	.check-item {
-		display: flex;
-		gap: 8px;
-		align-items: start;
-		font-size: 0.92rem;
-		color: var(--muted);
-		cursor: pointer;
-	}
-
-	.button-row, .preset-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-
 	button {
 		font: inherit;
 		border: 1px solid #cfc6b8;
@@ -1626,19 +1389,6 @@
 	}
 
 	@media (max-width: 920px) {
-		.top-row {
-			grid-template-columns: 1fr;
-		}
-
-		.filters-side {
-			position: static;
-		}
-
-		.controls-grid,
-		.advanced-grid {
-			grid-template-columns: 1fr;
-		}
-
 		.finding-list,
 		.story-chart-panel__grid,
 		.story-chart-row--tract {
