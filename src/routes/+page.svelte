@@ -49,6 +49,7 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
+	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
@@ -1108,6 +1109,8 @@
 					The policy answer is not less TOD. It is <strong>more affordability inside TOD</strong>.
 				</p>
 			</section>
+
+			<ExploreTractSection />
 
 		{/if}
 	</section>
