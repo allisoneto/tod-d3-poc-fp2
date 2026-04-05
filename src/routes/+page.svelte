@@ -476,7 +476,7 @@
 			minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
 			minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,
 			includeRedevelopment: DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment,
-			trimOutliers: false,
+			trimOutliers: true,
 			hoveredTract: null,
 			selectedTracts: new Set(),
 			/** @param {string | null} gisjoin */
@@ -959,7 +959,7 @@
 						Each point is a tract; color = TOD share of new units; size = population.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<TodIntensityScatter panelState={incomePanelState} wideLayout showTrimControl={false} />
+						<TodIntensityScatter panelState={incomePanelState} wideLayout />
 					</div>
 				</section>
 			</div>
@@ -987,7 +987,7 @@
 						of residents with bachelor's degrees or higher — a useful proxy for neighborhood change, but not direct causal proof of displacement.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<TodIntensityScatter panelState={eduPanelState} wideLayout showTrimControl={false} />
+						<TodIntensityScatter panelState={eduPanelState} wideLayout />
 					</div>
 				</section>
 			</div>

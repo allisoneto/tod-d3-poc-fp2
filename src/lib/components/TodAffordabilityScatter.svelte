@@ -15,8 +15,8 @@
 	import {
 		MBTA_BLUE,
 		MBTA_CHART_NEUTRAL,
-		MBTA_RED,
-		MBTA_YELLOW
+		MBTA_GREEN,
+		MBTA_RED
 	} from '$lib/utils/mbtaColors.js';
 
 	let { panelState, domainOverride = null } = $props();
@@ -62,8 +62,8 @@
 
 	/** Manual selection (map + scatter); matches ``TodIntensityScatter`` cohort styling. */
 	const LINE_SELECTED = '#b91c1c';
-	/** Main WLS fit (yellow). */
-	const LINE_FIT = MBTA_YELLOW;
+	/** Main WLS fit for TOD-dominated tracts: darkened MBTA green (matches ``TodIntensityScatter`` LINE_TOD). */
+	const LINE_FIT = d3.interpolateRgb(MBTA_GREEN, '#071a14')(0.24);
 
 	$effect(() => {
 		void plotKey;

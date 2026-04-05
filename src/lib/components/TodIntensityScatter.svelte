@@ -37,9 +37,12 @@
 	const INNER_H_DEFAULT = 340;
 	const marginBottom = 52;
 
-	/** Weighted fit lines for significant-tract cohorts (shared yellow). */
-	const LINE_TOD = MBTA_YELLOW;
-	const LINE_NONTOD = MBTA_YELLOW;
+	/**
+	 * Weighted fit lines: TOD cohort uses a darkened MBTA green (same hue family as dots at high TOD share);
+	 * other cohorts stay yellow for contrast.
+	 */
+	const LINE_TOD = d3.interpolateRgb(MBTA_GREEN, '#071a14')(0.24);
+	const LINE_NONTOD = d3.interpolateRgb(MBTA_ORANGE, '#071a14')(0.24);
 	const LINE_ALL = MBTA_YELLOW;
 	/** Manual selection (map + scatter); distinct from cohort fit lines. */
 	const LINE_SELECTED = '#b91c1c';
@@ -63,7 +66,7 @@
 			minPop: panelState.minPopulation,
 			minDens: panelState.minPopDensity,
 			minStops: panelState.minStops,
-			trim: showTrimControl && panelState.trimOutliers,
+			trim: panelState.trimOutliers,
 			dom: domainOverride?.todIntensity ? 'on' : 'off',
 			dx: domainOverride?.todIntensity?.xDomain,
 			dy: domainOverride?.todIntensity?.yDomain,
@@ -208,7 +211,8 @@
 		if (domainOverride?.todIntensity?.xDomain) {
 			xDomain = domainOverride.todIntensity.xDomain;
 			yDomain = domainOverride.todIntensity.yDomain;
-		} else if (showTrimControl && panelState.trimOutliers && sigPts.length > 2) {
+		} else if (panelState.trimOutliers && sigPts.length > 2) {
+			// 10σ marginal trim on significant tracts only; ``showTrimControl`` is UI-only.
 			const xVals = sigPts.map((d) => d.x);
 			const yVals = sigPts.map((d) => d.y);
 			const xMu = d3.mean(xVals);
@@ -247,8 +251,8 @@
 		const legendBlockH = wideLayout ? 0 : 6 + regLegendRows * regLegendRowH + 4;
 		const chartOffsetTop = firstTitleBaseline + scatterTitleLines.length * 16 + (wideLayout ? 6 : legendBlockH + 8);
 		const width = marginLeft + innerWidth + legendColW + marginRight;
-		/** Extra SVG height: default puts size legend below plot; wide stacks size in the right column. */
-		const height = chartOffsetTop + innerHeight + marginBottom + (wideLayout ? 68 : 44);
+		/** Extra SVG height: default puts size legend below plot; wide uses a boxed size legend (taller). */
+		const height = chartOffsetTop + innerHeight + marginBottom + (wideLayout ? 124 : 44);
 
 		const svg = root
 			.append('svg')
@@ -315,6 +319,8 @@
 			fsTitle,
 			fsSub
 		) {
+			const lineLen = wideLayout ? 11 : 15;
+			const labelX = wideLayout ? 20 : 26;
 			const g = parent
 				.append('g')
 				.attr('transform', `translate(${x0}, ${y0 + rowIdx * rowH})`);
@@ -322,21 +328,21 @@
 				.append('line')
 				.attr('x1', 0)
 				.attr('y1', 5)
-				.attr('x2', 15)
+				.attr('x2', lineLen)
 				.attr('y2', 5)
 				.attr('stroke', stroke)
 				.attr('stroke-width', wideLayout ? 2 : 2.4)
 				.attr('stroke-linecap', 'round');
 			if (dash) ln.attr('stroke-dasharray', dash);
 			g.append('text')
-				.attr('x', 26)
+				.attr('x', labelX)
 				.attr('y', 8)
 				.attr('fill', 'var(--text)')
 				.attr('font-size', `${fsTitle}px`)
 				.attr('font-weight', '600')
 				.text(label);
 			g.append('text')
-				.attr('x', 26)
+				.attr('x', labelX)
 				.attr('y', 18)
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', `${fsSub}px`)
@@ -572,7 +578,8 @@
 
 		if (wideLayout) {
 			const rowH = 21;
-			const insetW = Math.min(232, innerWidth * 0.4);
+			/* Narrower than before (~30% less width) so the plot has more room. */
+			const insetW = Math.min(232, innerWidth * 0.4) * 0.7;
 			/* Title + cohort rows + optional selected WLS row */
 			const insetH = 14 + (3 + (showSelReg ? 1 : 0)) * rowH + 10;
 			const insetG = chart
@@ -609,7 +616,7 @@
 				14,
 				rowH,
 				7.5,
-				6.5
+				6
 			);
 			addRegLegendRow(
 				1,
@@ -623,7 +630,7 @@
 				14,
 				rowH,
 				7.5,
-				6.5
+				6
 			);
 			addRegLegendRow(
 				2,
@@ -637,7 +644,7 @@
 				14,
 				rowH,
 				7.5,
-				6.5
+				6
 			);
 			if (showSelReg) {
 				addRegLegendRow(
@@ -652,7 +659,7 @@
 					14,
 					rowH,
 					7.5,
-					6.5
+					6
 				);
 			}
 		}
@@ -715,29 +722,52 @@
 		];
 
 		if (wideLayout) {
-			const sideX = marginLeft + innerWidth + 10;
-			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');
+			const boxPad = 8;
+			const sizeBoxW = legendColW;
+			const sizeBoxX = marginLeft + innerWidth + 8;
 			const sizeTop = chartOffsetTop + innerHeight + 8;
+			const innerW = sizeBoxW - 2 * boxPad;
+			const titleBlockH = 22;
+			const dotsRowH = 30;
+			const miniRowH = 14;
+			const sizeBoxH = boxPad + titleBlockH + 6 + dotsRowH + 6 + miniRowH + boxPad;
+
+			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');
+			sizeG
+				.append('rect')
+				.attr('x', sizeBoxX)
+				.attr('y', sizeTop)
+				.attr('width', sizeBoxW)
+				.attr('height', sizeBoxH)
+				.attr('rx', 4)
+				.attr('fill', 'var(--bg-card)')
+				.attr('fill-opacity', 0.94)
+				.attr('stroke', 'var(--border)')
+				.attr('stroke-width', 0.75);
+
+			const innerX = sizeBoxX + boxPad;
+			let ty = sizeTop + boxPad + 9;
 			sizeG
 				.append('text')
-				.attr('x', sideX)
-				.attr('y', sizeTop)
+				.attr('x', innerX)
+				.attr('y', ty)
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', '7.5px')
 				.attr('font-weight', '600')
-				.text('# of Housing Units');
+				.text('Dot size (population)');
+			ty += 11;
 			sizeG
 				.append('text')
-				.attr('x', sideX)
-				.attr('y', sizeTop + 10)
+				.attr('x', innerX)
+				.attr('y', ty)
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', '6.5px')
-				.text(`Dot size ∝ (${startY})`);
+				.text(`Area ∝ housing units (${startY})`);
 
-			const span = Math.max(44, legendColW - 18);
-			const sizeRowY = sizeTop + 18;
+			const sizeRowY = ty + 8;
+			const colW = innerW / 3;
 			sizeSamples.forEach((s, i) => {
-				const cx = sideX + 8 + (i * span) / 2;
+				const cx = innerX + colW * i + colW / 2;
 				const rr = rScale(s.w);
 				sizeG
 					.append('circle')
@@ -754,13 +784,14 @@
 					.attr('text-anchor', 'middle')
 					.attr('fill', 'var(--text-muted)')
 					.attr('font-size', '6.5px')
+					.attr('font-variant-numeric', 'tabular-nums')
 					.text(`${huFmt(s.disp)}`);
 			});
 
-			const miniY = sizeRowY + 32;
+			const miniY = sizeRowY + 36;
 			sizeG
 				.append('rect')
-				.attr('x', sideX)
+				.attr('x', innerX)
 				.attr('y', miniY)
 				.attr('width', 8)
 				.attr('height', 8)
@@ -768,11 +799,21 @@
 				.attr('fill', GREY_MINIMAL);
 			sizeG
 				.append('text')
-				.attr('x', sideX + 12)
+				.attr('x', innerX + 12)
 				.attr('y', miniY + 7)
 				.attr('fill', 'var(--text-muted)')
 				.attr('font-size', '6.5px')
-				.text('Minimal development (no fit)');
+				const miniLabel = sizeG.append('text')
+					.attr('x', innerX + 12)
+					.attr('y', miniY + 7)
+					.attr('fill', 'var(--text-muted)')
+					.attr('font-size', '6.5px');
+				miniLabel.append('tspan')
+					.text('Minimal development');
+				miniLabel.append('tspan')
+					.attr('x', innerX + 12)
+					.attr('dy', '1.1em')
+					.text('(grey, no WLS fit)');
 		} else {
 			const sizeY = chartOffsetTop + innerHeight + 46;
 			const sizeG = svg.append('g').attr('class', 'tod-intensity-size-legend').attr('pointer-events', 'none');

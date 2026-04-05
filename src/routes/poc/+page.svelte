@@ -437,7 +437,7 @@
 			minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
 			minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,
 			includeRedevelopment: DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment,
-			trimOutliers: false,
+			trimOutliers: true,
 			hoveredTract: null,
 			selectedTracts: new Set(),
 			/** @param {string | null} gisjoin */
@@ -877,7 +877,7 @@
 						Each point is a tract; color = TOD share of new units; size = population.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<TodIntensityScatter panelState={incomePanelState} wideLayout showTrimControl={false} />
+						<TodIntensityScatter panelState={incomePanelState} wideLayout />
 					</div>
 				</section>
 			</div>
