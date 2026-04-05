@@ -7,6 +7,7 @@
 		getTodTracts,
 		getNonTodTracts,
 		aggregateDevsByTract,
+		transitDistanceMiToMetres,
 		computeRegression,
 		filterPointsTenSigmaMarginals,
 		filterDevelopments,
@@ -142,7 +143,10 @@
 		const tractMap = new Map();
 		for (const t of tractData) if (t.gisjoin) tractMap.set(t.gisjoin, t);
 		const filteredDevs = filterDevelopments(developments, panelConfig);
-		return aggregateDevsByTract(filteredDevs, tractMap, timePeriod);
+		return aggregateDevsByTract(filteredDevs, tractMap, timePeriod, {
+			transitDistanceM: transitDistanceMiToMetres(transitDistanceMi),
+			minMultifamilyShare: (Number(minDevMultifamilyRatioPct) || 0) / 100
+		});
 	});
 
 	/** TOD tracts with filtered MassBuilds affordable-share data; split into high / low per user rules. */
@@ -316,12 +320,13 @@
 	<div class="filter-bar">
 		<fieldset class="filter-group">
 			<legend class="filter-legend">Time period</legend>
-			<select class="filter-select" bind:value={timePeriod}>
-				<option value="90_00">1990–2000</option>
-				<option value="00_10">2000–2010</option>
-				<option value="10_20">2010–2020</option>
-				<option value="90_20">1990–2020</option>
-			</select>
+		<select class="filter-select" bind:value={timePeriod}>
+			<option value="90_00">1990–2000</option>
+			<option value="00_10">2000–2010</option>
+			<option value="10_20">2010–2020</option>
+			<option value="00_20">2000–2020</option>
+			<option value="90_20">1990–2020</option>
+		</select>
 		</fieldset>
 
 		<fieldset class="filter-group filter-group--census-wide">

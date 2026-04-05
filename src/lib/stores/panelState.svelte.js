@@ -75,16 +75,20 @@ export function createPanelState(id) {
 		// ── Selection / interaction ────────────────────────────
 		selectedTracts = $state(new Set());
 		hoveredTract = $state(null);
+		/** Tract whose details the sidebar shows; updated on each map/scatter click (select or deselect). */
+		detailFocusGisjoin = $state(/** @type {string | null} */ (null));
 
 		toggleTract(gisjoin) {
 			const next = new Set(this.selectedTracts);
 			if (next.has(gisjoin)) next.delete(gisjoin);
 			else next.add(gisjoin);
 			this.selectedTracts = next;
+			this.detailFocusGisjoin = gisjoin;
 		}
 
 		clearSelection() {
 			this.selectedTracts = new Set();
+			this.detailFocusGisjoin = null;
 		}
 
 		/**
@@ -96,6 +100,16 @@ export function createPanelState(id) {
 		 */
 		selectAll(gisjoins) {
 			this.selectedTracts = new Set(gisjoins);
+			this.detailFocusGisjoin = null;
+		}
+
+		/**
+		 * Parameters
+		 * ----------
+		 * gisjoin : string | null
+		 */
+		setDetailFocus(gisjoin) {
+			this.detailFocusGisjoin = gisjoin;
 		}
 
 		/**

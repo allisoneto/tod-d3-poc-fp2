@@ -45,12 +45,17 @@
 			trim: panelState.trimOutliers,
 			dom: domainOverride?.todAffordability ? 'on' : 'off',
 			dx: domainOverride?.todAffordability?.xDomain,
-			dy: domainOverride?.todAffordability?.yDomain
+			dy: domainOverride?.todAffordability?.yDomain,
+			sel: [...panelState.selectedTracts].sort().join('\t'),
+			focus: panelState.detailFocusGisjoin ?? ''
 		})
 	);
 
 	let lastPlotKey = $state('');
 	const plotUid = `ta-${Math.random().toString(36).slice(2, 9)}`;
+
+	/** Manual selection (map + scatter); matches ``TodIntensityScatter`` cohort styling. */
+	const LINE_SELECTED = '#b91c1c';
 
 	$effect(() => {
 		void plotKey;
@@ -107,6 +112,16 @@
 				.text('No TOD-dominated tracts with affordable TOD data for this combination.');
 			return;
 		}
+
+		const selectedSet = panelState.selectedTracts;
+		const focusId = panelState.detailFocusGisjoin ?? null;
+		const selPts = points.filter((p) => selectedSet.has(p.tract.gisjoin));
+		const regSelPts = filterPointsTenSigmaMarginals(selPts);
+		const wRegSel =
+			regSelPts.length >= 2
+				? computeWeightedRegression(regSelPts)
+				: { slope: NaN, intercept: NaN, r2: 0 };
+		const showSelReg = regSelPts.length >= 2;
 
 		const regPts = filterPointsTenSigmaMarginals(points);
 		const wls =
@@ -172,7 +187,8 @@
 		const titleAnchorX = marginLeft + innerWidth / 2;
 		const firstTitleBaseline = 18;
 		const regLegendRowH = 28;
-		const regLegendBlockH = regLegendRowH + (lowN ? 12 : 0) + 4;
+		/* Extra vertical space when the selected-tracts WLS caption is shown below the main WLS legend. */
+		const regLegendBlockH = regLegendRowH + (lowN ? 12 : 0) + (showSelReg ? 22 : 0) + 4;
 		const chartOffsetTop = firstTitleBaseline + scatterTitleLines.length * 16 + regLegendBlockH + 8;
 		const width = marginLeft + innerWidth + LEGEND_COL_W + marginRight;
 		const height = chartOffsetTop + innerHeight + marginBottom + 44;
@@ -258,6 +274,36 @@
 				.text('Low sample size — interpret slope cautiously.');
 		}
 
+		if (showSelReg) {
+			const selLeg = wlsLegend.append('g').attr('transform', `translate(${marginLeft}, ${regLegY0 + (lowN ? 38 : 26)})`);
+			selLeg
+				.append('line')
+				.attr('x1', 0)
+				.attr('y1', 5)
+				.attr('x2', 28)
+				.attr('y2', 5)
+				.attr('stroke', LINE_SELECTED)
+				.attr('stroke-width', 2.4)
+				.attr('stroke-linecap', 'round');
+			selLeg
+				.append('text')
+				.attr('x', 34)
+				.attr('y', 8)
+				.attr('fill', 'var(--text)')
+				.attr('font-size', '9px')
+				.attr('font-weight', '600')
+				.text('Selected tracts (WLS)');
+			selLeg
+				.append('text')
+				.attr('x', 34)
+				.attr('y', 19)
+				.attr('fill', 'var(--text-muted)')
+				.attr('font-size', '7.5px')
+				.text(
+					`Slope ${Number.isFinite(wRegSel.slope) ? slopeFmt(wRegSel.slope) : '—'} · R² ${Number.isFinite(wRegSel.r2) ? wRegSel.r2.toFixed(3) : '—'} · n=${selPts.length}`
+				);
+		}
+
 		const chart = svg.append('g').attr('transform', `translate(${marginLeft},${chartOffsetTop})`);
 
 		chart
@@ -307,9 +353,21 @@
 				.attr('pointer-events', 'none');
 		}
 
+		if (showSelReg && Number.isFinite(wRegSel.slope) && Number.isFinite(wRegSel.intercept)) {
+			chart
+				.append('line')
+				.attr('x1', xScale(d0))
+				.attr('y1', yScale(wRegSel.slope * d0 + wRegSel.intercept))
+				.attr('x2', xScale(d1))
+				.attr('y2', yScale(wRegSel.slope * d1 + wRegSel.intercept))
+				.attr('stroke', LINE_SELECTED)
+				.attr('stroke-width', 2.5)
+				.attr('stroke-linecap', 'round')
+				.attr('pointer-events', 'none');
+		}
+
 		const fmt = d3.format('.2f');
 		const huFmt = d3.format(',.0f');
-		const selectedSet = panelState.selectedTracts;
 
 		const brush = d3
 			.brush()
@@ -325,12 +383,17 @@
 				const yMin = Math.min(yScale.invert(by0), yScale.invert(by1));
 				const yMax = Math.max(yScale.invert(by0), yScale.invert(by1));
 				const next = new Set(panelState.selectedTracts);
+				let lastAdded = /** @type {string | null} */ (null);
 				for (const d of points) {
 					if (d.x >= xMin && d.x <= xMax && d.y >= yMin && d.y <= yMax) {
 						next.add(d.tract.gisjoin);
+						lastAdded = d.tract.gisjoin;
 					}
 				}
 				panelState.selectedTracts = next;
+				if (lastAdded != null && typeof panelState.setDetailFocus === 'function') {
+					panelState.setDetailFocus(lastAdded);
+				}
 				brushG.call(brush.move, null);
 			});
 
@@ -349,8 +412,8 @@
 			.attr('r', (d) => d.dotR ?? 4)
 			.attr('fill', (d) => colorScale(d.stockPct))
 			.attr('opacity', 0.92)
-			.attr('stroke', (d) => (selectedSet.has(d.tract.gisjoin) ? 'var(--cat-a)' : '#1e293b'))
-			.attr('stroke-width', (d) => (selectedSet.has(d.tract.gisjoin) ? 2 : 0.35))
+			.attr('stroke', (d) => dotStrokeAfford(d.tract.gisjoin, selectedSet, focusId).stroke)
+			.attr('stroke-width', (d) => dotStrokeAfford(d.tract.gisjoin, selectedSet, focusId).width)
 			.style('cursor', 'pointer')
 			.on('mouseenter', function (event, d) {
 				panelState.setHovered(d.tract.gisjoin);
@@ -472,18 +535,20 @@
 	$effect(() => {
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
+		void panelState.detailFocusGisjoin;
 		if (!containerEl) return;
 		const root = d3.select(containerEl);
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
+		const focusId = panelState.detailFocusGisjoin ?? null;
 		root.selectAll('.tod-aff-dot').each(function () {
 			const el = d3.select(this);
 			const d = el.datum();
 			const gj = d?.tract?.gisjoin;
 			const h = gj && gj === hoveredId;
-			const sel = gj && selectedSet.has(gj);
 			el.attr('opacity', h ? 1 : 0.92);
-			el.attr('stroke', sel ? 'var(--cat-a)' : '#1e293b').attr('stroke-width', sel ? 2 : 0.35);
+			const st = dotStrokeAfford(gj, selectedSet, focusId);
+			el.attr('stroke', st.stroke).attr('stroke-width', st.width);
 		});
 	});
 

@@ -260,6 +260,8 @@ export function buildNhgisLikeRows(tractList, devClassByGj) {
 		median_income_change_pct_10_20: t.median_income_change_pct_10_20,
 		bachelors_pct_change_10_20: t.bachelors_pct_change_10_20,
 		avg_travel_time_change_10_20: t.avg_travel_time_change_10_20,
+		/** Decennial census percent change in housing units (2010→2020). */
+		census_hu_change_10_20: t.census_hu_change_10_20,
 		pop_2020: Number(t.pop_2020) || 0
 	}));
 }

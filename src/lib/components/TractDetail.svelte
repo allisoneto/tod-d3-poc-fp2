@@ -2,6 +2,8 @@
 	/**
 	 * Tract detail cards: joins ``panelState.selectedTracts`` to ``tractData`` rows and surfaces
 	 * period-aware census / development / transit fields plus a D3 stacked race composition mini-chart.
+	 * ``panelState.detailFocusGisjoin`` controls which tract the sidebar emphasizes (last clicked), including
+	 * after deselect so that tract stays visible with a deselected styling hint.
 	 */
 	import * as d3 from 'd3';
 	import { tractData, developments, meta } from '$lib/stores/data.svelte.js';
@@ -29,8 +31,18 @@
 			agg.new_affordable += developmentAffordableUnitsCapped(d);
 			agg.multifam += d.smmultifam + d.lgmultifam;
 
-			// Long census window: completions 1990–2020 (excludes 2021+ still tagged 10_20)
+			// Multi-decade windows: aggregate completions by year range
 			const y = d.completion_year;
+			if (y != null && y >= 2000 && y <= 2020) {
+				const k00 = `${d.gisjoin}_00_20`;
+				if (!m.has(k00)) {
+					m.set(k00, { new_units: 0, new_affordable: 0, multifam: 0 });
+				}
+				const a00 = m.get(k00);
+				a00.new_units += d.hu;
+				a00.new_affordable += developmentAffordableUnitsCapped(d);
+				a00.multifam += d.smmultifam + d.lgmultifam;
+			}
 			if (y != null && y >= 1990 && y <= 2020) {
 				const k90 = `${d.gisjoin}_90_20`;
 				if (!m.has(k90)) {
@@ -274,7 +286,13 @@
 	function formatXAxisValue(xKey, v) {
 		if (v == null || !Number.isFinite(Number(v))) return '—';
 		if (xKey === 'census_hu_change') return fmtInt(v);
-		if (xKey === 'pct_stock_increase') return fmtPctChange(v);
+		if (
+			xKey === 'pct_stock_increase' ||
+			xKey === 'pct_stock_increase_tod' ||
+			xKey === 'pct_stock_increase_non_tod'
+		) {
+			return fmtPctChange(v);
+		}
 		if (xKey === 'multifam_share' || xKey === 'affordable_share') return fmtShare(v);
 		return fmtInt(v);
 	}
@@ -407,7 +425,17 @@
 
 <div class="tract-detail" data-meta-y-vars={meta.yVariables?.length ?? 0}>
 	<div class="head">
-		<h3 class="title">Selected tracts ({selectedList.length})</h3>
+		<h3 class="title">
+			{#if detailFocusGisjoin}
+				Tract details · focus <span class="mono focus-id">{detailFocusGisjoin}</span>
+				<span class="title-n">· Selected ({selectedList.length})</span>
+				{#if !selectedList.includes(detailFocusGisjoin)}
+					<span class="badge-deselected">(removed from selection)</span>
+				{/if}
+			{:else}
+				Selected tracts ({selectedList.length})
+			{/if}
+		</h3>
 		<div class="head-actions">
 			<button type="button" class="action-btn" onclick={selectAllFiltered}
 				title="Select all {filteredGisjoins.length} tracts that pass current filters">
@@ -422,7 +450,7 @@
 	</div>
 
 	{#if selectedList.length === 0}
-		<p class="empty">Click tracts on the map to see details here.</p>
+		<p class="empty">Click tracts on the map or points on the scatter plot to see details here.</p>
 	{:else}
 		<div class="scroll">
 			{#if aggregate}
@@ -511,22 +539,38 @@
 				</article>
 			{/if}
 
-			{#if selectedList.length <= 10}
-			{#each selectedList as gid (gid)}
+			{#if cardsForDetail.length}
+			{#each cardsForDetail as gid (gid)}
 				{@const t = tractByGisjoin.get(gid)}
-				<article class="card">
+				<article
+					class="card"
+					class:card--focus={gid === detailFocusGisjoin}
+					class:card--deselected={detailFocusGisjoin === gid && !selectedList.includes(gid)}
+				>
 					{#if !t}
 						<p class="missing">No tract data for <span class="mono">{gid}</span>.</p>
 					{:else}
-						<header class="card-head">
-							<div>
-								<div class="tract-id mono">{t.gisjoin}</div>
-								<div class="county">{t.county ?? '—'}</div>
-							</div>
-							<div class="period-pill">{period.startY}–{period.endY}</div>
-						</header>
+					<header class="card-head">
+						<div>
+							<div class="tract-id mono">{t.gisjoin}</div>
+							<div class="county">{t.county ?? '—'}</div>
+						</div>
+						<div class="period-pill">{period.startY}–{period.endY}</div>
+					</header>
 
-						<table class="metrics">
+					{#if t.nom_2000_crosswalked || t.nom_2020_crosswalked}
+						<div class="crosswalk-note">
+							{#if t.nom_2000_crosswalked && t.nom_2020_crosswalked}
+								2000 &amp; 2020 data crosswalked to 2010 geography
+							{:else if t.nom_2000_crosswalked}
+								2000 data crosswalked to 2010 geography
+							{:else}
+								2020 data crosswalked to 2010 geography
+							{/if}
+						</div>
+					{/if}
+
+					<table class="metrics">
 							<thead>
 								<tr>
 									<th scope="col">Metric</th>
@@ -686,8 +730,8 @@
 					{/if}
 				</article>
 			{/each}
-			{:else}
-				<p class="overflow-note">Individual tract cards are hidden when more than 10 tracts are selected. See aggregate summary above.</p>
+			{:else if selectedList.length > 10}
+				<p class="overflow-note">Individual tract cards are hidden when more than 10 tracts are selected. The focused tract (last clicked) is shown above when applicable. See aggregate summary.</p>
 			{/if}
 		</div>
 	{/if}
@@ -720,6 +764,12 @@
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-muted);
+	}
+
+	.title-n {
+		font-weight: 600;
+		text-transform: none;
+		letter-spacing: 0;
 	}
 
 	.action-btn {
@@ -775,6 +825,33 @@
 		color: var(--text);
 	}
 
+	.card--focus {
+		border-color: color-mix(in srgb, #b91c1c 45%, var(--border));
+		box-shadow: 0 0 0 1px color-mix(in srgb, #b91c1c 25%, transparent);
+	}
+
+	.card--deselected {
+		border-style: dashed;
+		opacity: 0.96;
+	}
+
+	.focus-id {
+		font-weight: 700;
+	}
+
+	.badge-deselected {
+		display: inline-block;
+		margin-left: 6px;
+		padding: 2px 8px;
+		font-size: 0.65rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-muted);
+		background: color-mix(in srgb, #64748b 12%, var(--bg-panel));
+		border-radius: 999px;
+	}
+
 	.card-head {
 		display: flex;
 		align-items: flex-start;
@@ -812,6 +889,17 @@
 
 	.mono {
 		font-family: var(--font-mono);
+	}
+
+	.crosswalk-note {
+		font-size: 0.625rem;
+		color: var(--text-muted);
+		background: color-mix(in srgb, var(--accent) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+		border-radius: var(--radius-sm);
+		padding: 3px 8px;
+		margin-bottom: 8px;
+		line-height: 1.3;
 	}
 
 	.missing {

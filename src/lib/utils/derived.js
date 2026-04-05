@@ -800,6 +800,10 @@ export function filterDevelopments(developments, panelState) {
  */
 export function developmentMatchesPeriod(d, tp) {
 	if (d.decade === tp) return true;
+	if (tp === '00_20') {
+		const y = d.completion_year;
+		return y != null && y >= 2000 && y <= 2020;
+	}
 	if (tp === '90_20') {
 		const y = d.completion_year;
 		return y != null && y >= 1990 && y <= 2020;
@@ -821,16 +825,30 @@ export function developmentMatchesPeriod(d, tp) {
  *     gisjoin -> tract record (needed for ``total_hu_<year>`` base stock).
  * timePeriod : string
  *
+ * Parameters
+ * ----------
+ * todOpts : {{ transitDistanceM?: number, minMultifamilyShare?: number }} | undefined
+ *     When set (default: 0.5 mi threshold, 0 MF floor), ``pct_stock_increase_tod`` and
+ *     ``pct_stock_increase_non_tod`` use ``classifyDevTodUnits`` per project. Omitted
+ *     uses the same defaults as ``createPanelState``.
+ *
  * Returns
  * -------
  * Map<string, object>
  *     gisjoin -> { new_units, new_singfam, new_sm_multifam, new_lg_multifam,
- *                  new_affordable, pct_stock_increase, multifam_share, affordable_share }.
+ *                  new_affordable, pct_stock_increase, pct_stock_increase_tod,
+ *                  pct_stock_increase_non_tod, multifam_share, affordable_share, ... }.
  *     ``new_affordable`` sums ``min(affrd_unit, hu)`` per project (see
  *     ``developmentAffordableUnitsCapped``).
  */
-export function aggregateDevsByTract(filteredDevs, tractMap, timePeriod) {
+export function aggregateDevsByTract(filteredDevs, tractMap, timePeriod, todOpts = {}) {
 	const { startY: baseYear } = periodCensusBounds(timePeriod);
+	const transitM =
+		todOpts.transitDistanceM != null
+			? todOpts.transitDistanceM
+			: transitDistanceMiToMetres(0.5);
+	const minMf =
+		todOpts.minMultifamilyShare != null ? todOpts.minMultifamilyShare : 0;
 	const result = new Map();
 
 	for (const d of filteredDevs) {
@@ -841,7 +859,9 @@ export function aggregateDevsByTract(filteredDevs, tractMap, timePeriod) {
 				new_singfam: 0,
 				new_sm_multifam: 0,
 				new_lg_multifam: 0,
-				new_affordable: 0
+				new_affordable: 0,
+				new_units_tod: 0,
+				new_units_non_tod: 0
 			});
 		}
 		const agg = result.get(gj);
@@ -850,6 +870,9 @@ export function aggregateDevsByTract(filteredDevs, tractMap, timePeriod) {
 		agg.new_sm_multifam += d.smmultifam;
 		agg.new_lg_multifam += d.lgmultifam;
 		agg.new_affordable += developmentAffordableUnitsCapped(d);
+		const { todUnits, nonTodUnits } = classifyDevTodUnits(d, transitM, minMf);
+		agg.new_units_tod += todUnits;
+		agg.new_units_non_tod += nonTodUnits;
 	}
 
 	for (const [gj, agg] of result) {
@@ -857,6 +880,10 @@ export function aggregateDevsByTract(filteredDevs, tractMap, timePeriod) {
 		const baseStock = Number(tract?.[`total_hu_${baseYear}`]) || 0;
 		agg.pct_stock_increase =
 			baseStock > 0 ? +((agg.new_units / baseStock) * 100).toFixed(2) : null;
+		agg.pct_stock_increase_tod =
+			baseStock > 0 ? +((agg.new_units_tod / baseStock) * 100).toFixed(2) : null;
+		agg.pct_stock_increase_non_tod =
+			baseStock > 0 ? +((agg.new_units_non_tod / baseStock) * 100).toFixed(2) : null;
 		agg.multifam_share =
 			agg.new_units > 0
 				? +((agg.new_sm_multifam + agg.new_lg_multifam) / agg.new_units).toFixed(3)
@@ -903,7 +930,10 @@ export function buildFilteredData(tracts, developments, panelState) {
 		tractSet.has(d.gisjoin)
 	);
 
-	const devAgg = aggregateDevsByTract(devFiltered, tractMap, panelState.timePeriod);
+	const devAgg = aggregateDevsByTract(devFiltered, tractMap, panelState.timePeriod, {
+		transitDistanceM: transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5),
+		minMultifamilyShare: (Number(panelState.minDevMultifamilyRatioPct) || 0) / 100
+	});
 
 	return { filteredTracts: tractFiltered, devAgg, filteredDevs: devFiltered };
 }

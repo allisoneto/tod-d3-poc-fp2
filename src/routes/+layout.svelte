@@ -1,67 +1,106 @@
 <script>
 	import '../app.css';
-	import { loadAllData } from '$lib/stores/data.svelte.js';
+	import { base } from '$app/paths';
+	import { loadAllData, tractData } from '$lib/stores/data.svelte.js';
 	import { page } from '$app/state';
 
 	let { children } = $props();
-	let error = $state(/** @type {string | null} */ (null));
-	/** Tract/policy bundle successfully loaded at least once. */
-	let tractDataReady = $state(false);
+	let tractLoadError = $state(/** @type {string | null} */ (null));
 
-	function needsTractData(/** @type {string | null} */ routeId) {
-		return routeId === '/tract' || routeId === '/policy';
+	/**
+	 * Strip ``paths.base`` (e.g. GitHub Pages ``/repo``) so ``/repo/tract`` matches ``/tract``.
+	 * ``page.route.id`` can miss base-prefixed deployments; pathname is authoritative.
+	 *
+	 * Parameters
+	 * ----------
+	 * pathname : string
+	 *
+	 * Returns
+	 * -------
+	 * string
+	 */
+	function pathnameWithoutBase(pathname) {
+		const b = base || '';
+		if (!b) return pathname;
+		const prefix = b.endsWith('/') ? b.slice(0, -1) : b;
+		if (pathname === prefix || pathname === `${prefix}/`) return '/';
+		if (pathname.startsWith(`${prefix}/`)) return pathname.slice(prefix.length);
+		return pathname;
 	}
 
+	const needsTractShell = $derived.by(() => {
+		const p = pathnameWithoutBase(page.url.pathname);
+		return p === '/tract' || p === '/policy';
+	});
+
+	const tractBundleLoading = $derived(
+		needsTractShell && !tractLoadError && tractData.length === 0
+	);
+
 	$effect(() => {
-		const id = page.route.id;
-		if (!needsTractData(id)) return;
-		if (tractDataReady) return;
-		error = null;
-		loadAllData()
-			.then(() => {
-				tractDataReady = true;
-			})
-			.catch((e) => {
-				error = e instanceof Error ? e.message : String(e);
-			});
+		if (!needsTractShell) return;
+		tractLoadError = null;
+		loadAllData().catch((e) => {
+			tractLoadError = e instanceof Error ? e.message : String(e);
+		});
 	});
 </script>
 
-{#if needsTractData(page.route.id)}
-	{#if error}
-		<div class="error-screen">
-			<h2>Failed to load data</h2>
-			<p>{error}</p>
+{#if needsTractShell}
+	<div class="tract-route-shell">
+		{#if tractLoadError}
+			<div class="tract-load-banner tract-load-banner--error" role="alert">
+				<p>Failed to load dashboard data: {tractLoadError}</p>
+			</div>
+		{:else if tractBundleLoading}
+			<div class="tract-load-banner tract-load-banner--loading" role="status" aria-live="polite">
+				<p>Loading tract dashboard data…</p>
+			</div>
+		{/if}
+		<div class="tract-route-body">
+			{@render children()}
 		</div>
-	{:else if !tractDataReady}
-		<div class="loading-screen">
-			<div class="spinner"></div>
-			<p>Loading dashboard data...</p>
-		</div>
-	{:else}
-		{@render children()}
-	{/if}
+	</div>
 {:else}
 	{@render children()}
 {/if}
 
 <style>
-	.loading-screen, .error-screen {
+	.tract-route-shell {
+		flex: 1;
+		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		min-height: 100vh;
-		gap: 16px;
+		width: 100%;
+		box-sizing: border-box;
 	}
-	.spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid var(--border);
-		border-top-color: var(--accent);
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
+
+	.tract-route-body {
+		flex: 1;
+		min-height: 22rem;
+		display: flex;
+		flex-direction: column;
 	}
-	@keyframes spin { to { transform: rotate(360deg); } }
-	.error-screen h2 { color: var(--danger); }
+
+	.tract-load-banner {
+		padding: 10px 16px;
+		font-size: 0.9rem;
+		flex-shrink: 0;
+	}
+
+	.tract-load-banner--error {
+		background: color-mix(in srgb, var(--danger) 12%, transparent);
+		border-bottom: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+		color: var(--text);
+	}
+
+	.tract-load-banner--loading {
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
+		border-bottom: 1px solid var(--border);
+		color: var(--text-muted);
+	}
+
+	.tract-load-banner p {
+		margin: 0;
+	}
 </style>

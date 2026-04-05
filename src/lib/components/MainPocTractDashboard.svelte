@@ -15,6 +15,8 @@
 		uniqueCounties
 	} from '$lib/utils/mainPocTractModel.js';
 	import { drawMainPocTractCharts } from '$lib/utils/mainPocTractCharts.js';
+	import { createPanelState } from '$lib/stores/panelState.svelte.js';
+	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
 
 	let yearStart = $state(1990);
 	let yearEnd = $state(2026);
@@ -25,10 +27,11 @@
 	let dominanceFilter = $state(/** @type {'all' | 'tod' | 'nonTod'} */ ('all'));
 	let search = $state('');
 	let mapMetric = $state(/** @type {'units' | 'affordableUnits' | 'under125' | 'high125' | 'affordableShare' | 'todShare'} */ ('units'));
-	let tractMapMetric = $state(/** @type {'income' | 'education' | 'mobility'} */ ('income'));
+
+	const mpcMapPanel = createPanelState('mpc-map');
 
 	// --- Tract universe (``passesTractUniverse`` / same semantics as tract ``FilterPanel``) ---
-	let timePeriod = $state(/** @type {'90_00' | '00_10' | '10_20' | '90_20'} */ ('10_20'));
+	let timePeriod = $state(/** @type {'90_00' | '00_10' | '10_20' | '00_20' | '90_20'} */ ('10_20'));
 	let minPopulation = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopulation);
 	let minPopDensity = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopDensity);
 	let minStopsPerSqMi = $state(DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi);
@@ -70,6 +73,22 @@
 		minDevMultifamilyRatioPct: minDevMfPct,
 		minDevAffordableRatioPct: minDevAffPct,
 		includeRedevelopment
+	});
+
+	$effect(() => {
+		if (!tractData.length) return;
+		mpcMapPanel.transitDistanceMi = threshold;
+		mpcMapPanel.timePeriod = timePeriod;
+		mpcMapPanel.minStopsPerSqMi = minStopsPerSqMi;
+		mpcMapPanel.sigDevMinPctStockIncrease = sigDevMinPctStockIncrease;
+		mpcMapPanel.todFractionCutoff = todFractionCutoff;
+		mpcMapPanel.huChangeSource = 'massbuilds';
+		mpcMapPanel.minPopulation = minPopulation;
+		mpcMapPanel.minPopDensity = minPopDensity;
+		mpcMapPanel.minUnitsPerProject = minUnitsPerProject;
+		mpcMapPanel.minDevMultifamilyRatioPct = minDevMfPct;
+		mpcMapPanel.minDevAffordableRatioPct = minDevAffPct;
+		mpcMapPanel.includeRedevelopment = includeRedevelopment;
 	});
 
 	const tractListFiltered = $derived.by(() => {
@@ -164,7 +183,6 @@
 		dominanceFilter = 'all';
 		search = '';
 		mapMetric = 'units';
-		tractMapMetric = 'income';
 		selected = new Set();
 		timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod;
 		minPopulation = DEFAULT_MAIN_POC_UNIVERSE.minPopulation;
@@ -202,7 +220,6 @@
 		elRanked,
 		elAffordMix,
 		elGrowthCapture,
-		elTractChoroNhgis,
 		elTractEdu,
 		elMobility,
 		elTakeaway;
@@ -226,7 +243,6 @@
 				elRanked,
 				elAffordMix,
 				elGrowthCapture,
-				elTractChoroNhgis,
 				elTractEdu,
 				elMobility,
 				elTakeaway,
@@ -239,8 +255,7 @@
 					dominanceFilter,
 					search,
 					selected,
-					mapMetric,
-					tractMapMetric
+					mapMetric
 				},
 				visibleRows,
 				domainRows,
@@ -302,12 +317,13 @@
 				</p>
 				<label class="mpc-field">
 					<span class="mpc-field-label">Census period (for universe)</span>
-					<select bind:value={timePeriod}>
-						<option value="90_00">1990–2000</option>
-						<option value="00_10">2000–2010</option>
-						<option value="10_20">2010–2020</option>
-						<option value="90_20">1990–2020</option>
-					</select>
+				<select bind:value={timePeriod}>
+					<option value="90_00">1990–2000</option>
+					<option value="00_10">2000–2010</option>
+					<option value="10_20">2010–2020</option>
+					<option value="00_20">2000–2020</option>
+					<option value="90_20">1990–2020</option>
+				</select>
 				</label>
 				<label class="mpc-field">
 					<span class="mpc-field-label">Min. population (period start)</span>
@@ -520,16 +536,19 @@
 			</section>
 
 			<section class="mpc-card mpc-chart-card">
-				<h3 class="mpc-h3">Neighborhood change (tract, 2010–20 window)</h3>
-				<div class="mpc-toolbar">
-					<label for="mpc-tmap">Layer</label>
-					<select id="mpc-tmap" bind:value={tractMapMetric}>
-						<option value="income">Median income change</option>
-						<option value="education">Bachelor's share change</option>
-						<option value="mobility">Travel time change</option>
-					</select>
+				<h3 class="mpc-h3">Housing change & cohorts (tract, 2010–20 window)</h3>
+				<p class="mpc-note">
+					Census percent change in housing units (choropleth); MassBuilds cohort outlines; optional MBTA and
+					developments match the <a href="{base}/tract">tract map</a>.
+				</p>
+				<div class="mpc-chart-wrap mpc-chart-tall mpc-chart-wrap--poc-map">
+					<PocNhgisTractMap
+						panelState={mpcMapPanel}
+						tractList={tractListFiltered}
+						nhgisRows={nhgisLikeRows}
+						metricsDevelopments={fullWindowDevs}
+					/>
 				</div>
-				<div class="mpc-chart-wrap mpc-chart-tall" bind:this={elTractChoroNhgis}></div>
 			</section>
 
 			<div class="mpc-small-grid">

@@ -33,7 +33,32 @@
 	const LINE_TOD = '#2563eb';
 	const LINE_NONTOD = '#dc2626';
 	const LINE_ALL = '#7c3aed';
+	/** Manual selection (map + scatter); distinct from cohort non-TOD line ``LINE_NONTOD``. */
+	const LINE_SELECTED = '#b91c1c';
+	/** Focused tract outline when it is no longer selected (sidebar still shows it). */
+	const FOCUS_DESEL_STROKE = '#64748b';
 	const GREY_MINIMAL = '#94a3b8';
+
+	/**
+	 * Thicker stroke for ``detailFocusGisjoin``; red if still selected, slate if deselected.
+	 *
+	 * @param {string | undefined} gj
+	 * @param {Set<string>} selectedSet
+	 * @param {string | null} focusId
+	 * @param {boolean} isMinimal
+	 */
+	function dotStrokeForSelection(gj, selectedSet, focusId, isMinimal) {
+		const sel = gj && selectedSet.has(gj);
+		const foc = gj && focusId && gj === focusId;
+		if (foc) {
+			return { stroke: sel ? LINE_SELECTED : FOCUS_DESEL_STROKE, width: 3.2 };
+		}
+		if (sel) {
+			return { stroke: LINE_SELECTED, width: 2 };
+		}
+		if (isMinimal) return { stroke: 'none', width: 0 };
+		return { stroke: '#475569', width: 0.5 };
+	}
 
 	const plotKey = $derived(
 		JSON.stringify({
@@ -56,7 +81,10 @@
 			dom: domainOverride?.todIntensity ? 'on' : 'off',
 			dx: domainOverride?.todIntensity?.xDomain,
 			dy: domainOverride?.todIntensity?.yDomain,
-			wl: wideLayout
+			wl: wideLayout,
+			/* Selection drives stroke updates via a separate effect; include here so the selected WLS line redraws. */
+			sel: [...panelState.selectedTracts].sort().join('\t'),
+			focus: panelState.detailFocusGisjoin ?? ''
 		})
 	);
 
@@ -98,6 +126,7 @@
 		const huKey = huWeightKey(tp);
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
+		const focusId = panelState.detailFocusGisjoin ?? null;
 
 		const root = d3.select(containerEl);
 		root.selectAll('*').remove();
@@ -162,6 +191,13 @@
 		const wRegAll =
 			regAll.length >= 2 ? computeWeightedRegression(regAll) : { slope: NaN, intercept: NaN, r2: 0 };
 
+		const selPts = allPoints.filter((p) => selectedSet.has(p.tract.gisjoin));
+		const regSelFiltered = filterPointsTenSigmaMarginals(selPts);
+		const wRegSel =
+			regSelFiltered.length >= 2
+				? computeWeightedRegression(regSelFiltered)
+				: { slope: NaN, intercept: NaN, r2: 0 };
+
 		if (allPoints.length === 0) {
 			const pe = root.append('p').attr('class', 'scatter-empty');
 			pe.text('No tracts with data for this combination (check filters).');
@@ -221,7 +257,8 @@
 		const titleAnchorX = marginLeft + innerWidth / 2;
 		const firstTitleBaseline = 20;
 		/** Stacked fit-line legend above chart (default only); wide layout uses an inset instead. */
-		const regLegendRows = 3;
+		const showSelReg = regSelFiltered.length >= 2;
+		const regLegendRows = 3 + (showSelReg ? 1 : 0);
 		const regLegendRowH = 28;
 		const legendBlockH = wideLayout ? 0 : 6 + regLegendRows * regLegendRowH + 4;
 		const chartOffsetTop = firstTitleBaseline + scatterTitleLines.length * 16 + (wideLayout ? 6 : legendBlockH + 8);
@@ -368,6 +405,22 @@
 				9,
 				7.5
 			);
+			if (showSelReg) {
+				addRegLegendRow(
+					3,
+					'Selected tracts',
+					wRegSel,
+					LINE_SELECTED,
+					null,
+					selPts.length,
+					regLegend,
+					marginLeft,
+					regLegY0,
+					regLegendRowH,
+					9,
+					7.5
+				);
+			}
 		}
 
 		const chart = svg.append('g').attr('transform', `translate(${marginLeft},${chartOffsetTop})`);
@@ -430,6 +483,7 @@
 		drawRegLine(wRegAll, LINE_ALL, '4 3');
 		drawRegLine(wRegNonTod, LINE_NONTOD, null);
 		drawRegLine(wRegTod, LINE_TOD, null);
+		if (showSelReg) drawRegLine(wRegSel, LINE_SELECTED, null);
 
 		const brush = d3
 			.brush()
@@ -445,12 +499,17 @@
 				const yMin = Math.min(yScale.invert(by0), yScale.invert(by1));
 				const yMax = Math.max(yScale.invert(by0), yScale.invert(by1));
 				const next = new Set(panelState.selectedTracts);
+				let lastAdded = /** @type {string | null} */ (null);
 				for (const d of allPoints) {
 					if (d.x >= xMin && d.x <= xMax && d.y >= yMin && d.y <= yMax) {
 						next.add(d.tract.gisjoin);
+						lastAdded = d.tract.gisjoin;
 					}
 				}
 				panelState.selectedTracts = next;
+				if (lastAdded != null && typeof panelState.setDetailFocus === 'function') {
+					panelState.setDetailFocus(lastAdded);
+				}
 				brushG.call(brush.move, null);
 			});
 
@@ -510,8 +569,8 @@
 			.attr('r', (d) => d.dotR ?? 3)
 			.attr('fill', GREY_MINIMAL)
 			.attr('opacity', 0.45)
-			.attr('stroke', (d) => (selectedSet.has(d.tract.gisjoin) ? 'var(--cat-a)' : 'none'))
-			.attr('stroke-width', 1.5)
+			.attr('stroke', (d) => dotStrokeForSelection(d.tract.gisjoin, selectedSet, focusId, true).stroke)
+			.attr('stroke-width', (d) => dotStrokeForSelection(d.tract.gisjoin, selectedSet, focusId, true).width)
 			.call(bindDotInteractions);
 
 		chart
@@ -525,15 +584,15 @@
 			.attr('r', (d) => d.dotR ?? 4)
 			.attr('fill', (d) => colorDivergingTod(d.todFraction, cut))
 			.attr('opacity', 0.88)
-			.attr('stroke', (d) => (selectedSet.has(d.tract.gisjoin) ? 'var(--cat-a)' : '#475569'))
-			.attr('stroke-width', (d) => (selectedSet.has(d.tract.gisjoin) ? 2 : 0.5))
+			.attr('stroke', (d) => dotStrokeForSelection(d.tract.gisjoin, selectedSet, focusId, false).stroke)
+			.attr('stroke-width', (d) => dotStrokeForSelection(d.tract.gisjoin, selectedSet, focusId, false).width)
 			.call(bindDotInteractions);
 
 		if (wideLayout) {
 			const rowH = 21;
 			const insetW = Math.min(232, innerWidth * 0.4);
-			/* Title + 3 two-line rows + padding */
-			const insetH = 14 + 3 * rowH + 10;
+			/* Title + cohort rows + optional selected WLS row */
+			const insetH = 14 + (3 + (showSelReg ? 1 : 0)) * rowH + 10;
 			const insetG = chart
 				.append('g')
 				.attr('class', 'tod-intensity-reg-inset')
@@ -598,6 +657,22 @@
 				7.5,
 				6.5
 			);
+			if (showSelReg) {
+				addRegLegendRow(
+					3,
+					'Selected',
+					wRegSel,
+					LINE_SELECTED,
+					null,
+					selPts.length,
+					insetG,
+					6,
+					14,
+					rowH,
+					7.5,
+					6.5
+				);
+			}
 		}
 
 		const cbW = 11;
@@ -769,22 +844,20 @@
 	$effect(() => {
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
+		void panelState.detailFocusGisjoin;
 		if (!containerEl) return;
 		const root = d3.select(containerEl);
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
+		const focusId = panelState.detailFocusGisjoin ?? null;
 		root.selectAll('.tod-intensity-minimal circle, .tod-intensity-sig circle').each(function () {
 			const el = d3.select(this);
 			const d = el.datum();
 			const gj = d?.tract?.gisjoin;
 			const h = gj && gj === hoveredId;
-			const sel = gj && selectedSet.has(gj);
 			el.attr('opacity', h ? 1 : d?.classification === 'minimal' ? 0.45 : 0.88);
-			if (d?.classification === 'minimal') {
-				el.attr('stroke', sel ? 'var(--cat-a)' : 'none').attr('stroke-width', sel ? 2 : 0);
-			} else {
-				el.attr('stroke', sel ? 'var(--cat-a)' : '#475569').attr('stroke-width', sel ? 2 : 0.5);
-			}
+			const st = dotStrokeForSelection(gj, selectedSet, focusId, d?.classification === 'minimal');
+			el.attr('stroke', st.stroke).attr('stroke-width', st.width);
 		});
 	});
 

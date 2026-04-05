@@ -19,7 +19,7 @@
 		computeMuniSummary
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments, tractGeo, meta, mbtaStops } from '$lib/stores/data.svelte.js';
-	import { loadAllData } from '$lib/stores/data.svelte.js';
+	import { createBeginTractDashboardLoad } from '$lib/utils/tractDashboardDeferred.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
@@ -32,6 +32,8 @@
 		uniqueCounties
 	} from '$lib/utils/mainPocTractModel.js';
 	import { drawMainPocTractCharts } from '$lib/utils/mainPocTractCharts.js';
+	import { createPanelState } from '$lib/stores/panelState.svelte.js';
+	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
 	import {
 		filterTractsByTract,
 		buildCohortDevelopmentSplit,
@@ -39,6 +41,7 @@
 		getTodTracts,
 		getNonTodTracts,
 		aggregateDevsByTract,
+		transitDistanceMiToMetres,
 		filterDevelopments,
 		computeGroupMean,
 		popWeightKey,
@@ -222,27 +225,58 @@
 	/* ═══════════════════════════════════════════════════════
 	   TRACT STATE (Part 2)
 	   ═══════════════════════════════════════════════════════ */
-	let tractLoading = $state(true);
+	let tractDataPhase = $state(/** @type {'idle' | 'loading' | 'ready' | 'error'} */ ('idle'));
 	let tractError = $state(/** @type {string | null} */ (null));
-	let tractReady = $state(false);
+	const tractReady = $derived(tractDataPhase === 'ready');
+	const tractLoading = $derived(tractDataPhase === 'loading');
+
+	let tractDataSentinel = $state(/** @type {HTMLElement | undefined} */ (undefined));
+
+	const beginTractDataLoad = createBeginTractDashboardLoad(
+		() => tractDataPhase,
+		(p) => {
+			tractDataPhase = p;
+		},
+		(e) => {
+			tractError = e;
+		}
+	);
+
+	$effect(() => {
+		if (tractDataPhase !== 'idle') return;
+		const el = tractDataSentinel;
+		if (!el || typeof IntersectionObserver === 'undefined') return;
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((e) => e.isIntersecting)) beginTractDataLoad();
+			},
+			{ root: null, rootMargin: '0px', threshold: 0 }
+		);
+		io.observe(el);
+		return () => io.disconnect();
+	});
 
 	// Tract analysis defaults (sensible, no user controls)
 	const tractTimePeriod = '10_20';
 	const tractSigDevMin = 2;
 	const tractTodFractionCutoff = 0.5;
 
+	const pocMapPanel = createPanelState('poc-alt');
+
 	$effect(() => {
-		loadAllData()
-			.then(() => {
-				tractReady = true;
-				tractError = null;
-			})
-			.catch((e) => {
-				tractError = e instanceof Error ? e.message : String(e);
-			})
-			.finally(() => {
-				tractLoading = false;
-			});
+		if (!tractReady) return;
+		pocMapPanel.transitDistanceMi = threshold;
+		pocMapPanel.timePeriod = tractTimePeriod;
+		pocMapPanel.minStopsPerSqMi = DEFAULT_MAIN_POC_UNIVERSE.minStopsPerSqMi;
+		pocMapPanel.sigDevMinPctStockIncrease = tractSigDevMin;
+		pocMapPanel.todFractionCutoff = tractTodFractionCutoff;
+		pocMapPanel.huChangeSource = 'massbuilds';
+		pocMapPanel.minPopulation = DEFAULT_MAIN_POC_UNIVERSE.minPopulation;
+		pocMapPanel.minPopDensity = DEFAULT_MAIN_POC_UNIVERSE.minPopDensity;
+		pocMapPanel.minUnitsPerProject = DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject;
+		pocMapPanel.minDevMultifamilyRatioPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct;
+		pocMapPanel.minDevAffordableRatioPct = DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct;
+		pocMapPanel.includeRedevelopment = DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment;
 	});
 
 	// Shared TOD threshold from Part 1
@@ -353,7 +387,10 @@
 		const tractMap = new Map();
 		for (const t of tractData) if (t.gisjoin) tractMap.set(t.gisjoin, t);
 		const filteredDevs = filterDevelopments(developments, tractPanelConfig);
-		return aggregateDevsByTract(filteredDevs, tractMap, tractTimePeriod);
+		return aggregateDevsByTract(filteredDevs, tractMap, tractTimePeriod, {
+			transitDistanceM: transitDistanceMiToMetres(tractPanelConfig.transitDistanceMi),
+			minMultifamilyShare: (Number(tractPanelConfig.minDevMultifamilyRatioPct) || 0) / 100
+		});
 	});
 
 	/** High vs low affordable TOD tracts: ≥50% affordable share vs &lt;50% (not a median split). */
@@ -420,9 +457,14 @@
 			trimOutliers: false,
 			hoveredTract: null,
 			selectedTracts: new Set(),
+			detailFocusGisjoin: /** @type {string | null} */ (null),
 			/** @param {string | null} gisjoin */
 			setHovered(gisjoin) {
 				this.hoveredTract = gisjoin;
+			},
+			/** @param {string | null} gisjoin */
+			setDetailFocus(gisjoin) {
+				this.detailFocusGisjoin = gisjoin;
 			},
 			/** @param {string} gisjoin */
 			toggleTract(gisjoin) {
@@ -430,6 +472,11 @@
 				if (next.has(gisjoin)) next.delete(gisjoin);
 				else next.add(gisjoin);
 				this.selectedTracts = next;
+				this.detailFocusGisjoin = gisjoin;
+			},
+			clearSelection() {
+				this.selectedTracts = new Set();
+				this.detailFocusGisjoin = null;
 			}
 		};
 	}
@@ -445,13 +492,11 @@
 	});
 
 	/* ── Tract chart element refs ─────────────────────── */
-	let elTractChoroNhgis = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elTractEdu = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elTakeaway = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let tractMapMetric = $state(/** @type {'income' | 'education'} */ ('income'));
 
 	$effect(() => {
-		if (!tractReady || !elTractChoroNhgis || !tractData.length || !developments.length) return;
+		if (!tractReady || !tractData.length || !developments.length) return;
 		const devOpts2 = tractDevOpts;
 		const windowDevs = filterDevelopmentsByYearRange(developments, 1990, 2026, devOpts2);
 
@@ -468,7 +513,6 @@
 			elRanked: null,
 			elAffordMix: null,
 			elGrowthCapture: null,
-			elTractChoroNhgis,
 			elTractEdu,
 			elMobility: null,
 			elTakeaway,
@@ -481,8 +525,7 @@
 				dominanceFilter: 'all',
 				search: '',
 				selected: new Set(),
-				mapMetric: 'units',
-				tractMapMetric
+				mapMetric: 'units'
 			},
 			visibleRows: pocRows,
 			domainRows: pocRows,
@@ -800,7 +843,21 @@
 			</p>
 		</section>
 
-		{#if tractLoading}
+		<div class="tract-data-sentinel" bind:this={tractDataSentinel} aria-hidden="true"></div>
+
+		{#if tractDataPhase === 'idle'}
+			<section class="card full-width tract-data-idle">
+				<h3 class="tract-data-idle-title">Tract dashboard data (on demand)</h3>
+				<p class="chart-note">
+					Census tracts, MassBuilds, and MBTA layers for the interactive analysis below load separately so Part 1
+					stays fast. Loading starts when you scroll to this section or when you use the button — not in the
+					background.
+				</p>
+				<button type="button" class="secondary tract-data-idle-btn" onclick={() => beginTractDataLoad()}>
+					Load tract data now
+				</button>
+			</section>
+		{:else if tractLoading}
 			<div class="loading-status">
 				<div class="spinner" aria-hidden="true"></div>
 				<p>Loading tract data…</p>
@@ -809,24 +866,26 @@
 			<div class="loading-status loading-status--error">
 				<h3>Failed to load tract data</h3>
 				<p>{tractError}</p>
+				<button type="button" class="secondary" onclick={() => beginTractDataLoad()}>Retry</button>
 			</div>
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>Tract categorizations and demographic change overview (tract, 2010–20 window)</h3>
+				<h3>Tract categorizations and housing change overview (tract, 2010–20 window)</h3>
 				<p class="chart-note">
-					TOD-dominated tracts are generally concentrated closer to Boston, but also exist further away (often
-					near commuter rail stations). Moreover, some very urban tracts are non-TOD dominated, as despite having
-					access to transit, their development is primarily single-family.
+					Tracts are colored by <strong>census percent change in housing units (2010–20)</strong> and outlined by
+					MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development). Use the overlays for
+					MBTA lines, stops, and MassBuilds projects (same encoding as the
+					<a href="{base}/tract">tract map</a>).
 				</p>
-				<div class="chart-toolbar">
-					<label for="poc-tract-map-metric" style="margin:0">Layer</label>
-					<select id="poc-tract-map-metric" bind:value={tractMapMetric}>
-						<option value="income">Median income change</option>
-						<option value="education">Bachelor's share change</option>
-					</select>
+				<div class="chart-wrap chart-tall chart-wrap--poc-map">
+					<PocNhgisTractMap
+						panelState={pocMapPanel}
+						tractList={tractListFiltered}
+						nhgisRows={nhgisLikeRows}
+						metricsDevelopments={tractWindowDevs}
+					/>
 				</div>
-				<div class="chart-wrap chart-tall" bind:this={elTractChoroNhgis}></div>
 			</section>
 
 			<!-- ── 8. Income analysis ──────────────────── -->
@@ -1673,6 +1732,27 @@
 		margin-top: 28px;
 		display: grid;
 		gap: 18px;
+	}
+
+	.tract-data-sentinel {
+		height: 1px;
+		margin: 0;
+		padding: 0;
+		pointer-events: none;
+		visibility: hidden;
+	}
+
+	.tract-data-idle {
+		padding: 14px 16px;
+	}
+
+	.tract-data-idle-title {
+		margin: 0 0 8px;
+		font-size: 1rem;
+	}
+
+	.tract-data-idle-btn {
+		margin-top: 10px;
 	}
 
 	.full-width { grid-column: 1 / -1; }

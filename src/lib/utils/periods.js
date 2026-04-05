@@ -11,6 +11,7 @@ export const PERIOD_CENSUS_BOUNDS = {
 	'90_00': { startY: '1990', endY: '2000', tag: '90_00' },
 	'00_10': { startY: '2000', endY: '2010', tag: '00_10' },
 	'10_20': { startY: '2010', endY: '2020', tag: '10_20' },
+	'00_20': { startY: '2000', endY: '2020', tag: '00_20' },
 	'90_20': { startY: '1990', endY: '2020', tag: '90_20' }
 };
 
@@ -45,6 +46,7 @@ export function periodDisplayLabel(timePeriod) {
 		'90_00': '1990–2000',
 		'00_10': '2000–2010',
 		'10_20': '2010–2020',
+		'00_20': '2000–2020',
 		'90_20': '1990–2020'
 	};
 	return labels[timePeriod] ?? labels['10_20'];

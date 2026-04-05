@@ -131,7 +131,6 @@ export function drawMainPocTractCharts(cfg) {
 		elRanked,
 		elAffordMix,
 		elGrowthCapture,
-		elTractChoroNhgis,
 		elTractEdu,
 		elMobility,
 		elTakeaway,
@@ -742,112 +741,6 @@ export function drawMainPocTractCharts(cfg) {
 				.attr('stroke-width', 2)
 				.attr('stroke-dasharray', '6 4')
 				.attr('d', lowLine);
-		}
-	}
-
-	// --- NHGIS-style tract map (Census change metrics) ---
-	if (elTractChoroNhgis) {
-		const root = d3.select(elTractChoroNhgis);
-		root.selectAll('*').remove();
-		if (!tractGeo?.features?.length || !nhgisLikeRows?.length) {
-			root.append('div').attr('class', 'mpc-empty').text('No tract data for neighborhood change map.');
-		} else {
-			const metricConfig = {
-				income: {
-					key: 'median_income_change_pct_10_20',
-					label: 'Median income change',
-					format: (v) => `${v.toFixed(1)}%`
-				},
-				education: {
-					key: 'bachelors_pct_change_10_20',
-					label: "Bachelor's share change",
-					format: (v) => `${v.toFixed(1)} pp`
-				},
-				mobility: {
-					key: 'avg_travel_time_change_10_20',
-					label: 'Travel time change',
-					format: (v) => `${v.toFixed(1)} min`
-				}
-			}[state.tractMapMetric];
-
-			const rowByGj = new Map(nhgisLikeRows.map((d) => [d.gisjoin, d]));
-			const values = nhgisLikeRows.map((d) => d[metricConfig.key]).filter(Number.isFinite);
-			const maxAbs = Math.max(1, d3.max(values, (d) => Math.abs(d)) || 1);
-			const color = d3.scaleLinear().domain([-maxAbs, 0, maxAbs]).range(['#ed8b00', '#fffdf8', '#003da5']);
-			addHtmlLegend(root, [
-				{ color: '#ed8b00', label: 'Lower / more negative change' },
-				{ color: '#fffdf8', label: 'Near zero' },
-				{ color: '#003da5', label: 'Higher / more positive change' },
-				{ type: 'outline', color: 'var(--mpc-accent)', fill: '#ffffff', label: 'TOD-dominated' },
-				{ type: 'outline', color: 'var(--mpc-warning)', fill: '#ffffff', label: 'Non-TOD-dominated (sig.)' },
-				{ type: 'outline', color: '#64748b', fill: '#ffffff', label: 'Minimal development' }
-			]);
-
-			const width = root.node().clientWidth || 900;
-			const height = 520;
-			const projection = d3.geoMercator().fitSize([width, height], tractGeo);
-			const path = d3.geoPath(projection);
-			const svg = root
-				.append('svg')
-				.attr('viewBox', `0 0 ${width} ${height}`)
-				.attr('width', '100%')
-				.attr('height', 'auto')
-				.attr('preserveAspectRatio', 'xMidYMid meet')
-				.style('display', 'block')
-				.style('touch-action', 'none');
-			const zoomLayer = createMapZoomLayer(svg, width, height, { maxScale: 22 });
-			const tooltip = makeTooltip(root);
-
-			zoomLayer
-				.selectAll('path')
-				.data(tractGeo.features)
-				.join('path')
-				.attr('vector-effect', 'non-scaling-stroke')
-				.attr('d', path)
-				.attr('fill', (d) => {
-					const row = rowByGj.get(d.properties?.gisjoin);
-					const v = row ? row[metricConfig.key] : NaN;
-					return Number.isFinite(v) ? color(v) : '#e7e0d5';
-				})
-				.attr('stroke', (d) => {
-					const row = rowByGj.get(d.properties?.gisjoin);
-					const dc = row?.devClass;
-					if (dc === 'tod_dominated') return 'var(--mpc-accent)';
-					if (dc === 'nontod_dominated') return 'var(--mpc-warning)';
-					if (dc === 'minimal') return '#64748b';
-					return 'rgba(60,64,67,0.22)';
-				})
-				.attr('stroke-width', (d) => {
-					const row = rowByGj.get(d.properties?.gisjoin);
-					return row?.devClass ? 0.55 : 0.2;
-				})
-				.on('mouseenter', (event, d) => {
-					const row = rowByGj.get(d.properties?.gisjoin);
-					const v = row ? row[metricConfig.key] : NaN;
-					const tier =
-						row?.devClass === 'tod_dominated'
-							? 'TOD-dominated'
-							: row?.devClass === 'nontod_dominated'
-								? 'Non-TOD-dominated (sig. dev)'
-								: row?.devClass === 'minimal'
-									? 'Minimal development'
-									: 'Unclassified';
-					tooltip
-						.style('opacity', 1)
-						.html(
-							`<strong>${d.properties?.gisjoin || 'Tract'}</strong><br/>` +
-								`${metricConfig.label}: ${Number.isFinite(v) ? metricConfig.format(v) : 'No data'}<br/>` +
-								tier
-						);
-					positionTooltip(root, tooltip, event);
-				})
-				.on('mousemove', (event) => positionTooltip(root, tooltip, event))
-				.on('mouseleave', () => tooltip.style('opacity', 0));
-
-			root
-				.append('p')
-				.attr('class', 'mpc-map-zoom-hint')
-				.text('Scroll or pinch to zoom · drag to pan · double-click to reset');
 		}
 	}
 

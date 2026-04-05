@@ -49,12 +49,13 @@
 		<div class="row">
 			<label class="field">
 				<span class="label">Period</span>
-				<select bind:value={panelState.timePeriod}>
-					<option value="90_00">1990–2000</option>
-					<option value="00_10">2000–2010</option>
-					<option value="10_20">2010–2020</option>
-					<option value="90_20">1990–2020</option>
-				</select>
+			<select bind:value={panelState.timePeriod}>
+				<option value="90_00">1990–2000</option>
+				<option value="00_10">2000–2010</option>
+				<option value="10_20">2010–2020</option>
+				<option value="00_20">2000–2020</option>
+				<option value="90_20">1990–2020</option>
+			</select>
 			</label>
 			<label class="field grow">
 				<span class="label">X axis</span>

@@ -145,6 +145,7 @@
 		rightPanel.showMapControlCohortShade = leftPanel.showMapControlCohortShade;
 		rightPanel.trimOutliers = leftPanel.trimOutliers;
 		rightPanel.showNonTodBinnedBars = leftPanel.showNonTodBinnedBars;
+		rightPanel.detailFocusGisjoin = leftPanel.detailFocusGisjoin;
 		rightPanel.transitDistanceMi = leftPanel.transitDistanceMi;
 		rightPanel.sigDevMinPctStockIncrease = leftPanel.sigDevMinPctStockIncrease;
 		rightPanel.todFractionCutoff = leftPanel.todFractionCutoff;
@@ -224,6 +225,7 @@
 		padding: 6px;
 		flex: 1;
 		min-height: 0;
+		width: 100%;
 	}
 
 	.toolbar {
