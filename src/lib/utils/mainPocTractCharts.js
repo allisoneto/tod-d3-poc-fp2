@@ -3,6 +3,7 @@
  */
 import * as d3 from 'd3';
 import { createMapZoomLayer } from './mapZoom.js';
+import { periodDisplayLabel } from './periods.js';
 
 const incomePalette = ['#edf4ff', '#bfd6f6', '#6fa8dc', '#2f6ea6', '#003da5'];
 
@@ -140,8 +141,11 @@ export function drawMainPocTractCharts(cfg) {
 		projectRows,
 		selectedProjectRows,
 		nhgisLikeRows,
-		tractGeo
+		tractGeo,
+		timePeriod = '00_20'
 	} = cfg;
+
+	const periodLabel = periodDisplayLabel(timePeriod);
 
 	const visibleTotalUnits = Math.max(1, d3.sum(visibleRows, (d) => d.units));
 	const domainTotalUnits = Math.max(1, d3.sum(domainRows, (d) => d.units));
@@ -758,15 +762,15 @@ export function drawMainPocTractCharts(cfg) {
 			];
 			const metrics = [
 				{
-					key: 'median_income_change_pct_10_20',
+					key: 'median_income_change_pct',
 					title: 'Median household income',
-					subtitle: 'Percent change (2010–2020), population-weighted by tract',
+					subtitle: `Percent change (${periodLabel}), population-weighted by tract`,
 					xAxisLabel: 'Mean change (%)',
 					fmt: (v) => `${v.toFixed(1)}%`,
 					tickFmt: (v) => `${v.toFixed(0)}%`
 				},
 				{
-					key: 'bachelors_pct_change_10_20',
+					key: 'bachelors_pct_change',
 					title: "Bachelor's degree or higher",
 					subtitle: 'Change in share of adults 25+ (percentage points), population-weighted',
 					xAxisLabel: 'Mean change (percentage points)',
@@ -927,23 +931,23 @@ export function drawMainPocTractCharts(cfg) {
 	if (elMobility) {
 		const root = d3.select(elMobility);
 		root.selectAll('*').remove();
-		const data = nhgisLikeRows.filter((d) => Number.isFinite(d.avg_travel_time_change_10_20));
+		const data = nhgisLikeRows.filter((d) => Number.isFinite(d.avg_travel_time_change));
 		if (!data.length) {
 			root.append('div').attr('class', 'mpc-empty').text('No travel-time change data.');
 		} else {
 			const todRows = data.filter((d) => d.devClass === 'tod_dominated');
 			const nonTodRows = data.filter((d) => d.devClass === 'nontod_dominated');
 			const minimalRows = data.filter((d) => d.devClass === 'minimal');
-			const mTod = nhgisWeightedMean(todRows, 'avg_travel_time_change_10_20');
-			const mNon = nhgisWeightedMean(nonTodRows, 'avg_travel_time_change_10_20');
-			const mMin = nhgisWeightedMean(minimalRows, 'avg_travel_time_change_10_20');
+			const mTod = nhgisWeightedMean(todRows, 'avg_travel_time_change');
+			const mNon = nhgisWeightedMean(nonTodRows, 'avg_travel_time_change');
+			const mMin = nhgisWeightedMean(minimalRows, 'avg_travel_time_change');
 			const diff = mTod - mNon;
-			const pVal = permutationPValue(todRows, nonTodRows, (d) => d.avg_travel_time_change_10_20);
+			const pVal = permutationPValue(todRows, nonTodRows, (d) => d.avg_travel_time_change);
 			root
 				.append('p')
 				.attr('class', 'mpc-chart-note')
 				.text(
-					`Travel-time change (2010–20, pop.-weighted means): TOD-dom. ${Number.isFinite(mTod) ? `${mTod.toFixed(2)} min` : '—'} · non-TOD ${Number.isFinite(mNon) ? `${mNon.toFixed(2)} min` : '—'} · minimal development ${Number.isFinite(mMin) ? `${mMin.toFixed(2)} min` : '—'}. TOD vs non-TOD gap ${diff >= 0 ? '+' : ''}${Number.isFinite(diff) ? diff.toFixed(2) : '—'} min ${significanceStars(pVal) || 'n.s.'}`
+					`Travel-time change (${periodLabel}, pop.-weighted means): TOD-dom. ${Number.isFinite(mTod) ? `${mTod.toFixed(2)} min` : '—'} · non-TOD ${Number.isFinite(mNon) ? `${mNon.toFixed(2)} min` : '—'} · minimal development ${Number.isFinite(mMin) ? `${mMin.toFixed(2)} min` : '—'}. TOD vs non-TOD gap ${diff >= 0 ? '+' : ''}${Number.isFinite(diff) ? diff.toFixed(2) : '—'} min ${significanceStars(pVal) || 'n.s.'}`
 				);
 		}
 	}
@@ -957,9 +961,9 @@ export function drawMainPocTractCharts(cfg) {
 		const nonTodRows = nhgisLikeRows.filter((d) => d.devClass === 'nontod_dominated');
 		const minimalRows = nhgisLikeRows.filter((d) => d.devClass === 'minimal');
 		const metrics = [
-			{ title: 'Income change', key: 'median_income_change_pct_10_20', fmt: (v) => `${v.toFixed(1)}%` },
-			{ title: "Bachelor's change", key: 'bachelors_pct_change_10_20', fmt: (v) => `${v.toFixed(1)} pp` },
-			{ title: 'Travel time change', key: 'avg_travel_time_change_10_20', fmt: (v) => `${v.toFixed(1)} min` }
+			{ title: 'Income change', key: 'median_income_change_pct', fmt: (v) => `${v.toFixed(1)}%` },
+			{ title: "Bachelor's change", key: 'bachelors_pct_change', fmt: (v) => `${v.toFixed(1)} pp` },
+			{ title: 'Travel time change', key: 'avg_travel_time_change', fmt: (v) => `${v.toFixed(1)} min` }
 		];
 		for (const metric of metrics) {
 			const tod = nhgisWeightedMean(todRows, metric.key);

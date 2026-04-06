@@ -19,7 +19,7 @@
 	import PolicyCohortMap from '$lib/components/PolicyCohortMap.svelte';
 	import * as d3 from 'd3';
 
-	let timePeriod = $state('10_20');
+	let timePeriod = $state('00_20');
 	/** Match dashboard TOD Analysis: MassBuilds TOD unit classification and tract tiers. */
 	let transitDistanceMi = $state(0.5);
 	let sigDevMinPctStockIncrease = $state(2);

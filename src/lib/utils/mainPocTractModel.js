@@ -19,7 +19,7 @@ import {
  * Callers can relax e.g. ``minPopDensity`` to 0 to include more rural tracts.
  */
 export const DEFAULT_MAIN_POC_UNIVERSE = {
-	timePeriod: '10_20',
+	timePeriod: '00_20',
 	minStops: 0,
 	minPopulation: 0,
 	minPopDensity: 200
@@ -34,6 +34,33 @@ export const DEFAULT_MAIN_POC_DEV_OPTS = {
 	minDevAffordableRatioPct: 0,
 	includeRedevelopment: true
 };
+
+/**
+ * Net census housing-unit change for ``tp``; when ``census_hu_change_{tp}`` is missing
+ * (e.g. before pipeline adds 2000→2020), derive 2000→2020 from decennial counts.
+ *
+ * Parameters
+ * ----------
+ * t : object
+ *     Tract row from ``tract_data.json``.
+ * tp : string
+ *     Period tag (e.g. ``'00_20'``, ``'10_20'``).
+ *
+ * Returns
+ * -------
+ * number
+ *     Net change in units, or NaN if unavailable.
+ */
+export function censusHuChangeForPeriod(t, tp) {
+	let v = Number(t[`census_hu_change_${tp}`]);
+	if (Number.isFinite(v)) return v;
+	if (tp === '00_20') {
+		const hu0 = Number(t.total_hu_2000);
+		const hu1 = Number(t.total_hu_2020);
+		if (Number.isFinite(hu0) && Number.isFinite(hu1)) return hu1 - hu0;
+	}
+	return NaN;
+}
 
 /**
  * MassBuilds rows in a completion-year window, with tract-panel-style filters.
@@ -103,12 +130,21 @@ export function formatTractLabel(tract) {
  *     Max distance to nearest stop (miles), same as panel ``transitDistanceMi``.
  * minDevMultifamilyRatioPct : number
  *     Same semantics as ``classifyDevTodUnits`` / panel ``minDevMultifamilyRatioPct`` (0–100).
+ * timePeriod : string
+ *     Census change-window tag for NHGIS fields on each tract (default ``'00_20'``).
  *
  * Returns
  * -------
  * Array<object>
  */
-export function buildTractPocRows(tractList, developments, thresholdMi, minDevMultifamilyRatioPct = 0) {
+export function buildTractPocRows(
+	tractList,
+	developments,
+	thresholdMi,
+	minDevMultifamilyRatioPct = 0,
+	timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod
+) {
+	const tp = timePeriod;
 	const transitM = transitDistanceMiToMetres(thresholdMi);
 	const minMf = Math.min(1, Math.max(0, (Number(minDevMultifamilyRatioPct) || 0) / 100));
 
@@ -168,9 +204,9 @@ export function buildTractPocRows(tractList, developments, thresholdMi, minDevMu
 			/** Display proxy where the municipal map used “$125k+” share. */
 			highIncomeProxy: Number.isFinite(vulnerabilityPct) ? 100 - vulnerabilityPct : NaN,
 			pop2020: Number(t.pop_2020) || 0,
-			median_income_change_pct_10_20: t.median_income_change_pct_10_20,
-			bachelors_pct_change_10_20: t.bachelors_pct_change_10_20,
-			avg_travel_time_change_10_20: t.avg_travel_time_change_10_20,
+			median_income_change_pct: t[`median_income_change_pct_${tp}`],
+			bachelors_pct_change: t[`bachelors_pct_change_${tp}`],
+			avg_travel_time_change: t[`avg_travel_time_change_${tp}`],
 			is_tod: !!t.is_tod
 		});
 	}
@@ -247,21 +283,26 @@ export function uniqueCounties(tractData) {
  * ----------
  * tractList : Array<object>
  * devClassByGj : Map<string, string> | null | undefined
+ * timePeriod : string
+ *     Suffix for NHGIS / census fields (default ``'00_20'`` = 2000–2020).
  *
  * Returns
  * -------
  * Array<object>
+ *     Rows use **canonical** keys (no period suffix): ``median_income_change_pct``,
+ *     ``census_hu_change``, etc., for the selected window.
  */
-export function buildNhgisLikeRows(tractList, devClassByGj) {
+export function buildNhgisLikeRows(tractList, devClassByGj, timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod) {
+	const tp = timePeriod;
 	return tractList.map((t) => ({
 		gisjoin: t.gisjoin,
 		is_tod: !!t.is_tod,
 		devClass: devClassByGj?.get(t.gisjoin) ?? null,
-		median_income_change_pct_10_20: t.median_income_change_pct_10_20,
-		bachelors_pct_change_10_20: t.bachelors_pct_change_10_20,
-		avg_travel_time_change_10_20: t.avg_travel_time_change_10_20,
-		/** Decennial census percent change in housing units (2010→2020). */
-		census_hu_change_10_20: t.census_hu_change_10_20,
+		median_income_change_pct: t[`median_income_change_pct_${tp}`],
+		bachelors_pct_change: t[`bachelors_pct_change_${tp}`],
+		avg_travel_time_change: t[`avg_travel_time_change_${tp}`],
+		/** Net census housing-unit change for ``timePeriod`` (units, not %). */
+		census_hu_change: censusHuChangeForPeriod(t, tp),
 		pop_2020: Number(t.pop_2020) || 0
 	}));
 }

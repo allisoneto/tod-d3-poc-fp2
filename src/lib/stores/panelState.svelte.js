@@ -19,7 +19,7 @@ export function createPanelState(id) {
 		id = id;
 
 		// ── Time ───────────────────────────────────────────────
-		timePeriod = $state('10_20');
+		timePeriod = $state('00_20');
 		xVar = $state('pct_stock_increase');
 		yVar = $state('minority_pct_change');
 

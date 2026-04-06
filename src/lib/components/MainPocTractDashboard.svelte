@@ -31,7 +31,7 @@
 	const mpcMapPanel = createPanelState('mpc-map');
 
 	// --- Tract universe (``passesTractUniverse`` / same semantics as tract ``FilterPanel``) ---
-	let timePeriod = $state(/** @type {'90_00' | '00_10' | '10_20' | '00_20' | '90_20'} */ ('10_20'));
+	let timePeriod = $state(/** @type {'90_00' | '00_10' | '10_20' | '00_20' | '90_20'} */ ('00_20'));
 	let minPopulation = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopulation);
 	let minPopDensity = $state(DEFAULT_MAIN_POC_UNIVERSE.minPopDensity);
 	let minStops = $state(DEFAULT_MAIN_POC_UNIVERSE.minStops);
@@ -104,13 +104,13 @@
 	);
 
 	const domainRows = $derived.by(() =>
-		buildTractPocRows(tractListFiltered, fullWindowDevs, threshold, minDevMfPct).filter((d) =>
+		buildTractPocRows(tractListFiltered, fullWindowDevs, threshold, minDevMfPct, timePeriod).filter((d) =>
 			Number.isFinite(d.vulnerabilityPct)
 		)
 	);
 
 	const allRows = $derived.by(() =>
-		buildTractPocRows(tractListFiltered, windowDevs, threshold, minDevMfPct).filter((d) =>
+		buildTractPocRows(tractListFiltered, windowDevs, threshold, minDevMfPct, timePeriod).filter((d) =>
 			Number.isFinite(d.vulnerabilityPct)
 		)
 	);
@@ -147,7 +147,7 @@
 		)
 	);
 
-	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered, devClassByGj));
+	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered, devClassByGj, timePeriod));
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
@@ -263,6 +263,7 @@
 				selectedProjectRows,
 				nhgisLikeRows,
 				tractGeo,
+				timePeriod,
 				toggleSelect,
 				clearSelection
 			});
@@ -536,7 +537,7 @@
 			</section>
 
 			<section class="mpc-card mpc-chart-card">
-				<h3 class="mpc-h3">Housing change & cohorts (tract, 2010–20 window)</h3>
+				<h3 class="mpc-h3">Housing change & cohorts (tract, 2000–2020 window)</h3>
 				<p class="mpc-note">
 					Census percent change in housing units (choropleth); MassBuilds cohort outlines; optional MBTA and
 					developments match the <a href="{base}/tract">tract map</a>.

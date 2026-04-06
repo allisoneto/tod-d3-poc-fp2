@@ -229,7 +229,7 @@
 	let tractReady = $state(false);
 
 	// Tract analysis defaults (sensible, no user controls)
-	const tractTimePeriod = '10_20';
+	const tractTimePeriod = '00_20';
 	const tractSigDevMin = 2;
 	const tractTodFractionCutoff = 0.5;
 
@@ -319,7 +319,9 @@
 		)
 	);
 
-	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered, tractDevClassByGj));
+	const nhgisLikeRows = $derived.by(() =>
+		buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod)
+	);
 
 	// Cohort dev split for affordability analysis
 	const cohortDevSplit = $derived.by(() => {
@@ -473,7 +475,7 @@
 		const devOpts2 = tractDevOpts;
 		const windowDevs = filterDevelopmentsByYearRange(developments, 1990, 2026, devOpts2);
 
-		const pocRows = buildTractPocRows(tractListFiltered, windowDevs, threshold, 0).filter(
+		const pocRows = buildTractPocRows(tractListFiltered, windowDevs, threshold, 0, tractTimePeriod).filter(
 			(d) => Number.isFinite(d.vulnerabilityPct)
 		);
 		const projRows = buildProjectRowsWithGisjoin(developments, 1990, 2026, threshold, devOpts2);
@@ -505,7 +507,8 @@
 			projectRows: projRows,
 			selectedProjectRows: projRows,
 			nhgisLikeRows,
-			tractGeo
+			tractGeo,
+			timePeriod: tractTimePeriod
 		});
 	});
 </script>
@@ -829,9 +832,9 @@
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>Tract categorizations and housing change overview (tract, 2010–20 window)</h3>
+				<h3>Tract categorizations and housing change overview (tract, 2000–2020 window)</h3>
 				<p class="chart-note">
-					Tracts are colored by <strong>census percent change in housing units (2010–20)</strong> and outlined by
+					Tracts are colored by <strong>census net change in housing units (2000–2020)</strong> and outlined by
 					MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development). Use the overlays for
 					MBTA lines, stops, and MassBuilds projects (same encoding as the
 					<a href="{base}/tract">tract map</a>).
@@ -1345,6 +1348,14 @@
 
 	.small-chart { min-height: 320px; }
 	.chart-tall { min-height: 520px; }
+	
+	/* Tract overview map: 20% narrower so wheel/trackpad scroll hits page margins, not map zoom */
+	.chart-wrap--poc-map {
+		width: 80%;
+		max-width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+	}
 
 	.chart-wrap--tract-edu {
 		min-height: 0;
@@ -1390,6 +1401,10 @@
 	.story-chart-panel__text p {
 		color: var(--muted);
 		line-height: 1.58;
+		margin-bottom: 12px;
+	}
+
+	.story-chart-panel__text p:last-child {
 		margin-bottom: 0;
 	}
 

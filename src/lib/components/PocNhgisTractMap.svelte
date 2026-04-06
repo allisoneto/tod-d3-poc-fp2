@@ -18,7 +18,7 @@
 		transitDistanceMiToMetres,
 		transitModeUiLabel
 	} from '$lib/utils/derived.js';
-	import { periodCensusBounds } from '$lib/utils/periods.js';
+	import { periodCensusBounds, periodDisplayLabel } from '$lib/utils/periods.js';
 	import {
 		MBTA_BLUE,
 		MBTA_GREEN,
@@ -28,7 +28,7 @@
 	} from '$lib/utils/mbtaColors.js';
 
 	/**
-	 * Tract-dashboard–style map: census % housing change choropleth (2010–20), TOD-tier
+	 * Tract-dashboard–style map: census net housing-unit change choropleth (period from panel), TOD-tier
 	 * outlines, optional MassBuilds developments and MBTA overlays.
 	 *
 	 * Parameters
@@ -38,7 +38,7 @@
 	 * tractList : Array<object>
 	 *     Filtered census tract rows (same universe as ``nhgisRows``).
 	 * nhgisRows : Array<object>
-	 *     Rows from ``buildNhgisLikeRows`` including ``gisjoin``, ``devClass``, ``census_hu_change_10_20``.
+	 *     Rows from ``buildNhgisLikeRows`` including ``gisjoin``, ``devClass``, ``census_hu_change``.
 	 * metricsDevelopments : Array<object> | null | undefined
 	 *     Optional MassBuilds rows for TOD / stock tooltips — use the same window as ``buildTractDevClassMap``
 	 *     (e.g. 1990–2026 on the main POC). When omitted, uses ``buildFilteredData`` (panel period only).
@@ -66,7 +66,7 @@
 	 * Parameters
 	 * ----------
 	 * row : object | undefined
-	 *     Row with ``census_hu_change_10_20`` and optional ``devClass``.
+	 *     Row with ``census_hu_change`` and optional ``devClass``.
 	 *
 	 * Returns
 	 * -------
@@ -75,7 +75,7 @@
 	 */
 	function tractTierRankFromRow(row) {
 		if (!row) return 0;
-		const v = Number(row.census_hu_change_10_20);
+		const v = Number(row.census_hu_change);
 		if (!Number.isFinite(v)) return 0;
 		const dc = row.devClass;
 		if (dc === 'tod_dominated') return 3;
@@ -416,7 +416,7 @@
 
 		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 		const values = (nhgisRows ?? [])
-			.map((r) => Number(r.census_hu_change_10_20))
+			.map((r) => Number(r.census_hu_change))
 			.filter(Number.isFinite);
 		const maxAbs = Math.max(1, d3.max(values, (d) => Math.abs(d)) || 1);
 		const color = d3
@@ -429,7 +429,7 @@
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				const v = row ? Number(row.census_hu_change_10_20) : NaN;
+				const v = row ? Number(row.census_hu_change) : NaN;
 				return Number.isFinite(v) ? color(v) : '#e7e0d5';
 			})
 			.attr('stroke', (d) => {
@@ -508,7 +508,7 @@
 				d3
 					.axisLeft(yScale)
 					.ticks(5)
-					.tickFormat((v) => `${fmtTick(v)}%`)
+					.tickFormat((v) => fmtTick(v))
 					.tickSize(3)
 			)
 			.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
@@ -521,7 +521,7 @@
 			.attr('fill', 'var(--text-muted)')
 			.attr('font-size', '7.5px')
 			.attr('font-weight', 600)
-			.text('Housing change (%, 2010–20)');
+			.text(`Net housing units (${periodDisplayLabel(panelState.timePeriod)})`);
 
 		containerEl.__pocChoroMaxAbs = maxAbs;
 		containerEl.__pocRowByGj = rowByGj;
@@ -712,10 +712,11 @@
 
 		const lines = [{ bold: true, text: title }];
 
-		const huPct = row ? Number(row.census_hu_change_10_20) : NaN;
+		const huNet = row ? Number(row.census_hu_change) : NaN;
+		const pl = periodDisplayLabel(panelState.timePeriod);
 		lines.push({
 			bold: false,
-			text: `Census housing change (2010–20): ${Number.isFinite(huPct) ? `${fmt1(huPct)}%` : '—'}`
+			text: `Census net housing units (${pl}): ${Number.isFinite(huNet) ? fmtInt(huNet) : '—'}`
 		});
 
 		const tier =
@@ -776,9 +777,12 @@
 			const stopsRaw = Number(t.transit_stops) || 0;
 			lines.push({ bold: false, text: `MBTA stops (tract + buffer): ${stopsRaw}` });
 
-			const medInc = t.median_income_change_pct_10_20;
+			const medInc = t[`median_income_change_pct_${tp}`];
 			if (medInc != null && Number.isFinite(medInc)) {
-				lines.push({ bold: false, text: `Median income change (2010–20): ${fmt1(medInc)}%` });
+				lines.push({
+					bold: false,
+					text: `Median income change (${periodDisplayLabel(tp)}): ${fmt1(medInc)}%`
+				});
 			}
 		} else {
 			lines.push({ bold: false, text: 'No tract attributes loaded for this polygon.' });
@@ -936,7 +940,7 @@
 
 	<div class="poc-legend-row">
 		<fieldset class="poc-transit-field">
-			<legend class="poc-transit-legend">MBTA</legend>
+			<legend class="poc-transit-legend">MBTA Overlays</legend>
 			<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
 				<div class="poc-t-row">
 					<span class="poc-t-h"></span>
@@ -971,7 +975,7 @@
 						<strong>Tract fill</strong>
 						<span class="poc-key-tract-fill-body">
 							<span class="poc-key-tract-fill-line">
-								Census housing change (%, 2010–20). Full scale on map colorbar.
+								Census net housing change ({periodDisplayLabel(panelState.timePeriod)}). Full scale on map colorbar.
 							</span>
 							<!-- Inline diverging strip matches tract choropleth (same anchors as map scale). -->
 							<span

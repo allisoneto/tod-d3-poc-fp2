@@ -176,15 +176,15 @@
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
-		if (!muniData) return;
+		if (!muniData || !elScatter) return;
 		const cb = { onSelectionChange: () => { selected = new Set(selected); } };
-		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
-		if (elChoro) renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
-		if (elTimeline) renderMuniTimeline(elTimeline, projectRows, muniState);
-		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
-		if (elRanked) renderMuniRankedGrowth(elRanked, visibleRows);
-		if (elAffordMix) renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
-		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
+		renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
+		renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
+		renderMuniTimeline(elTimeline, projectRows, muniState);
+		renderMuniComposition(elComposition, projectRows, muniState);
+		renderMuniRankedGrowth(elRanked, visibleRows);
+		renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
+		renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
 	}
 
 	// Debounce draw during playback via rAF
@@ -230,7 +230,7 @@
 	let tractReady = $state(false);
 
 	// Tract analysis defaults (sensible, no user controls)
-	const tractTimePeriod = '10_20';
+	const tractTimePeriod = '00_20';
 	const tractSigDevMin = 2;
 	const tractTodFractionCutoff = 0.5;
 
@@ -321,7 +321,9 @@
 		)
 	);
 
-	const nhgisLikeRows = $derived.by(() => buildNhgisLikeRows(tractListFiltered, tractDevClassByGj));
+	const nhgisLikeRows = $derived.by(() =>
+		buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod)
+	);
 
 	// Cohort dev split for affordability analysis
 	const cohortDevSplit = $derived.by(() => {
@@ -503,12 +505,16 @@
 		eduPanelState = makeTodScatterPanelState('bachelors_pct_change');
 	});
 
+	/* ── Tract chart element refs ─────────────────────── */
+	let elTractEdu = $state(/** @type {HTMLElement | undefined} */ (undefined));
+	let elTakeaway = $state(/** @type {HTMLElement | undefined} */ (undefined));
+
 	$effect(() => {
 		if (!tractReady || !tractData.length || !developments.length) return;
 		const devOpts2 = tractDevOpts;
 		const windowDevs = filterDevelopmentsByYearRange(developments, 1990, 2026, devOpts2);
 
-		const pocRows = buildTractPocRows(tractListFiltered, windowDevs, threshold, 0).filter(
+		const pocRows = buildTractPocRows(tractListFiltered, windowDevs, threshold, 0, tractTimePeriod).filter(
 			(d) => Number.isFinite(d.vulnerabilityPct)
 		);
 		const projRows = buildProjectRowsWithGisjoin(developments, 1990, 2026, threshold, devOpts2);
@@ -521,9 +527,9 @@
 			elRanked: null,
 			elAffordMix: null,
 			elGrowthCapture: null,
-			elTractEdu: null,
+			elTractEdu,
 			elMobility: null,
-			elTakeaway: null,
+			elTakeaway,
 			state: {
 				yearStart: 1990,
 				yearEnd: 2026,
@@ -540,12 +546,15 @@
 			projectRows: projRows,
 			selectedProjectRows: projRows,
 			nhgisLikeRows,
-			tractGeo
+			tractGeo,
+			timePeriod: tractTimePeriod
 		});
 	});
 </script>
 
 <div class="poc-root">
+	<!-- Narrative + tract story up to "Explore" use a narrower column; Explore stays full poc-root width. -->
+	<div class="poc-pre-explore">
 	<!-- ═══════════════════════════════════════════════════════
 	     HERO / THESIS
 	     ═══════════════════════════════════════════════════════ -->
@@ -553,11 +562,13 @@
 		<div class="eyebrow">Proof of Concept</div>
 		<h1>TOD can expand access. Do lower-income residents benefit too?</h1>
 		<p class="subtitle">
-			Transit-oriented development is widely viewed as a positive planning strategy: it can support housing growth,
-			reduce car dependence, and place more homes near transit. This dashboard focuses on one policy question:
-			<strong>whether TOD's gains appear to be shared with lower-income residents, or concentrated in ways that point to affordability as the missing guardrail.</strong>
-			The patterns below are <strong>descriptive associations, not causal proof</strong>, but they suggest TOD should be paired
-			with stronger affordable-housing requirements if the goal is inclusive growth.
+			Transit-oriented development is widely viewed as a robust and highly beneficial planning strategy: it can support housing growth,
+			reduce car dependence, and create higher-density neighborhoods with closer access to jobs and services. 
+			However, debate remains about <strong>whether the benefits of TOD are being shared with lower-income residents</strong>, and <strong>whether this development contributes
+			to gentrification and displacement</strong>.
+			To answer this question, we analyze the correlations between TOD and demographic changes across Massachusetts.
+			The patterns below are descriptive associations, not causal proof, but they do strongly suggest that TOD should be paired
+			with stronger affordable-housing requirements in order to achieve inclusive growth.
 		</p>
 	</section>
 
@@ -572,10 +583,118 @@
 	     PART 1 — MUNICIPAL DASHBOARD
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
-		<section class="summary card">
+		<section class="controls-bar card">
+			<div class="controls-header">
+				<div>
+					<h2>Municipal filters</h2>
+					<p class="controls-note">Keep these lightweight unless you want to explore the supplemental charts in more detail.</p>
+				</div>
+				<button class="secondary controls-reset" type="button" onclick={resetMuniControls}>Reset filters</button>
+			</div>
+
+			<div class="controls-grid">
+				<div class="control-field control-field--range">
+					<label class="label">Completion year range</label>
+					<div class="range-row">
+						<input type="number" min="1990" max="2026" bind:value={yearStart} onchange={() => { stopPlayback(); if (yearStart > yearEnd) yearStart = yearEnd; }} />
+						<input type="number" min="1990" max="2026" bind:value={yearEnd} onchange={() => { stopPlayback(); if (yearEnd < yearStart) yearEnd = yearStart; }} />
+					</div>
+				</div>
+
+				<div class="control-field">
+					<label class="label">TOD threshold: {threshold.toFixed(2)} miles</label>
+					<input type="range" min="0.2" max="1.5" step="0.05" bind:value={threshold} />
+				</div>
+
+				<div class="control-field">
+					<label class="label" for="poc-dom-filter">Show municipalities</label>
+					<select id="poc-dom-filter" bind:value={dominanceFilter}>
+						<option value="all">All municipalities</option>
+						<option value="tod">TOD-dominant only</option>
+						<option value="nonTod">Non-TOD-dominant only</option>
+					</select>
+				</div>
+			</div>
+
+			<details class="supplemental controls-advanced">
+				<summary>Open advanced filters</summary>
+				<div class="advanced-grid">
+					<div class="control-block">
+						<div class="play-row">
+							<button class="secondary" type="button" onclick={togglePlayback}>
+								{playTimer ? 'Pause' : 'Play years'}
+							</button>
+							<div class="play-slider-wrap">
+								<input type="range" min="1990" max="2026" bind:value={yearEnd} oninput={() => stopPlayback()} />
+								<div class="play-caption">Showing cumulative development from {yearStart} through {yearEnd}.</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="control-block">
+						<label class="label" for="poc-growth-scale">Growth scale</label>
+						<select id="poc-growth-scale" bind:value={growthScale}>
+							<option value="units">Raw units</option>
+							<option value="share">Share of visible-window growth</option>
+						</select>
+					</div>
+
+					<div class="control-block">
+						<label class="check-item">
+							<input type="checkbox" bind:checked={showTrendline} />
+							<span>Show trendline on main scatter</span>
+						</label>
+					</div>
+
+					<div class="control-block">
+						<label class="label" for="poc-search">Municipality search</label>
+						<input id="poc-search" type="search" placeholder="Search municipality..." bind:value={search} />
+					</div>
+
+					<div class="control-block">
+						<label class="label">Zoning profile</label>
+						<div class="check-grid">
+							{#if muniData}
+								{#each muniData.zoningOptions as z (z)}
+									<label class="check-item">
+										<input type="checkbox" checked={zoning.has(z)} onchange={() => {
+											const next = new Set(zoning);
+											if (next.has(z)) next.delete(z); else next.add(z);
+											zoning = next;
+										}} />
+										<span>{z}</span>
+									</label>
+								{/each}
+							{/if}
+						</div>
+					</div>
+
+					<div class="control-block">
+						<div class="button-row">
+							<button class="secondary" type="button" onclick={() => { selected = new Set(); }}>Clear selection</button>
+						</div>
+					</div>
+
+					<div class="control-block">
+						<label class="label">Quick compare presets</label>
+						<div class="preset-row">
+							{#each presets as p}
+								<button class="secondary" type="button" onclick={() => {
+									selected = new Set(p.munis.filter((m) => muniData.allMunicipalities.includes(m)));
+								}}>{p.label}</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</details>
+		</section>
+
+		<div class="content">
+			<!-- ── Summary stats ─────────────────────────── -->
+			<section class="summary card">
 				<h2>Summary of Selected Data</h2>
 				<p class="chart-note">
-					Within the current development window
+					From <strong>{yearStart}</strong> through <strong>{yearEnd}</strong>, the visible municipalities
 					average <strong>{summary.avgIncome.toFixed(1)}%</strong> of households under $125k.
 					<strong>{summary.todDominantCount}</strong> of the {summary.selectionCount} selected-or-visible
 					municipalities are currently TOD-dominant by unit count.
@@ -597,7 +716,7 @@
 						{/each}
 					{/if}
 				</div>
-
+<!-- 
 				<div class="finding-list">
 					<div class="finding-item">
 						<div class="finding-kicker">Step 1</div>
@@ -611,32 +730,64 @@
 						<div class="finding-kicker">Step 3</div>
 						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
 					</div>
-				</div>
-		</section>
-
-		<div class="content">
-
-			<section class="story card">
-				<h2>Setting up the question</h2>
-				<p>
-					Despite policy efforts, most new housing being built consists of non-TOD units. However, total development has increased over time,
-					so the volume of TOD units has also been increasing. That matters because the core question here is not whether TOD should happen,
-					but whether its benefits are broadly shared in the neighborhoods where it is concentrated.
-				</p>
+				</div> -->
 			</section>
 
 			<section class="story card">
-				<h3>Why the municipal pattern matters</h3>
+				<h2>What is the status of TOD in Massachusetts?</h2>
 				<p>
-					Across the visible time window, most new housing is still non-TOD, even though TOD production has grown in absolute terms. At the same time, affordability has not kept pace with total production, which is why this project treats TOD as a strategy that still needs policy guardrails.
+					Despite policy efforts, most new housing being built in Massachusetts consists of non-TOD units. However, total development has increased over time,
+					so the volume of TOD units has also been increasing. With the passage of the MBTA Communities Act, TOD is expected to become even more widespread,
+					so it is important to understand the effects TOD has already had on the state.
 				</p>
+				
 				<details class="supplemental">
-					<summary>Open supplemental charts: TOD/non-TOD mix and affordability over time</summary>
+					<summary>Open supplemental chart: TOD vs non-TOD development mix by year</summary>
 					<div class="small-grid supplemental-grid">
 						<section class="chart-card card">
 							<h3>TOD vs non-TOD mix by year</h3>
 							<div class="chart-wrap small-chart" bind:this={elComposition}></div>
 						</section>
+					</div>
+				</details>
+			</section>
+
+			
+			
+			<!-- ── 4. Most not affordable (single card: narrative + chart) ───────────────── -->
+			<section class="card story-chart-panel story-chart-panel--stacked">
+				<div class="story-chart-panel__grid">
+					<div class="story-chart-panel__text">
+						<h2>Who benefits from TOD?</h2>
+						<p>
+							For many residents, a primary concern with TOD is the gap between housing supply and genuine affordability.
+							Although TOD projects often increase the total number of housing units, if these units are
+							market-rate, they are usually significantly more expensive than existing units in the neighborhood.
+							This not means that low-to-moderate income households cannot afford to move into these homes,
+							and more importantly, it often raises rents for those already living in the area.
+						</p>
+
+						<p>
+							Encouraging TOD projects that include affordable housing units can help mitigate this issue, but recent
+							trends show that affordability is not currently keeping pace with total production.
+						</p>
+					</div>
+					<div class="story-chart-panel__chart">
+						<h3>Most new housing is still market-rate</h3>
+						<p class="chart-note">
+							The affordable share of new development has decreased significantly in recent years,
+							which likely indicates that lower-income residents are benefitting much less from this new development.
+						</p>
+						<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordMix}></div>
+					</div>
+				</div>
+				<details class="supplemental">
+					<summary>Development and affordability over time</summary>
+					<div class="small-grid supplemental-grid">
+						<!-- <section class="chart-card card">
+							<h3>TOD vs non-TOD mix by year</h3>
+							<div class="chart-wrap small-chart" bind:this={elComposition}></div>
+						</section> -->
 						<section class="chart-card card">
 							<h3>When production rises, affordability often lags</h3>
 							<p class="chart-note">
@@ -648,18 +799,23 @@
 				</details>
 			</section>
 
-			<section class="story card">
-				<h2>Where the equity question is most urgent</h2>
-				<p>
-					Development is not distributed evenly across Massachusetts, and transit-oriented development is mostly concentrated in lower-income municipalities.
-				</p>
-			</section>
-
-			<section class="story card">
-				<h3>What the location pattern adds</h3>
-				<p>
-					TOD is not happening evenly across Massachusetts. In this dataset, it is more concentrated in lower-income municipalities, and recent unit growth is concentrated in a relatively small set of places. That is the setup for the equity question explored in the tract analysis below.
-				</p>
+			
+			<!-- ── Higher-vulnerability areas (single card: narrative + chart) ─────────── -->
+			<section class="card story-chart-panel story-chart-panel--stacked">
+				<div class="story-chart-panel__grid">
+					<div class="story-chart-panel__text">
+						<h2>Where is development most concentrated?</h2>
+						<p>
+						    Although lower-income residents are the most at risk of displacement,
+							municipalities with more lower income households (&lt; $125k/year) are often the ones seeing the most new development.
+							This suggests that equitable implementation matters most in the places already under the most pressure.
+						</p>
+					</div>
+					<div class="story-chart-panel__chart">
+						<h3>New development is often concentrated in higher-vulnerability municipalities</h3>
+						<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
+					</div>
+				</div>
 				<details class="supplemental">
 					<summary>Open supplemental charts: income scatter, concentration ranking, and municipal map</summary>
 					<section class="chart-card card supplemental-card">
@@ -690,59 +846,26 @@
 				</details>
 			</section>
 
-			<!-- ── 4. Most not affordable (single card: narrative + chart) ───────────────── -->
-			<section class="story card">
-				<h2>Why affordability is the key policy lever</h2>
-				<p>
-					A primary concern for many residents is the gap between housing supply and genuine affordability.
-					Although TOD projects often increase the total number of housing units, a greater proportion
-					are market-rate and therefore unprotected. For low-to-moderate income households, the benefit
-					of reduced transportation costs may be offset by rising housing costs. That does not prove
-					displacement in each municipality, but it is one reason affordability should remain central
-					to TOD policy.
-				</p>
-				<p>
-					In other words, the policy issue is not just how much housing is built near transit, but how much of that housing remains accessible to the residents most likely to face rising costs.
-				</p>
-			</section>
 
 			<!-- ── 5. Displacement explanation ──────────── -->
 			<section class="story card">
-				<h2>Interpreting the gentrification indicators</h2>
+				<h2>What metrics are useful for analyzing the impact of TOD?</h2>
 				<p>
 					This dashboard uses several <strong>proxy indicators</strong> that are often associated with
 					gentrification pressure, including:
 				</p>
 				<ul class="story-list">
-					<li>Sharp increase in median income, often used as a <strong>risk indicator for rising housing costs</strong></li>
-					<li>Rapid increase in the percentage of residents with bachelor's degrees or higher</li>
-					<li>A shift from owner-occupied housing to high-turnover rental units</li>
-					<li>Replacement of "legacy" small businesses with high-end retail and services tailored to a wealthier demographic</li>
+					<li>Sharp increases in median income, often used as a <strong>risk indicator for rising housing costs</strong></li>
+					<li>Rapid increases in the percentage of residents with bachelor's degrees or higher</li>
+					<li>Shift from owner-occupied housing to high-turnover rental units [analysis of this metric will be added soon]</li>
 				</ul>
 				<p>
-					These measures do <strong>not</strong> establish that TOD causes gentrification. They are best
-					interpreted as warning signals that can help identify where neighborhood change may be happening
+					These measures do not necessarily establish that TOD causes gentrification, but they can be interpreted as
+					warning signals that can help identify where neighborhood change may be happening
 					alongside new development and transit access.
 				</p>
 			</section>
 
-			<!-- ── 6. Higher-vulnerability areas (single card: narrative + chart) ─────────── -->
-			<section class="card story-chart-panel">
-				<div class="story-chart-panel__grid">
-					<div class="story-chart-panel__text">
-						<h2>More development is landing in higher-vulnerability municipalities</h2>
-						<p>
-							Municipalities with more households whose incomes are below $125k are seeing greater new development.
-							That does not prove harm, but it does suggest that equitable implementation matters most in
-							the places already under the most pressure.
-						</p>
-					</div>
-					<div class="story-chart-panel__chart">
-						<h3>Development in above-median vulnerability municipalities vs below-median vulnerability municipalities</h3>
-						<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
-					</div>
-				</div>
-			</section>
 		</div>
 	</section>
 
@@ -751,33 +874,43 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="tract-section">
 		<section class="story card full-width">
-			<h2>The one question this tract analysis is trying to answer</h2>
+			<h2>How can we use demographic data to measure the effects of TOD?</h2>
 			<p>
-				The next section asks whether TOD-dominated tracts show different socioeconomic change than comparable
+				This section asks whether TOD-dominated tracts show different socioeconomic change than comparable
 				non-TOD or minimal-development tracts, and whether higher affordable-housing shares appear to moderate that pattern.
 				These are not direct measures of displacement; they are tract-level comparisons using demographic proxies.
 			</p>
 			<h4>Data analysis methodology</h4>
 			<p>
 				Development, transit-oriented or otherwise, often results in demographic change. In order to
-				isolate the influence of TOD from the influence of development generally, we filter out all
-				census tracts with <strong>minimal development</strong> (less than 2% increase in housing
-				stock), since these are likely to show different demographic changes than high-development
-				tracts. Among high-development tracts, we compare primarily <strong>TOD-dominated tracts</strong>
-				(where TOD units make up at least 50% of new development)
-				with primarily <strong>non-TOD-dominated tracts</strong>
-				(where TOD units make up less than 50% of new development).
+				isolate the influence of TOD from the influence of development generally, we analyze three groups
+				of census tracts:
 			</p>
+			<ul class="story-list story-list--nested">
+				<li>
+					<strong>Minimal development tracts</strong> (less than 2% increase in housing stock): These are
+					likely to show different demographic changes than high-development tracts and are filtered out of
+					the main comparison.
+				</li>
+				<li>
+					<strong>High-development tracts</strong>: Census tracts with at least 2% increase in housing
+					stock. We divide these tracts into two groups to differentiate between the effects of TOD and
+					non-TOD development:
+					<ul>
+						<li>
+							<strong>TOD-dominated tracts</strong>: High-development tracts where TOD units make up at
+							least 50% of new development.
+						</li>
+						<li>
+							<strong>Non-TOD-dominated tracts</strong>: High-development tracts where TOD units make up
+							less than 50% of new development.
+						</li>
+					</ul>
+				</li>
+			</ul>
 			<p>
-				These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
+				<strong>Caveats:</strong> These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
 				broader urban form, pre-existing neighborhood trends, or regional labor-market dynamics rather than TOD alone.
-			</p>
-			<p>
-				Because these demographic shifts are measured using census tracts from the decennial census,
-				municipality filters and year-to-year playback are not applied here.
-				However, the TOD distance threshold of <strong>{threshold.toFixed(2)} miles</strong>
-				through to the tract analysis below — adjust the slider above to see how it affects
-				the demographic patterns.
 			</p>
 		</section>
 
@@ -794,12 +927,12 @@
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>Tract categorizations and housing change overview (tract, 2010–20 window)</h3>
+				<h3>Census tract categorizations and geographic development patterns (2000–2020 window)</h3>
 				<p class="chart-note">
-					Tracts are colored by <strong>census percent change in housing units (2010–20)</strong> and outlined by
-					MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development), matching the tract
-					dashboard rules. Use the overlays to add MBTA lines and stops and MassBuilds projects (same encoding as
-					the <a href="{base}/tract">tract map</a>).
+					Census tracts are colored by <strong>net change in housing units (2000–2020)</strong> and outlined according to
+					their development categorizations (minimal development TOD-dominated vs non-TOD-dominated).
+					Use the overlays to show MBTA lines and stops, as well as development projects from the 
+					<a href="https://www.massbuilds.com/map" target="_blank" rel="noopener noreferrer">MassBuilds dataset</a>.
 				</p>
 				<div class="chart-wrap chart-tall chart-wrap--poc-map">
 					<PocNhgisTractMap
@@ -823,7 +956,7 @@
 							<strong>{incomeRow.fmtCtrl}</strong>, and in minimal development tracts by
 							<strong>{incomeRow.fmtMinimal}</strong>.
 						{/if}
-						This is one proxy for neighborhood change and possible market pressure. It should not be
+						This is one proxy for neighborhood change and possible market pressure, though it should not be
 						read as direct evidence that TOD itself caused these shifts.
 					</p>
 					<p>
@@ -872,6 +1005,17 @@
 					</div>
 				</section>
 			</div>
+
+			<section class="chart-card card full-width">
+				<h3>Income & education — TOD-dominated vs non-TOD vs minimal development</h3>
+				<p class="chart-note">
+					Population-weighted means (MassBuilds cohort tiers); bars compare TOD-dominated,
+					non-TOD-dominated significant development, and minimal development tracts.
+					TOD-dominated tracts see greater income and education increases than both non-TOD
+					dominated and minimal development tracts.
+				</p>
+				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
+			</section>
 
 			<section class="story card full-width">
 				<h2>How affordability could help</h2>
@@ -966,13 +1110,14 @@
 					<p class="chart-note">No affordable-share data available to compare.</p>
 				{/if}
 
+				<div class="chart-wrap" style="margin-top: 16px;" bind:this={elTakeaway}></div>
 			</section>
 
 			<section class="story card full-width conclusion">
 				<h2>Conclusion</h2>
 				<p>
-					TOD is still a valuable planning strategy, but the patterns in this dataset suggest it should be paired
-					with a larger share of affordable housing if the goal is broadly shared access to neighborhood benefits. 
+					TOD is still a valuable planning strategy, but the patterns in census demographic data suggest that it should be paired
+					with a larger share of affordable housing in order to share neighborhood benefits more broadly. 
 					<!-- This narrative highlights that <strong>inclusionary
 					zoning</strong>, <strong>rent stabilization</strong>, and <strong>subsidized transit passes</strong>
 					are key to preventing housing exclusivity. -->
@@ -983,15 +1128,20 @@
 					part of TOD implementation rather than a separate policy add-on.
 				</p>
 				<p>
-					The policy answer is not less TOD. It is <strong>more affordability inside TOD</strong>.
+					As Massachusetts continues to encourage transit-oriented development, it is important to ensure that <strong>affordability</strong> is a core part of its policy framework.
 				</p>
 			</section>
-
-			<ExploreTractSection />
-
 		{/if}
 	</section>
 
+	{/if}
+
+	</div>
+
+	{#if muniLoaded && !tractLoading && !tractError}
+		<div class="explore-after-narrow">
+			<ExploreTractSection />
+		</div>
 	{/if}
 </div>
 
@@ -1036,17 +1186,30 @@
 		--mpc-warning: #ed8b00;
 		--mpc-blue5: #003da5;
 
+		--poc-max-width: 1680px;
+
 		font-family: var(--font-body);
 		color: var(--ink);
 		background: var(--bg);
-		max-width: 1680px;
+		max-width: var(--poc-max-width);
 		margin: 0 auto;
 		padding: 18px 22px 36px;
 	}
 
+	/* 75% of the main column max width — keeps long-form narrative readable; explore map stays wide below. */
+	.poc-pre-explore {
+		max-width: calc(var(--poc-max-width) * 0.75);
+		margin-inline: auto;
+		width: 100%;
+	}
+
+	.explore-after-narrow {
+		margin-top: 14px;
+	}
+
 	* { box-sizing: border-box; }
 
-	h1, h2, h3, p { margin-top: 0; }
+	h1, h2, h3 { margin-top: 0; }
 
 	h1 {
 		margin-bottom: 14px;
@@ -1087,6 +1250,112 @@
 	.dashboard {
 		display: grid;
 		gap: 14px;
+	}
+
+	.controls-bar {
+		padding: 14px 16px;
+	}
+
+	.controls-header {
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+		align-items: end;
+		flex-wrap: wrap;
+	}
+
+	.controls-bar h2 { margin-bottom: 6px; font-size: 1.05rem; }
+	.controls-note { color: var(--muted); line-height: 1.5; font-size: 0.9rem; margin: 0; }
+	.controls-reset { white-space: nowrap; }
+
+	.controls-grid,
+	.advanced-grid {
+		display: grid;
+		gap: 12px;
+	}
+
+	.controls-grid {
+		grid-template-columns: minmax(260px, 1.35fr) minmax(220px, 1fr) minmax(220px, 1fr);
+		align-items: end;
+		margin-top: 14px;
+	}
+
+	.advanced-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		margin-top: 14px;
+	}
+
+	.control-field {
+		min-width: 0;
+	}
+
+	.control-field--range {
+		max-width: 420px;
+	}
+
+	.control-block + .control-block {
+		margin-top: 0;
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	.label {
+		display: block;
+		margin-bottom: 8px;
+		font-weight: 700;
+		font-size: 0.9rem;
+	}
+
+	.range-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+
+	.play-row {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+
+	.play-row button { flex: 0 0 auto; min-width: 92px; }
+
+	.play-slider-wrap { flex: 1 1 auto; }
+	.play-caption { margin-top: 6px; font-size: 0.84rem; color: var(--muted); }
+
+	input[type="number"], select, input[type="search"] {
+		width: 100%;
+		padding: 9px 10px;
+		border: 1px solid #c9c1b4;
+		border-radius: 8px;
+		background: #fff;
+		color: var(--ink);
+		font: inherit;
+	}
+
+	input[type="range"] { width: 100%; }
+
+	.check-grid {
+		display: grid;
+		gap: 8px;
+		max-height: 180px;
+		overflow: auto;
+		padding-right: 4px;
+	}
+
+	.check-item {
+		display: flex;
+		gap: 8px;
+		align-items: start;
+		font-size: 0.92rem;
+		color: var(--muted);
+		cursor: pointer;
+	}
+
+	.button-row, .preset-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
 	}
 
 	button {
@@ -1207,9 +1476,27 @@
 		line-height: 1.58;
 		padding-left: 22px;
 		margin: 10px 0;
+		list-style-position: outside;
 	}
 
 	.story-list li { margin-bottom: 6px; }
+
+	/* Nested methodology list: indent sub-bullets and leave space before the next paragraph */
+	.story-list--nested {
+		margin-bottom: 18px;
+		padding-left: 1.5em;
+	}
+
+	.story-list--nested ul {
+		margin-top: 8px;
+		margin-bottom: 0;
+		padding-left: 1.5em;
+		list-style-position: outside;
+	}
+
+	.story-list--nested > li:last-child > ul > li:last-child {
+		margin-bottom: 0;
+	}
 
 	.supplemental {
 		margin-top: 12px;
@@ -1283,6 +1570,14 @@
 	.small-chart { min-height: 320px; }
 	.chart-tall { min-height: 520px; }
 
+	/* Tract overview map: 20% narrower so wheel/trackpad scroll hits page margins, not map zoom */
+	.chart-wrap--poc-map {
+		width: 80%;
+		max-width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
 	/* Cohort comparison chart: responsive height, scroll if needed */
 	.chart-wrap--tract-edu {
 		min-height: 0;
@@ -1320,6 +1615,23 @@
 		grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr);
 	}
 
+	/* Stacked: narrative uses full card width; chart keeps prior right-column width (1fr : 1.05fr → 1.05/2.05 of row) */
+	.story-chart-panel--stacked .story-chart-panel__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.story-chart-panel--stacked .story-chart-panel__text {
+		width: 100%;
+		max-width: none;
+		justify-self: stretch;
+	}
+
+	.story-chart-panel--stacked .story-chart-panel__chart {
+		/* Same track sizing intent as minmax(300px, 1.05fr) in the two-column card */
+		width: min(100%, max(300px, calc(100% * 1.05 / 2.05)));
+		margin-inline: auto;
+	}
+
 	.story-chart-panel__text h2 {
 		font-size: 1.2rem;
 		margin-bottom: 10px;
@@ -1328,6 +1640,10 @@
 	.story-chart-panel__text p {
 		color: var(--muted);
 		line-height: 1.58;
+		margin-bottom: 12px;
+	}
+
+	.story-chart-panel__text p:last-child {
 		margin-bottom: 0;
 	}
 
@@ -1389,6 +1705,11 @@
 	}
 
 	@media (max-width: 920px) {
+		.controls-grid,
+		.advanced-grid {
+			grid-template-columns: 1fr;
+		}
+
 		.finding-list,
 		.story-chart-panel__grid,
 		.story-chart-row--tract {

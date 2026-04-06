@@ -27,7 +27,7 @@ export const PERIOD_CENSUS_BOUNDS = {
  * {{ startY: string, endY: string, tag: string }}
  */
 export function periodCensusBounds(timePeriod) {
-	return PERIOD_CENSUS_BOUNDS[timePeriod] ?? PERIOD_CENSUS_BOUNDS['10_20'];
+	return PERIOD_CENSUS_BOUNDS[timePeriod] ?? PERIOD_CENSUS_BOUNDS['00_20'];
 }
 
 /**
@@ -49,5 +49,5 @@ export function periodDisplayLabel(timePeriod) {
 		'00_20': '2000–2020',
 		'90_20': '1990–2020'
 	};
-	return labels[timePeriod] ?? labels['10_20'];
+	return labels[timePeriod] ?? labels['00_20'];
 }

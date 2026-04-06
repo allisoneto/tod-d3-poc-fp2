@@ -1311,7 +1311,12 @@ export function getXValue(gisjoin, xBase, devAgg) {
 export function getScatterXValue(tract, gisjoin, xBase, devAgg, timePeriod) {
 	if (xBase === 'census_hu_change') {
 		if (!tract) return null;
-		const v = Number(tract[`census_hu_change_${timePeriod}`]);
+		let v = Number(tract[`census_hu_change_${timePeriod}`]);
+		if (!Number.isFinite(v) && timePeriod === '00_20') {
+			const hu0 = Number(tract.total_hu_2000);
+			const hu1 = Number(tract.total_hu_2020);
+			if (Number.isFinite(hu0) && Number.isFinite(hu1)) v = hu1 - hu0;
+		}
 		return Number.isFinite(v) ? v : null;
 	}
 	return getXValue(gisjoin, xBase, devAgg);

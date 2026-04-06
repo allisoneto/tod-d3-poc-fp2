@@ -244,6 +244,12 @@
 		.explore-grid {
 			grid-template-columns: 1fr;
 		}
+
+		.explore-filters {
+			position: static;
+			max-height: none;
+			overflow-y: visible;
+		}
 	}
 
 	.explore-filters {
@@ -252,6 +258,13 @@
 		background: var(--paper);
 		border: 1px solid rgba(120, 114, 102, 0.14);
 		border-radius: 12px;
+		/* Sticky like ``.explore-sidebar`` (selected-tract column): stay in view while scrolling the map. */
+		position: sticky;
+		top: 12px;
+		align-self: start;
+		max-height: min(92vh, 1200px);
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	.explore-filters :global(.filter-panel) {
