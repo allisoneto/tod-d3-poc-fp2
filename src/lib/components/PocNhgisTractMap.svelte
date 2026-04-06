@@ -46,7 +46,15 @@
 	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
 
 	let containerEl = $state(null);
-	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
+	let tooltip = $state({
+		visible: false,
+		x: 0,
+		y: 0,
+		title: '',
+		badge: '',
+		badgeTone: '',
+		rows: []
+	});
 	let revealStage = $state(0);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
@@ -747,14 +755,8 @@
 		const county = t?.county;
 		const title = county && String(county) !== 'County Name' ? String(county) : String(id);
 
-		const lines = [{ bold: true, text: title }];
-
 		const huNet = row ? Number(row.census_hu_change) : NaN;
 		const pl = periodDisplayLabel(panelState.timePeriod);
-		lines.push({
-			bold: false,
-			text: `Census net housing units (${pl}): ${Number.isFinite(huNet) ? fmtInt(huNet) : '—'}`
-		});
 
 		const tier =
 			row?.devClass === 'tod_dominated'
@@ -764,68 +766,69 @@
 					: row?.devClass === 'minimal'
 						? 'Minimal development'
 						: 'Unclassified';
-		lines.push({ bold: false, text: `Cohort (MassBuilds rules): ${tier}` });
+		const badgeTone =
+			row?.devClass === 'tod_dominated'
+				? 'tod'
+				: row?.devClass === 'nontod_dominated'
+					? 'nontod'
+					: row?.devClass === 'minimal'
+						? 'minimal'
+						: 'neutral';
+		const rows = [
+			{
+				label: `Census net housing units (${pl})`,
+				value: Number.isFinite(huNet) ? fmtInt(huNet) : '—'
+			}
+		];
 
 		if (t) {
 			const tp = panelState.timePeriod;
 			const { startY, endY } = periodCensusBounds(tp);
 
 			const pop = t[`pop_${endY}`] ?? t.pop_2020;
-			if (pop != null) lines.push({ bold: false, text: `Population (${endY}): ${fmtInt(pop)}` });
+			if (pop != null) rows.push({ label: `Population (${endY})`, value: fmtInt(pop) });
 
 			const huS = t[`total_hu_${startY}`];
 			const huE = t[`total_hu_${endY}`];
-			if (huS != null) lines.push({ bold: false, text: `Housing units (${startY}): ${fmtInt(huS)}` });
-			if (huE != null) lines.push({ bold: false, text: `Housing units (${endY}): ${fmtInt(huE)}` });
+			if (huS != null) rows.push({ label: `Housing units (${startY})`, value: fmtInt(huS) });
+			if (huE != null) rows.push({ label: `Housing units (${endY})`, value: fmtInt(huE) });
 			if (huS != null && huE != null) {
 				const diff = huE - huS;
 				const sign = diff >= 0 ? '+' : '';
-				lines.push({ bold: false, text: `Net HU change (census): ${sign}${fmtInt(diff)}` });
+				rows.push({ label: 'Net HU change (census)', value: `${sign}${fmtInt(diff)}` });
 			}
 
 			const m = tractTodMetricsMap?.get(id);
 			if (m && Number.isFinite(m.totalNewUnits) && m.totalNewUnits > 0) {
-				lines.push({
-					bold: false,
-					text: `New units (MassBuilds, same window as cohort outlines): ${fmtInt(m.totalNewUnits)}`
+				rows.push({
+					label: 'New units (MassBuilds)',
+					value: fmtInt(m.totalNewUnits)
 				});
 			}
 			if (m?.todFraction != null && Number.isFinite(m.todFraction)) {
-				lines.push({
-					bold: false,
-					text: `TOD share of new dev units: ${fmt1(m.todFraction * 100)}%`
-				});
+				rows.push({ label: 'TOD share of new dev units', value: `${fmt1(m.todFraction * 100)}%` });
 			}
 			if (m?.pctStockIncrease != null && Number.isFinite(m.pctStockIncrease)) {
-				lines.push({
-					bold: false,
-					text: `Stock increase (MassBuilds / base HU): ${fmt1(m.pctStockIncrease)}%`
-				});
+				rows.push({ label: 'Stock increase (MassBuilds / base HU)', value: `${fmt1(m.pctStockIncrease)}%` });
 			}
 
 			const agg = devAggMap?.get(id);
 			if (agg?.new_units) {
-				lines.push({
-					bold: false,
-					text: `Filtered new units (sum): ${fmtInt(agg.new_units)}`
-				});
+				rows.push({ label: 'Filtered new units (sum)', value: fmtInt(agg.new_units) });
 			}
 
 			const stopsRaw = Number(t.transit_stops) || 0;
-			lines.push({ bold: false, text: `MBTA stops (tract + buffer): ${stopsRaw}` });
+			rows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
 
 			const medInc = t[`median_income_change_pct_${tp}`];
 			if (medInc != null && Number.isFinite(medInc)) {
-				lines.push({
-					bold: false,
-					text: `Median income change (${periodDisplayLabel(tp)}): ${fmt1(medInc)}%`
-				});
+				rows.push({ label: `Median income change (${periodDisplayLabel(tp)})`, value: `${fmt1(medInc)}%` });
 			}
 		} else {
-			lines.push({ bold: false, text: 'No tract attributes loaded for this polygon.' });
+			rows.push({ label: 'Tract data', value: 'No tract attributes loaded' });
 		}
 
-		tooltip = { visible: true, x: event.clientX, y: event.clientY, lines };
+		tooltip = { visible: true, x: event.clientX, y: event.clientY, title, badge: tier, badgeTone, rows };
 	}
 
 	function handleMouseMove(event) {
@@ -850,10 +853,12 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
-			lines: [
-				{ bold: true, text: d.name || 'MBTA Stop' },
-				{ bold: false, text: `Routes: ${routes}` },
-				{ bold: false, text: `Mode: ${modes}` }
+			title: d.name || 'MBTA Stop',
+			badge: 'Transit stop',
+			badgeTone: 'neutral',
+			rows: [
+				{ label: 'Routes', value: routes },
+				{ label: 'Mode', value: modes }
 			]
 		};
 	}
@@ -865,21 +870,24 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
-			lines: [
-				{ bold: true, text: name },
-				{ bold: false, text: `Route: ${props.route_short_name || props.route_id || ''}` }
+			title: name,
+			badge: 'MBTA line',
+			badgeTone: 'neutral',
+			rows: [
+				{ label: 'Route', value: props.route_short_name || props.route_id || '—' }
 			]
 		};
 	}
 
 	function handleDevEnter(event, d) {
 		const fmtPct = d3.format('.1f');
-		const lines = [{ bold: true, text: d.name || 'Development' }];
-		lines.push({ bold: false, text: `${d.municipal}` });
-		lines.push({ bold: false, text: `Units: ${d.hu}` });
+		const rows = [
+			{ label: 'Municipality', value: d.municipal || '—' },
+			{ label: 'Units', value: String(d.hu ?? '—') }
+		];
 		const mf = developmentMultifamilyShare(d);
 		if (mf != null && Number.isFinite(mf)) {
-			lines.push({ bold: false, text: `Multifamily (share): ${fmtPct(mf * 100)}%` });
+			rows.push({ label: 'Multifamily share', value: `${fmtPct(mf * 100)}%` });
 		}
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
 		const todMi = panelState.transitDistanceMi ?? 0.5;
@@ -889,25 +897,30 @@
 		const nearestM = prox.nearestDistM;
 		const nWithin = prox.stopsWithinRadius;
 		if (nearestM != null && Number.isFinite(nearestM)) {
-			lines.push({
-				bold: false,
-				text: `Nearest stop: ${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
+			rows.push({
+				label: 'Nearest stop',
+				value: `${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
 			});
 		} else {
-			lines.push({ bold: false, text: 'Nearest stop: —' });
+			rows.push({ label: 'Nearest stop', value: '—' });
 		}
-		lines.push({
-			bold: false,
-			text: `Stops within ${todMi} mi: ${nWithin}`
-		});
+		rows.push({ label: `Stops within ${todMi} mi`, value: String(nWithin) });
 		const affCap = developmentAffordableUnitsCapped(d);
 		if (affCap > 0) {
 			const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
-			lines.push({ bold: false, text: `Affordable: ${affCap}${src}` });
+			rows.push({ label: 'Affordable', value: `${affCap}${src}` });
 		}
-		lines.push({ bold: false, text: d.mixed_use ? 'Mixed-use' : 'Residential' });
-		if (d.rdv) lines.push({ bold: false, text: 'Redevelopment' });
-		tooltip = { visible: true, x: event.clientX, y: event.clientY, lines };
+		rows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
+		if (d.rdv) rows.push({ label: 'Redevelopment', value: 'Yes' });
+		tooltip = {
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			title: d.name || 'Development',
+			badge: access ? 'Transit-accessible' : 'Not transit-accessible',
+			badgeTone: access ? 'tod' : 'minimal',
+			rows
+		};
 	}
 
 	function handleOverlayLeave() {
@@ -1097,9 +1110,20 @@
 						style:left="{tooltip.x + 12}px"
 						style:top="{tooltip.y + 12}px"
 					>
-						{#each tooltip.lines as line, i (i)}
-							<p class:tooltip-bold={line.bold}>{line.text}</p>
-						{/each}
+						<div class="map-tooltip__header">
+							<p class="map-tooltip__title">{tooltip.title}</p>
+							{#if tooltip.badge}
+								<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+							{/if}
+						</div>
+						<div class="map-tooltip__rows">
+							{#each tooltip.rows as row, i (i)}
+								<div class="map-tooltip__row">
+									<span class="map-tooltip__label">{row.label}</span>
+									<span class="map-tooltip__value">{row.value}</span>
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/if}
 			</div>
@@ -1603,8 +1627,8 @@
 	.map-tooltip {
 		position: fixed;
 		z-index: 20;
-		max-width: 340px;
-		padding: 10px 12px;
+		max-width: 360px;
+		padding: 12px 13px;
 		font-size: 0.78rem;
 		line-height: 1.4;
 		color: var(--text);
@@ -1615,17 +1639,80 @@
 		pointer-events: none;
 	}
 
-	.map-tooltip p {
-		margin: 0 0 4px;
+	.map-tooltip__header {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+		margin-bottom: 10px;
 	}
 
-	.map-tooltip p:last-child {
-		margin-bottom: 0;
-	}
-
-	:global(.tooltip-bold) {
+	.map-tooltip__title {
+		margin: 0;
+		font-size: 0.9rem;
 		font-weight: 700;
+		line-height: 1.25;
 		color: var(--text);
+	}
+
+	.map-tooltip__badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 3px 8px;
+		border-radius: 999px;
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+	}
+
+	.map-tooltip__badge--tod {
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		background: color-mix(in srgb, var(--accent) 13%, var(--bg-card));
+		color: var(--accent);
+	}
+
+	.map-tooltip__badge--nontod {
+		border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
+		background: color-mix(in srgb, var(--warning) 13%, var(--bg-card));
+		color: var(--warning);
+	}
+
+	.map-tooltip__badge--minimal {
+		border-color: #94a3b8;
+		background: color-mix(in srgb, #94a3b8 13%, var(--bg-card));
+		color: #526074;
+	}
+
+	.map-tooltip__badge--neutral {
+		color: var(--text-muted);
+	}
+
+	.map-tooltip__rows {
+		display: grid;
+		gap: 6px;
+	}
+
+	.map-tooltip__row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 10px;
+		align-items: start;
+	}
+
+	.map-tooltip__label {
+		color: var(--text-muted);
+		font-size: 0.73rem;
+		line-height: 1.35;
+	}
+
+	.map-tooltip__value {
+		color: var(--text);
+		font-size: 0.76rem;
+		font-weight: 600;
+		line-height: 1.35;
+		text-align: right;
 	}
 
 	.poc-map-zoom-hint {
