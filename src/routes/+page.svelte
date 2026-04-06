@@ -49,10 +49,22 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
-	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
+	let exploreSectionComponent = $state(null);
+	let exploreSectionLoading = $state(false);
+
+	async function loadExploreSection() {
+		if (exploreSectionComponent || exploreSectionLoading) return;
+		exploreSectionLoading = true;
+		try {
+			const mod = await import('$lib/components/ExploreTractSection.svelte');
+			exploreSectionComponent = mod.default;
+		} finally {
+			exploreSectionLoading = false;
+		}
+	}
 
 	/* ═══════════════════════════════════════════════════════
 	   MUNICIPAL STATE (Part 1)
@@ -1161,7 +1173,24 @@
 
 	{#if muniLoaded && !tractLoading && !tractError}
 		<div class="explore-after-narrow">
-			<ExploreTractSection />
+			{#if exploreSectionComponent}
+				<svelte:component this={exploreSectionComponent} />
+			{:else}
+				<section class="explore-gate card full-width" aria-labelledby="explore-gate-heading">
+					<h2 id="explore-gate-heading">Interactive Explorer</h2>
+					<p>
+						The full tract explorer is heavier than the main narrative, so it now loads on demand to keep the page faster.
+					</p>
+					<button
+						type="button"
+						class="secondary"
+						disabled={exploreSectionLoading}
+						onclick={loadExploreSection}
+					>
+						{exploreSectionLoading ? 'Loading explorer…' : 'Load interactive explorer'}
+					</button>
+				</section>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -1226,6 +1255,24 @@
 
 	.explore-after-narrow {
 		margin-top: 14px;
+	}
+
+	.explore-gate {
+		padding: 18px 20px;
+		display: grid;
+		gap: 10px;
+	}
+
+	.explore-gate h2 {
+		margin: 0;
+		font-size: 1.2rem;
+	}
+
+	.explore-gate p {
+		margin: 0;
+		color: var(--muted);
+		line-height: 1.55;
+		max-width: 58rem;
 	}
 
 	* { box-sizing: border-box; }
