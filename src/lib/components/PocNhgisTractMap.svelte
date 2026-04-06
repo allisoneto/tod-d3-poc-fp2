@@ -753,7 +753,7 @@
 		const tractLookup = buildTractLookup();
 		const t = tractLookup.get(id);
 		const county = t?.county;
-		const title = county && String(county) !== 'County Name' ? String(county) : String(id);
+		const tractPlace = county && String(county) !== 'County Name' ? String(county) : String(id);
 
 		const huNet = row ? Number(row.census_hu_change) : NaN;
 		const pl = periodDisplayLabel(panelState.timePeriod);
@@ -828,7 +828,15 @@
 			rows.push({ label: 'Tract data', value: 'No tract attributes loaded' });
 		}
 
-		tooltip = { visible: true, x: event.clientX, y: event.clientY, title, badge: tier, badgeTone, rows };
+		tooltip = {
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			title: `Tract in ${tractPlace}`,
+			badge: tier,
+			badgeTone,
+			rows
+		};
 	}
 
 	function handleMouseMove(event) {
@@ -916,7 +924,7 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
-			title: d.name || 'Development',
+			title: `Development: ${d.name || 'Unnamed project'}`,
 			badge: access ? 'Transit-accessible' : 'Not transit-accessible',
 			badgeTone: access ? 'tod' : 'minimal',
 			rows
