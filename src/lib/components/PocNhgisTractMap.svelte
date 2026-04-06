@@ -1278,9 +1278,10 @@
 
 	.poc-stepper-side {
 		display: grid;
-		gap: 8px;
+		grid-template-rows: auto minmax(0, 1fr);
+		gap: 10px;
 		padding: 10px 12px;
-		min-height: 0;
+		min-height: 480px;
 	}
 
 	.poc-stepper-overlay-head {
@@ -1308,21 +1309,23 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 6px;
-		max-height: 210px;
+		gap: 18px;
+		height: 100%;
 		overflow-y: auto;
-		scroll-snap-type: y proximity;
-		padding-right: 2px;
+		scroll-snap-type: y mandatory;
+		padding: 18% 4px 18% 0;
 	}
 
 	.poc-stepper-card {
 		display: grid;
-		gap: 8px;
+		align-content: start;
+		gap: 12px;
 		width: 100%;
-		padding: 8px 9px;
+		min-height: 58%;
+		padding: 14px 14px 16px;
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--bg-card) 95%, white);
+		background: color-mix(in srgb, var(--bg-card) 98%, white);
 		text-align: left;
 		color: var(--text);
 		scroll-snap-align: center;
@@ -1364,14 +1367,14 @@
 	}
 
 	.poc-stepper-pill-title {
-		font-size: 0.76rem;
+		font-size: 0.95rem;
 		font-weight: 600;
-		line-height: 1.25;
+		line-height: 1.2;
 		color: var(--text);
 	}
 
 	.poc-stepper-pill-kicker {
-		font-size: 0.65rem;
+		font-size: 0.68rem;
 		line-height: 1.25;
 		color: var(--text-muted);
 		text-transform: uppercase;
@@ -1380,8 +1383,8 @@
 
 	.poc-stepper-card-body {
 		margin: 0;
-		font-size: 0.73rem;
-		line-height: 1.45;
+		font-size: 0.84rem;
+		line-height: 1.55;
 		color: var(--text-muted);
 	}
 
