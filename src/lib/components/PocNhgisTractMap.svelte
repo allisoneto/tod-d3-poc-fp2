@@ -1160,15 +1160,64 @@
 			</div>
 
 			<div class="map-wrap">
-				<div class="poc-stepper-overlay card-key" aria-label="Map explanation steps">
+				<div class="map-main">
+					<div class="map-root" bind:this={containerEl}></div>
+					{#if tooltip.visible}
+						<div
+							class="map-tooltip"
+							style:left="{tooltip.x + 12}px"
+							style:top="{tooltip.y + 12}px"
+						>
+							<div class="map-tooltip__header">
+								<div class="map-tooltip__header-copy">
+									{#if tooltip.eyebrow}
+										<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
+									{/if}
+									<p class="map-tooltip__title">{tooltip.title}</p>
+								</div>
+								{#if tooltip.badge}
+									<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+								{/if}
+							</div>
+							{#if tooltip.primaryRows.length > 0}
+								<div
+									class="map-tooltip__primary"
+									class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
+									class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
+									class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
+								>
+									{#each tooltip.primaryRows as row, i (i)}
+										<div class="map-tooltip__primary-row">
+											<span class="map-tooltip__primary-label">{row.label}</span>
+											<span class="map-tooltip__primary-value">{row.value}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if tooltip.secondaryRows.length > 0}
+								<div class="map-tooltip__details">
+									<p class="map-tooltip__details-label">Details</p>
+									<div class="map-tooltip__rows">
+										{#each tooltip.secondaryRows as row, i (i)}
+											<div class="map-tooltip__row">
+												<span class="map-tooltip__label">{row.label}</span>
+												<span class="map-tooltip__value">{row.value}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+
+				<aside class="poc-stepper-side card-key" aria-label="Map explanation steps">
 					<div class="poc-stepper-overlay-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">Scroll this panel to build up the map in 3 layers.</p>
+						<p class="poc-stepper-inline-hint">Scroll here to build up the map in 3 layers.</p>
 					</div>
 					<div
 						class="poc-stepper-inline-rail"
-						role="tablist"
-						aria-label="Map steps"
 						bind:this={stepperScrollEl}
 						onscroll={setRevealStageFromScroll}
 					>
@@ -1177,12 +1226,6 @@
 								class="poc-stepper-card"
 								class:poc-stepper-card--active={revealStage === i}
 								data-step-index={i}
-								role="tab"
-								aria-selected={revealStage === i}
-								onclick={() => {
-									revealStage = i;
-									scrollStepIntoView(i);
-								}}
 							>
 								<div class="poc-stepper-card-top">
 									<span class="poc-stepper-pill-num">{i + 1}</span>
@@ -1195,57 +1238,9 @@
 							</article>
 						{/each}
 					</div>
-				</div>
-				<div class="map-root" bind:this={containerEl}></div>
-				{#if tooltip.visible}
-					<div
-						class="map-tooltip"
-						style:left="{tooltip.x + 12}px"
-						style:top="{tooltip.y + 12}px"
-					>
-						<div class="map-tooltip__header">
-							<div class="map-tooltip__header-copy">
-								{#if tooltip.eyebrow}
-									<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
-								{/if}
-								<p class="map-tooltip__title">{tooltip.title}</p>
-							</div>
-							{#if tooltip.badge}
-								<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
-							{/if}
-						</div>
-						{#if tooltip.primaryRows.length > 0}
-							<div
-								class="map-tooltip__primary"
-								class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
-								class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
-								class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
-							>
-								{#each tooltip.primaryRows as row, i (i)}
-									<div class="map-tooltip__primary-row">
-										<span class="map-tooltip__primary-label">{row.label}</span>
-										<span class="map-tooltip__primary-value">{row.value}</span>
-									</div>
-								{/each}
-							</div>
-						{/if}
-						{#if tooltip.secondaryRows.length > 0}
-							<div class="map-tooltip__details">
-								<p class="map-tooltip__details-label">Details</p>
-								<div class="map-tooltip__rows">
-									{#each tooltip.secondaryRows as row, i (i)}
-										<div class="map-tooltip__row">
-											<span class="map-tooltip__label">{row.label}</span>
-											<span class="map-tooltip__value">{row.value}</span>
-										</div>
-									{/each}
-								</div>
-							</div>
-						{/if}
-					</div>
-				{/if}
+				</aside>
 			</div>
-			<p class="poc-map-zoom-hint">Use the stepper to reveal layers · drag to pan · scroll or pinch to zoom</p>
+			<p class="poc-map-zoom-hint">Scroll the side panel to reveal layers · drag to pan · scroll or pinch to zoom</p>
 		</div>
 	</div>
 </div>
@@ -1281,17 +1276,11 @@
 		color: var(--text);
 	}
 
-	.poc-stepper-overlay {
-		position: absolute;
-		top: 10px;
-		left: 10px;
-		z-index: 8;
+	.poc-stepper-side {
 		display: grid;
 		gap: 8px;
-		width: min(340px, calc(100% - 20px));
 		padding: 10px 12px;
-		background: color-mix(in srgb, var(--bg-card) 92%, white);
-		backdrop-filter: blur(8px);
+		min-height: 0;
 	}
 
 	.poc-stepper-overlay-head {
@@ -1337,7 +1326,6 @@
 		text-align: left;
 		color: var(--text);
 		scroll-snap-align: center;
-		cursor: pointer;
 	}
 
 	.poc-stepper-card--active {
@@ -1426,13 +1414,8 @@
 	}
 
 	@media (max-width: 900px) {
-		.poc-stepper-overlay {
-			position: relative;
-			top: auto;
-			left: auto;
-			width: 100%;
-			margin-bottom: 8px;
-			backdrop-filter: none;
+		.map-wrap {
+			grid-template-columns: 1fr;
 		}
 	}
 
@@ -1738,9 +1721,17 @@
 	}
 
 	.map-wrap {
-		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 260px;
+		gap: 12px;
 		width: 100%;
 		background: transparent;
+		align-items: stretch;
+	}
+
+	.map-main {
+		position: relative;
+		min-width: 0;
 	}
 
 	.map-root {
