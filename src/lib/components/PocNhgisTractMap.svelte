@@ -46,7 +46,6 @@
 	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
 
 	let containerEl = $state(null);
-	let stepperScrollEl = $state(null);
 	let tooltip = $state({
 		visible: false,
 		x: 0,
@@ -109,26 +108,6 @@
 			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
 		}
 	];
-
-	function setRevealStageFromScroll() {
-		const el = stepperScrollEl;
-		if (!el) return;
-		const sections = [...el.querySelectorAll('[data-step-index]')];
-		if (sections.length === 0) return;
-		const mid = el.scrollTop + el.clientHeight / 2;
-		let best = revealStage;
-		let bestDist = Infinity;
-		for (const section of sections) {
-			const idx = Number(section.getAttribute('data-step-index'));
-			const center = section.offsetTop + section.offsetHeight / 2;
-			const dist = Math.abs(center - mid);
-			if (dist < bestDist) {
-				best = idx;
-				bestDist = dist;
-			}
-		}
-		if (best !== revealStage) revealStage = best;
-	}
 
 	/**
 	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
@@ -1199,20 +1178,19 @@
 				<aside class="poc-stepper-side card-key" aria-label="Map explanation steps">
 					<div class="poc-stepper-overlay-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">Scroll inside this rail to build up the map in 3 layers.</p>
+						<p class="poc-stepper-inline-hint">Build up the map in 3 layers.</p>
 					</div>
-					<div
-						class="poc-stepper-inline-rail"
-						role="region"
-						aria-label="Scrollable map walkthrough"
-						bind:this={stepperScrollEl}
-						onscroll={setRevealStageFromScroll}
-					>
+					<div class="poc-stepper-inline-rail" role="tablist" aria-label="Map steps">
 						{#each stepContent as step, i}
-							<section
+							<button
+								type="button"
 								class="poc-stepper-card"
 								class:poc-stepper-card--active={revealStage === i}
-								data-step-index={i}
+								role="tab"
+								aria-selected={revealStage === i}
+								onclick={() => {
+									revealStage = i;
+								}}
 							>
 								<div class="poc-stepper-card-top">
 									<span class="poc-stepper-pill-num">{i + 1}</span>
@@ -1222,12 +1200,12 @@
 									</div>
 								</div>
 								<p class="poc-stepper-card-body">{step.body}</p>
-							</section>
+							</button>
 						{/each}
 					</div>
 				</aside>
 			</div>
-			<p class="poc-map-zoom-hint">Scroll the side rail to reveal layers · drag to pan · scroll or pinch to zoom</p>
+			<p class="poc-map-zoom-hint">Use the step buttons to reveal layers · drag to pan · scroll or pinch to zoom</p>
 		</div>
 	</div>
 </div>
@@ -1265,10 +1243,9 @@
 
 	.poc-stepper-side {
 		display: grid;
-		grid-template-rows: auto minmax(0, 1fr);
 		gap: 10px;
 		padding: 10px 12px;
-		min-height: 480px;
+		align-content: start;
 	}
 
 	.poc-stepper-overlay-head {
@@ -1296,27 +1273,20 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 18px;
-		height: min(480px, 72vh);
-		overflow-y: auto;
-		scroll-snap-type: y mandatory;
-		overscroll-behavior: contain;
-		padding: 16% 4px 16% 0;
+		gap: 8px;
 	}
 
 	.poc-stepper-card {
 		display: grid;
-		align-content: start;
-		gap: 12px;
+		gap: 8px;
 		width: 100%;
-		min-height: 56%;
-		padding: 14px 14px 16px;
+		padding: 10px 11px;
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--bg-card) 98%, white);
+		background: color-mix(in srgb, var(--bg-card) 95%, white);
 		text-align: left;
 		color: var(--text);
-		scroll-snap-align: center;
+		cursor: pointer;
 	}
 
 	.poc-stepper-card--active {
@@ -1355,14 +1325,14 @@
 	}
 
 	.poc-stepper-pill-title {
-		font-size: 0.95rem;
+		font-size: 0.82rem;
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: 1.25;
 		color: var(--text);
 	}
 
 	.poc-stepper-pill-kicker {
-		font-size: 0.68rem;
+		font-size: 0.65rem;
 		line-height: 1.25;
 		color: var(--text-muted);
 		text-transform: uppercase;
@@ -1371,8 +1341,8 @@
 
 	.poc-stepper-card-body {
 		margin: 0;
-		font-size: 0.84rem;
-		line-height: 1.55;
+		font-size: 0.75rem;
+		line-height: 1.45;
 		color: var(--text-muted);
 	}
 
