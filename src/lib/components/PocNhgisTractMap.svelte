@@ -1215,7 +1215,12 @@
 							{/if}
 						</div>
 						{#if tooltip.primaryRows.length > 0}
-							<div class="map-tooltip__primary">
+							<div
+								class="map-tooltip__primary"
+								class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
+								class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
+								class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
+							>
 								{#each tooltip.primaryRows as row, i (i)}
 									<div class="map-tooltip__primary-row">
 										<span class="map-tooltip__primary-label">{row.label}</span>
@@ -1832,6 +1837,21 @@
 		border-radius: 10px;
 		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
 		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+	}
+
+	.map-tooltip__primary--tod {
+		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+		border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+	}
+
+	.map-tooltip__primary--nontod {
+		background: color-mix(in srgb, var(--warning) 9%, var(--bg-card));
+		border-color: color-mix(in srgb, var(--warning) 28%, var(--border));
+	}
+
+	.map-tooltip__primary--minimal {
+		background: color-mix(in srgb, #94a3b8 10%, var(--bg-card));
+		border-color: color-mix(in srgb, #94a3b8 28%, var(--border));
 	}
 
 	.map-tooltip__primary-row {

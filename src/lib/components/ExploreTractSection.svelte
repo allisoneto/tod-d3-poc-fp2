@@ -4,7 +4,7 @@
 	 * and a detail column for selected tracts (``TractDetail``).
 	 */
 	import FilterPanel from '$lib/components/FilterPanel.svelte';
-	import MapView from '$lib/components/MapView.svelte';
+	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
 	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
 	import TodAffordabilityScatter from '$lib/components/TodAffordabilityScatter.svelte';
 	import TractDetail from '$lib/components/TractDetail.svelte';
@@ -12,6 +12,11 @@
 	import { createPanelState } from '$lib/stores/panelState.svelte.js';
 	import { tractData, developments, meta } from '$lib/stores/data.svelte.js';
 	import {
+		buildNhgisLikeRows,
+		buildTractDevClassMap
+	} from '$lib/utils/mainPocTractModel.js';
+	import {
+		buildFilteredData,
 		cohortYMeansForPanel,
 		selectedTractsYWeightedMean,
 		yMetricDisplayKind,
@@ -81,6 +86,33 @@
 			nSelWithY: selRaw?.nWithY ?? 0
 		};
 	});
+
+	const exploreTractList = $derived.by(() => buildFilteredData(tractData, developments, explorePanel).filteredTracts);
+
+	const exploreFilteredDevs = $derived.by(() => buildFilteredData(tractData, developments, explorePanel).filteredDevs);
+
+	const exploreDevClassByGj = $derived.by(() =>
+		buildTractDevClassMap(
+			exploreTractList,
+			exploreFilteredDevs,
+			{
+				timePeriod: explorePanel.timePeriod
+			},
+			explorePanel.transitDistanceMi,
+			{
+				minUnitsPerProject: explorePanel.minUnitsPerProject,
+				minDevMultifamilyRatioPct: explorePanel.minDevMultifamilyRatioPct,
+				minDevAffordableRatioPct: explorePanel.minDevAffordableRatioPct,
+				includeRedevelopment: explorePanel.includeRedevelopment
+			},
+			explorePanel.sigDevMinPctStockIncrease,
+			explorePanel.todFractionCutoff
+		)
+	);
+
+	const exploreNhgisRows = $derived.by(() =>
+		buildNhgisLikeRows(exploreTractList, exploreDevClassByGj, explorePanel.timePeriod)
+	);
 </script>
 
 <section class="explore-root card full-width" aria-labelledby="explore-tract-heading">
@@ -148,10 +180,15 @@
 			<div class="explore-map card explore-card">
 				<h3 class="explore-h3">Map</h3>
 				<p class="explore-hint">
-					Choropleth uses your X and Y axis choices; cohort shading uses the TOD Analysis thresholds below.
+					This uses the same layered tract map as the main dashboard, with the current tract and development filters applied.
 				</p>
 				<div class="explore-map-inner">
-					<MapView panelState={explorePanel} />
+					<PocNhgisTractMap
+						panelState={explorePanel}
+						tractList={exploreTractList}
+						nhgisRows={exploreNhgisRows}
+						metricsDevelopments={exploreFilteredDevs}
+					/>
 				</div>
 			</div>
 
