@@ -50,10 +50,12 @@
 		visible: false,
 		x: 0,
 		y: 0,
+		eyebrow: '',
 		title: '',
 		badge: '',
 		badgeTone: '',
-		rows: []
+		primaryRows: [],
+		secondaryRows: []
 	});
 	let revealStage = $state(0);
 
@@ -774,68 +776,71 @@
 					: row?.devClass === 'minimal'
 						? 'minimal'
 						: 'neutral';
-		const rows = [
+		const primaryRows = [
 			{
 				label: `Census net housing units (${pl})`,
 				value: Number.isFinite(huNet) ? fmtInt(huNet) : '—'
 			}
 		];
+		const secondaryRows = [];
 
 		if (t) {
 			const tp = panelState.timePeriod;
 			const { startY, endY } = periodCensusBounds(tp);
 
 			const pop = t[`pop_${endY}`] ?? t.pop_2020;
-			if (pop != null) rows.push({ label: `Population (${endY})`, value: fmtInt(pop) });
+			if (pop != null) secondaryRows.push({ label: `Population (${endY})`, value: fmtInt(pop) });
 
 			const huS = t[`total_hu_${startY}`];
 			const huE = t[`total_hu_${endY}`];
-			if (huS != null) rows.push({ label: `Housing units (${startY})`, value: fmtInt(huS) });
-			if (huE != null) rows.push({ label: `Housing units (${endY})`, value: fmtInt(huE) });
+			if (huS != null) secondaryRows.push({ label: `Housing units (${startY})`, value: fmtInt(huS) });
+			if (huE != null) secondaryRows.push({ label: `Housing units (${endY})`, value: fmtInt(huE) });
 			if (huS != null && huE != null) {
 				const diff = huE - huS;
 				const sign = diff >= 0 ? '+' : '';
-				rows.push({ label: 'Net HU change (census)', value: `${sign}${fmtInt(diff)}` });
+				secondaryRows.push({ label: 'Net HU change (census)', value: `${sign}${fmtInt(diff)}` });
 			}
 
 			const m = tractTodMetricsMap?.get(id);
 			if (m && Number.isFinite(m.totalNewUnits) && m.totalNewUnits > 0) {
-				rows.push({
+				primaryRows.push({
 					label: 'New units (MassBuilds)',
 					value: fmtInt(m.totalNewUnits)
 				});
 			}
 			if (m?.todFraction != null && Number.isFinite(m.todFraction)) {
-				rows.push({ label: 'TOD share of new dev units', value: `${fmt1(m.todFraction * 100)}%` });
+				primaryRows.push({ label: 'TOD share of new dev units', value: `${fmt1(m.todFraction * 100)}%` });
 			}
 			if (m?.pctStockIncrease != null && Number.isFinite(m.pctStockIncrease)) {
-				rows.push({ label: 'Stock increase (MassBuilds / base HU)', value: `${fmt1(m.pctStockIncrease)}%` });
+				primaryRows.push({ label: 'Stock increase', value: `${fmt1(m.pctStockIncrease)}%` });
 			}
 
 			const agg = devAggMap?.get(id);
 			if (agg?.new_units) {
-				rows.push({ label: 'Filtered new units (sum)', value: fmtInt(agg.new_units) });
+				secondaryRows.push({ label: 'Filtered new units (sum)', value: fmtInt(agg.new_units) });
 			}
 
 			const stopsRaw = Number(t.transit_stops) || 0;
-			rows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
+			secondaryRows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
 
 			const medInc = t[`median_income_change_pct_${tp}`];
 			if (medInc != null && Number.isFinite(medInc)) {
-				rows.push({ label: `Median income change (${periodDisplayLabel(tp)})`, value: `${fmt1(medInc)}%` });
+				primaryRows.push({ label: `Median income change (${periodDisplayLabel(tp)})`, value: `${fmt1(medInc)}%` });
 			}
 		} else {
-			rows.push({ label: 'Tract data', value: 'No tract attributes loaded' });
+			secondaryRows.push({ label: 'Tract data', value: 'No tract attributes loaded' });
 		}
 
 		tooltip = {
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
+			eyebrow: 'Census tract',
 			title: `Tract in ${tractPlace}`,
 			badge: tier,
 			badgeTone,
-			rows
+			primaryRows,
+			secondaryRows
 		};
 	}
 
@@ -861,13 +866,15 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
+			eyebrow: 'Transit stop',
 			title: d.name || 'MBTA Stop',
 			badge: 'Transit stop',
 			badgeTone: 'neutral',
-			rows: [
+			primaryRows: [
 				{ label: 'Routes', value: routes },
 				{ label: 'Mode', value: modes }
-			]
+			],
+			secondaryRows: []
 		};
 	}
 
@@ -878,24 +885,27 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
+			eyebrow: 'Transit line',
 			title: name,
 			badge: 'MBTA line',
 			badgeTone: 'neutral',
-			rows: [
+			primaryRows: [
 				{ label: 'Route', value: props.route_short_name || props.route_id || '—' }
-			]
+			],
+			secondaryRows: []
 		};
 	}
 
 	function handleDevEnter(event, d) {
 		const fmtPct = d3.format('.1f');
-		const rows = [
+		const primaryRows = [
 			{ label: 'Municipality', value: d.municipal || '—' },
 			{ label: 'Units', value: String(d.hu ?? '—') }
 		];
+		const secondaryRows = [];
 		const mf = developmentMultifamilyShare(d);
 		if (mf != null && Number.isFinite(mf)) {
-			rows.push({ label: 'Multifamily share', value: `${fmtPct(mf * 100)}%` });
+			primaryRows.push({ label: 'Multifamily share', value: `${fmtPct(mf * 100)}%` });
 		}
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
 		const todMi = panelState.transitDistanceMi ?? 0.5;
@@ -905,29 +915,31 @@
 		const nearestM = prox.nearestDistM;
 		const nWithin = prox.stopsWithinRadius;
 		if (nearestM != null && Number.isFinite(nearestM)) {
-			rows.push({
+			secondaryRows.push({
 				label: 'Nearest stop',
 				value: `${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
 			});
 		} else {
-			rows.push({ label: 'Nearest stop', value: '—' });
+			secondaryRows.push({ label: 'Nearest stop', value: '—' });
 		}
-		rows.push({ label: `Stops within ${todMi} mi`, value: String(nWithin) });
+		secondaryRows.push({ label: `Stops within ${todMi} mi`, value: String(nWithin) });
 		const affCap = developmentAffordableUnitsCapped(d);
 		if (affCap > 0) {
 			const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
-			rows.push({ label: 'Affordable', value: `${affCap}${src}` });
+			primaryRows.push({ label: 'Affordable units', value: `${affCap}${src}` });
 		}
-		rows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
-		if (d.rdv) rows.push({ label: 'Redevelopment', value: 'Yes' });
+		secondaryRows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
+		if (d.rdv) secondaryRows.push({ label: 'Redevelopment', value: 'Yes' });
 		tooltip = {
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
+			eyebrow: 'MassBuilds project',
 			title: `Development: ${d.name || 'Unnamed project'}`,
 			badge: access ? 'Transit-accessible' : 'Not transit-accessible',
 			badgeTone: access ? 'tod' : 'minimal',
-			rows
+			primaryRows,
+			secondaryRows
 		};
 	}
 
@@ -1153,19 +1165,39 @@
 						style:top="{tooltip.y + 12}px"
 					>
 						<div class="map-tooltip__header">
-							<p class="map-tooltip__title">{tooltip.title}</p>
+							<div class="map-tooltip__header-copy">
+								{#if tooltip.eyebrow}
+									<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
+								{/if}
+								<p class="map-tooltip__title">{tooltip.title}</p>
+							</div>
 							{#if tooltip.badge}
 								<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
 							{/if}
 						</div>
-						<div class="map-tooltip__rows">
-							{#each tooltip.rows as row, i (i)}
-								<div class="map-tooltip__row">
-									<span class="map-tooltip__label">{row.label}</span>
-									<span class="map-tooltip__value">{row.value}</span>
+						{#if tooltip.primaryRows.length > 0}
+							<div class="map-tooltip__primary">
+								{#each tooltip.primaryRows as row, i (i)}
+									<div class="map-tooltip__primary-row">
+										<span class="map-tooltip__primary-label">{row.label}</span>
+										<span class="map-tooltip__primary-value">{row.value}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+						{#if tooltip.secondaryRows.length > 0}
+							<div class="map-tooltip__details">
+								<p class="map-tooltip__details-label">Details</p>
+								<div class="map-tooltip__rows">
+									{#each tooltip.secondaryRows as row, i (i)}
+										<div class="map-tooltip__row">
+											<span class="map-tooltip__label">{row.label}</span>
+											<span class="map-tooltip__value">{row.value}</span>
+										</div>
+									{/each}
 								</div>
-							{/each}
-						</div>
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -1676,17 +1708,32 @@
 
 	.map-tooltip__header {
 		display: flex;
-		flex-wrap: wrap;
+		justify-content: space-between;
 		gap: 8px;
-		align-items: center;
-		margin-bottom: 10px;
+		align-items: flex-start;
+		margin-bottom: 8px;
+	}
+
+	.map-tooltip__header-copy {
+		display: grid;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.map-tooltip__eyebrow {
+		margin: 0;
+		font-size: 0.63rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
 
 	.map-tooltip__title {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: 0.92rem;
 		font-weight: 700;
-		line-height: 1.25;
+		line-height: 1.2;
 		color: var(--text);
 	}
 
@@ -1721,6 +1768,54 @@
 	}
 
 	.map-tooltip__badge--neutral {
+		color: var(--text-muted);
+	}
+
+	.map-tooltip__primary {
+		display: grid;
+		gap: 6px;
+		padding: 8px 10px;
+		margin-bottom: 8px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+	}
+
+	.map-tooltip__primary-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 10px;
+		align-items: baseline;
+	}
+
+	.map-tooltip__primary-label {
+		font-size: 0.68rem;
+		font-weight: 700;
+		line-height: 1.3;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--text-muted);
+	}
+
+	.map-tooltip__primary-value {
+		font-size: 0.86rem;
+		font-weight: 700;
+		line-height: 1.25;
+		text-align: right;
+		color: var(--text);
+	}
+
+	.map-tooltip__details {
+		display: grid;
+		gap: 6px;
+	}
+
+	.map-tooltip__details-label {
+		margin: 0;
+		font-size: 0.63rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 		color: var(--text-muted);
 	}
 
