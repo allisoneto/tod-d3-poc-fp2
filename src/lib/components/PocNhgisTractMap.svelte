@@ -171,6 +171,7 @@
 	const mapH = 480;
 
 	let svgRef = $state(null);
+	let zoomBehaviorRef = $state(null);
 	let projectionRef = $state(null);
 	let lastStructuralKey = $state('');
 
@@ -223,6 +224,14 @@
 		if (m.includes('rail')) return '#3b82f6';
 		if (m.includes('bus')) return '#f97316';
 		return '#888';
+	}
+
+	function recenterMap() {
+		if (!svgRef || !zoomBehaviorRef) return;
+		svgRef
+			.transition()
+			.duration(350)
+			.call(zoomBehaviorRef.transform, d3.zoomIdentity);
 	}
 
 	function stopRadius(stop) {
@@ -464,6 +473,7 @@
 						return (d?.strokeWBase ?? 0.3) * invK;
 					});
 			});
+		zoomBehaviorRef = zoom;
 
 		svg.call(zoom).on('dblclick.zoom', null).style('touch-action', 'none');
 
@@ -1146,6 +1156,7 @@
 			<div class="map-wrap">
 				<div class="map-main" onmouseleave={handleOverlayLeave}>
 					<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
+					<button class="poc-map-reset" type="button" onclick={recenterMap}>Recenter map</button>
 					<div class="map-root" bind:this={containerEl}></div>
 					{#if tooltip.visible}
 						<div
@@ -1416,6 +1427,11 @@
 		.map-main {
 			position: relative;
 			top: auto;
+		}
+
+		.poc-map-reset {
+			top: 8px;
+			right: 8px;
 		}
 
 		.poc-stepper-head {
@@ -1748,6 +1764,32 @@
 		top: 18px;
 		min-width: 0;
 		align-self: start;
+	}
+
+	.poc-map-reset {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		z-index: 6;
+		padding: 0.42rem 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--bg-card) 92%, white 8%);
+		color: var(--text);
+		font-size: 0.78rem;
+		font-weight: 700;
+		line-height: 1;
+		box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+		backdrop-filter: blur(6px);
+	}
+
+	.poc-map-reset:hover {
+		background: color-mix(in srgb, var(--bg-card) 82%, white 18%);
+	}
+
+	.poc-map-reset:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--accent) 60%, white 40%);
+		outline-offset: 2px;
 	}
 
 	.map-root {
