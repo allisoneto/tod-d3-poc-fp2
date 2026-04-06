@@ -1296,7 +1296,7 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 28vh;
+		gap: 16vh;
 	}
 
 	.poc-stepper-card {
@@ -1304,7 +1304,7 @@
 		align-content: center;
 		gap: 12px;
 		width: 100%;
-		min-height: 72vh;
+		min-height: 58vh;
 		padding: 10px 0 0;
 		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		padding-left: 18px;
