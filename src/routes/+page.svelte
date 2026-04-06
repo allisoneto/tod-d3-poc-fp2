@@ -52,6 +52,159 @@
 
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
+	const finalProjectPlan = [
+		{
+			week: 'Week 9: 3/30-4/3',
+			overall: [
+				'Polish one visualization',
+				'Understand and justify design decisions',
+				'Understand and learn from the development process'
+			],
+			people: {
+				Allison: [
+					'Make initial suggested edits to the current visualization',
+					'Determine which demographic(s) are most illustrative of the main point',
+					'Schedule and prepare for the office hours check-in'
+				],
+				Krishna: [
+					'Make initial suggested edits to the current visualization',
+					'Determine which demographic(s) are most illustrative of the main point',
+					'Schedule and prepare for the office hours check-in'
+				],
+				Hanna: [
+					'Parse and organize staff and classmate feedback',
+					'Determine which demographic(s) are most illustrative of the main point',
+					'Play around with and edit the revised visualization',
+					'Schedule and prepare for the office hours check-in'
+				],
+				Supriya: [
+					'Determine which demographic(s) are most illustrative of the main point',
+					'Play around with and edit the revised visualization',
+					'Schedule and prepare for the office hours check-in'
+				]
+			}
+		},
+		{
+			week: 'Week 10: 4/6-4/10',
+			overall: [
+				'Finalize one visualization',
+				'Start working on the minimal viable product',
+				'Complete the office hours check-in'
+			],
+			people: {
+				Allison: [
+					'Implement changes in the edited visualization',
+					'Complete the office hours check-in'
+				],
+				Krishna: [
+					'Implement changes in the edited visualization',
+					'Complete the office hours check-in'
+				],
+				Hanna: [
+					'Finalize feedback for the initial edit of the visualization',
+					'Implement changes in the edited visualization',
+					'Complete the office hours check-in'
+				],
+				Supriya: [
+					'Finalize feedback for the initial edit of the visualization',
+					'Complete the office hours check-in'
+				]
+			}
+		},
+		{
+			week: 'Week 11: 4/13-4/17',
+			overall: [
+				'Have satisfactory demos for the minimal viable product',
+				'Have satisfactory progress on the presentation of the minimal viable product'
+			],
+			people: {
+				Allison: [
+					'Work on the data visualization interaction part of the presentation',
+					'Collaboratively and individually make changes to demos'
+				],
+				Krishna: [
+					'Work on the data visualization interpretation part of the presentation',
+					'Collaboratively and individually make changes to demos'
+				],
+				Hanna: [
+					'Work on the introduction, motivation, and sources part of the presentation',
+					'Collaboratively and individually make changes to demos'
+				],
+				Supriya: [
+					'Work on the audience and main goals part of the presentation',
+					'Collaboratively and individually make changes to demos'
+				]
+			}
+		},
+		{
+			week: 'Week 12: 4/20-4/24',
+			overall: [
+				'Finish the minimal viable product',
+				'Finalize and record the presentation',
+				"Start exploration of other teams' projects and begin thinking about critique"
+			],
+			people: {
+				Allison: [
+					'Finalize the minimal viable product',
+					'Record the presentation',
+					"Start exploration of other teams' projects and begin thinking about critique"
+				],
+				Krishna: [
+					'Finalize the minimal viable product',
+					'Record the presentation',
+					"Start exploration of other teams' projects and begin thinking about critique"
+				],
+				Hanna: [
+					'Finalize the minimal viable product',
+					'Record the presentation',
+					"Start exploration of other teams' projects and begin thinking about critique"
+				],
+				Supriya: [
+					'Finalize the minimal viable product',
+					'Record the presentation',
+					"Start exploration of other teams' projects and begin thinking about critique"
+				]
+			}
+		},
+		{
+			week: 'Week 13: 4/27-5/1',
+			overall: [
+				'Finalize critique for other teams',
+				'Keep looking over final products'
+			],
+			people: {
+				Allison: ['Write critique for other teams', 'Keep looking over final products'],
+				Krishna: ['Write critique for other teams', 'Keep looking over final products'],
+				Hanna: ['Write critique for other teams', 'Keep looking over final products'],
+				Supriya: ['Write critique for other teams', 'Keep looking over final products']
+			}
+		},
+		{
+			week: 'Week 14: 5/4-5/8',
+			overall: [
+				'Integrate provided feedback',
+				'Mostly finalize the final project'
+			],
+			people: {
+				Allison: ['Integrate changes from feedback and iterate'],
+				Krishna: ['Integrate changes from feedback and iterate'],
+				Hanna: ['Parse and organize feedback', 'Integrate changes from feedback and iterate'],
+				Supriya: ['Integrate changes from feedback and iterate']
+			}
+		},
+		{
+			week: 'Week 15: 5/11',
+			overall: ['Finish the final project'],
+			people: {
+				Allison: ['Final walkthrough evaluation of the project'],
+				Krishna: ['Final walkthrough evaluation of the project'],
+				Hanna: ['Final walkthrough evaluation of the project'],
+				Supriya: ['Final walkthrough evaluation of the project']
+			}
+		}
+	];
+	const projectPlanContingency =
+		"If things go wrong, the team will schedule an emergency meeting as soon as possible to get back on track, review any unmet goals without assigning blame, redistribute missed work that same week when needed, and adjust responsibilities so delays do not snowball.";
 	let exploreSectionComponent = $state(null);
 	let exploreSectionLoading = $state(false);
 
@@ -581,6 +734,10 @@
 			To answer this question, we analyze the correlations between TOD and demographic changes across Massachusetts.
 			The patterns below are descriptive associations, not causal proof, but they do strongly suggest that TOD should be paired
 			with stronger affordable-housing requirements in order to achieve inclusive growth.
+		</p>
+		<p class="hero-plan-note">
+			A detailed plan for finishing the project is included at the end of this interactive visualization writeup:
+			<a href="#final-project-plan">jump to the final project plan</a>.
 		</p>
 	</section>
 
@@ -1164,6 +1321,48 @@
 					As Massachusetts continues to encourage transit-oriented development, it is important to ensure that <strong>affordability</strong> is a core part of its policy framework.
 				</p>
 			</section>
+
+			<section class="story card full-width plan-section" id="final-project-plan">
+				<h2>Final Project Plan</h2>
+				<p>
+					This project plan is included as part of the interactive visualization writeup to document the team’s design rationale,
+					development process, and week-by-week path to a finished final project.
+				</p>
+
+				<div class="plan-grid">
+					{#each finalProjectPlan as week (week.week)}
+						<section class="plan-card">
+							<h3>{week.week}</h3>
+							<div class="plan-block">
+								<h4>Overall</h4>
+								<ul class="story-list plan-list">
+									{#each week.overall as item}
+										<li>{item}</li>
+									{/each}
+								</ul>
+							</div>
+
+							<div class="plan-people">
+								{#each Object.entries(week.people) as [name, tasks]}
+									<div class="plan-person">
+										<h4>{name}</h4>
+										<ul class="story-list plan-list">
+											{#each tasks as task}
+												<li>{task}</li>
+											{/each}
+										</ul>
+									</div>
+								{/each}
+							</div>
+						</section>
+					{/each}
+				</div>
+
+				<section class="plan-contingency">
+					<h3>If things go wrong</h3>
+					<p>{projectPlanContingency}</p>
+				</section>
+			</section>
 		{/if}
 	</section>
 
@@ -1539,6 +1738,22 @@
 	.story p { color: var(--muted); line-height: 1.58; margin-bottom: 12px; }
 	.story p:last-child { margin-bottom: 0; }
 
+	.hero-plan-note {
+		margin-top: 14px;
+		font-size: 0.95rem;
+		color: var(--muted);
+	}
+
+	.hero-plan-note a {
+		color: var(--accent);
+		font-weight: 700;
+		text-decoration: none;
+	}
+
+	.hero-plan-note a:hover {
+		text-decoration: underline;
+	}
+
 	.story-list {
 		color: var(--muted);
 		line-height: 1.58;
@@ -1548,6 +1763,57 @@
 	}
 
 	.story-list li { margin-bottom: 6px; }
+
+	.plan-section {
+		scroll-margin-top: 24px;
+	}
+
+	.plan-grid {
+		display: grid;
+		gap: 14px;
+		margin-top: 16px;
+	}
+
+	.plan-card {
+		padding: 16px;
+		border: 1px solid var(--line);
+		border-radius: 14px;
+		background: #faf7f0;
+	}
+
+	.plan-card h3 {
+		margin-bottom: 12px;
+		font-size: 1.05rem;
+	}
+
+	.plan-block + .plan-people {
+		margin-top: 14px;
+		padding-top: 14px;
+		border-top: 1px solid var(--line);
+	}
+
+	.plan-people {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 14px;
+	}
+
+	.plan-block h4,
+	.plan-person h4,
+	.plan-contingency h3 {
+		margin-bottom: 8px;
+		font-size: 0.95rem;
+	}
+
+	.plan-list {
+		margin: 0;
+	}
+
+	.plan-contingency {
+		margin-top: 16px;
+		padding-top: 16px;
+		border-top: 1px solid var(--line);
+	}
 
 	/* Nested methodology list: indent sub-bullets and leave space before the next paragraph */
 	.story-list--nested {
@@ -1786,6 +2052,7 @@
 		}
 
 		.finding-list,
+		.plan-people,
 		.story-chart-panel__grid,
 		.story-chart-row--tract {
 			grid-template-columns: 1fr;
