@@ -46,6 +46,7 @@
 	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
 
 	let containerEl = $state(null);
+	let stepEls = $state([]);
 	let tooltip = $state({
 		visible: false,
 		x: 0,
@@ -108,6 +109,17 @@
 			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
 		}
 	];
+
+	function stepRef(node, index) {
+		stepEls[index] = node;
+		stepEls = [...stepEls];
+		return {
+			destroy() {
+				stepEls[index] = null;
+				stepEls = [...stepEls];
+			}
+		};
+	}
 
 	/**
 	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
@@ -338,8 +350,7 @@
 		const cw = containerEl.clientWidth || 900;
 		mapW = Math.max(400, Math.min(1100, cw - CHORO_LEGEND_COL_W - DEV_LEGEND_COL_W - 16));
 
-		const showDevs = revealStage >= 2;
-		mapCanvasLeft = showDevs ? DEV_LEGEND_COL_W : 0;
+		mapCanvasLeft = 0;
 		const svgW = mapCanvasLeft + mapW + CHORO_LEGEND_COL_W;
 		const svgH = mapH;
 
@@ -476,6 +487,8 @@
 
 		d3.select(containerEl)
 			.selectAll('path.tract-poly')
+			.transition()
+			.duration(350)
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
@@ -585,10 +598,15 @@
 		devLeg.selectAll('*').remove();
 
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
-		devLayer.selectAll('*').remove();
+		const t = d3.transition().duration(350);
 
 		if (revealStage < 2) {
 			devSizeLegendTicks = null;
+			devLayer
+				.selectAll('circle.dev-dot')
+				.transition(t)
+				.attr('opacity', 0)
+				.style('pointer-events', 'none');
 			return;
 		}
 
@@ -610,48 +628,6 @@
 
 		const mfColor = d3.scaleSequential((t) => interpolateOrangeGreen(t)).domain([0, 1]).clamp(true);
 
-		const y0mf = 10;
-		const legBarHmf = Math.max(120, mapH - y0mf - 14);
-		const legBarWmf = 10;
-		const mfBarLeft = 0;
-		const mfBarRight = mfBarLeft + legBarWmf;
-		const gradMfId = `poc-dev-mf-grad-${mapUid}`;
-		svg.select('defs').selectAll(`#${gradMfId}`).remove();
-		const gradMf = svg.select('defs').append('linearGradient').attr('id', gradMfId)
-			.attr('x1', '0%').attr('y1', '100%').attr('x2', '0%').attr('y2', '0%');
-		for (let i = 0; i <= 48; i++) {
-			const t = i / 48;
-			gradMf.append('stop').attr('offset', `${t * 100}%`).attr('stop-color', interpolateOrangeGreen(t));
-		}
-		const mfLegG = devLeg.append('g').attr('class', 'map-dev-legend-inner').attr('transform', 'translate(6,0)');
-		mfLegG
-			.append('rect')
-			.attr('x', mfBarLeft)
-			.attr('y', y0mf)
-			.attr('width', legBarWmf)
-			.attr('height', legBarHmf)
-			.attr('rx', 2)
-			.attr('fill', `url(#${gradMfId})`)
-			.attr('stroke', 'var(--border)')
-			.attr('stroke-width', 0.5);
-		const yMf = d3.scaleLinear().domain([0, 1]).range([y0mf + legBarHmf, y0mf]);
-		mfLegG
-			.append('g')
-			.attr('transform', `translate(${mfBarRight + 5},0)`)
-			.call(d3.axisRight(yMf).ticks(4).tickFormat(d3.format('.0%')).tickSize(3))
-			.call((g) => g.selectAll('path,line').attr('stroke', 'var(--border)'))
-			.call((g) =>
-				g.selectAll('text').attr('fill', 'var(--text-muted)').attr('font-size', '8px')
-			);
-		mfLegG
-			.append('text')
-			.attr('transform', `translate(11.5, ${y0mf + legBarHmf * 0.5}) rotate(-90)`)
-			.attr('text-anchor', 'middle')
-			.attr('fill', 'var(--text-muted)')
-			.attr('font-size', '7.5px')
-			.attr('font-weight', 600)
-			.text('MF share (dot fill)');
-
 		const glyphData = filteredDevs.map((d) => {
 			const hu = Number(d.hu) || 0;
 			const mf = developmentMultifamilyShare(d);
@@ -670,8 +646,33 @@
 		devLayer
 			.selectAll('circle.dev-dot')
 			.data(glyphData, (d, i) => `${d.gisjoin}-${d.lat}-${d.lon}-${i}`)
-			.join('circle')
-			.attr('class', 'dev-dot')
+			.join(
+				(enter) =>
+					enter
+						.append('circle')
+						.attr('class', 'dev-dot')
+						.attr('cx', (d) => projection([d.lon, d.lat])?.[0] ?? -9999)
+						.attr('cy', (d) => projection([d.lon, d.lat])?.[1] ?? -9999)
+						.attr('r', (d) => d.rBase * invK)
+						.attr('fill', (d) =>
+							d.mfShare == null || !Number.isFinite(d.mfShare) ? '#475569' : mfColor(d.mfShare)
+						)
+						.attr('fill-opacity', 0.78)
+						.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
+						.attr('stroke-width', (d) => d.strokeWBase * invK)
+						.attr('opacity', 0)
+						.style('cursor', 'pointer')
+						.style('pointer-events', 'none')
+						.call((sel) =>
+							sel
+								.on('mouseenter', handleDevEnter)
+								.on('mousemove', handleMouseMove)
+								.on('mouseleave', handleOverlayLeave)
+						),
+				(update) => update,
+				(exit) => exit.transition(t).attr('opacity', 0).remove()
+			)
+			.transition(t)
 			.attr('cx', (d) => projection([d.lon, d.lat])?.[0] ?? -9999)
 			.attr('cy', (d) => projection([d.lon, d.lat])?.[1] ?? -9999)
 			.attr('r', (d) => d.rBase * invK)
@@ -681,10 +682,9 @@
 			.attr('fill-opacity', 0.78)
 			.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
 			.attr('stroke-width', (d) => d.strokeWBase * invK)
-			.style('cursor', 'pointer')
-			.on('mouseenter', handleDevEnter)
-			.on('mousemove', handleMouseMove)
-			.on('mouseleave', handleOverlayLeave);
+			.attr('opacity', 1)
+			.selection()
+			.style('pointer-events', 'auto');
 	}
 
 	function updateOverlays() {
@@ -977,7 +977,6 @@
 		void dataKey;
 		void revealStage;
 		if (!containerEl || !svgRef) return;
-		panelState.showDevelopments = revealStage >= 2;
 		updateChoropleth();
 		updateDevelopments();
 		updateSelection();
@@ -997,6 +996,29 @@
 		updateSelection();
 	});
 
+	$effect(() => {
+		if (stepEls.filter(Boolean).length !== stepContent.length) return;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				const visible = entries
+					.filter((entry) => entry.isIntersecting)
+					.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+				if (!visible.length) return;
+				const next = Number(visible[0].target.getAttribute('data-step-index'));
+				if (Number.isFinite(next)) revealStage = next;
+			},
+			{
+				root: null,
+				threshold: [0.35, 0.6, 0.85],
+				rootMargin: '-10% 0px -30% 0px'
+			}
+		);
+		for (const el of stepEls) {
+			if (el) observer.observe(el);
+		}
+		return () => observer.disconnect();
+	});
+
 	onDestroy(() => {
 		if (containerEl) d3.select(containerEl).selectAll('*').remove();
 		lastStructuralKey = '';
@@ -1008,8 +1030,6 @@
 <div class="poc-nhgis-map">
 	<div class="poc-scrolly">
 		<div class="poc-scrolly-map">
-			<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
-
 			<div class="poc-legend-row">
 				<fieldset class="poc-transit-field">
 					<legend class="poc-transit-legend">MBTA Overlays</legend>
@@ -1125,6 +1145,7 @@
 
 			<div class="map-wrap">
 				<div class="map-main" onmouseleave={handleOverlayLeave}>
+					<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
 					<div class="map-root" bind:this={containerEl}></div>
 					{#if tooltip.visible}
 						<div
@@ -1175,22 +1196,18 @@
 					{/if}
 				</div>
 
-				<aside class="poc-stepper-side card-key" aria-label="Map explanation steps">
-					<div class="poc-stepper-overlay-head">
+				<aside class="poc-stepper-side" aria-label="Map explanation steps">
+					<div class="poc-stepper-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">Build up the map in 3 layers.</p>
+						<p class="poc-stepper-inline-hint">Scroll down the page and the map will progressively add layers.</p>
 					</div>
-					<div class="poc-stepper-inline-rail" role="tablist" aria-label="Map steps">
+					<div class="poc-stepper-inline-rail" aria-label="Map steps">
 						{#each stepContent as step, i}
-							<button
-								type="button"
+							<section
+								use:stepRef={i}
 								class="poc-stepper-card"
 								class:poc-stepper-card--active={revealStage === i}
-								role="tab"
-								aria-selected={revealStage === i}
-								onclick={() => {
-									revealStage = i;
-								}}
+								data-step-index={i}
 							>
 								<div class="poc-stepper-card-top">
 									<span class="poc-stepper-pill-num">{i + 1}</span>
@@ -1200,12 +1217,12 @@
 									</div>
 								</div>
 								<p class="poc-stepper-card-body">{step.body}</p>
-							</button>
+							</section>
 						{/each}
 					</div>
 				</aside>
 			</div>
-			<p class="poc-map-zoom-hint">Use the step buttons to reveal layers · drag to pan · scroll or pinch to zoom</p>
+			<p class="poc-map-zoom-hint">Scroll through the narrative steps · drag to pan · scroll or pinch to zoom</p>
 		</div>
 	</div>
 </div>
@@ -1243,14 +1260,20 @@
 
 	.poc-stepper-side {
 		display: grid;
-		gap: 10px;
-		padding: 10px 12px;
+		gap: 14px;
 		align-content: start;
+		padding-top: 12px;
 	}
 
-	.poc-stepper-overlay-head {
+	.poc-stepper-head {
+		position: sticky;
+		top: 16px;
 		display: grid;
-		gap: 2px;
+		gap: 4px;
+		padding: 12px 14px;
+		border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+		border-radius: var(--radius-sm);
+		background: color-mix(in srgb, var(--bg-card) 96%, white);
 	}
 
 	.poc-stepper-inline-kicker,
@@ -1273,25 +1296,35 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 8px;
+		gap: 28vh;
 	}
 
 	.poc-stepper-card {
 		display: grid;
-		gap: 8px;
+		align-content: center;
+		gap: 12px;
 		width: 100%;
-		padding: 10px 11px;
+		min-height: 72vh;
+		padding: 10px 0 0;
+		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+		padding-left: 18px;
 		border-radius: var(--radius-sm);
-		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--bg-card) 95%, white);
+		border: 0;
+		background: transparent;
 		text-align: left;
 		color: var(--text);
-		cursor: pointer;
+		opacity: 0.48;
+		transform: translateY(14px);
+		transition:
+			opacity 220ms ease,
+			transform 220ms ease,
+			border-color 220ms ease;
 	}
 
 	.poc-stepper-card--active {
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+		border-left-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+		opacity: 1;
+		transform: translateY(0);
 	}
 
 	.poc-stepper-card-top {
@@ -1341,8 +1374,9 @@
 
 	.poc-stepper-card-body {
 		margin: 0;
-		font-size: 0.75rem;
-		line-height: 1.45;
+		max-width: 32ch;
+		font-size: 0.9rem;
+		line-height: 1.6;
 		color: var(--text-muted);
 	}
 
@@ -1377,6 +1411,25 @@
 	@media (max-width: 900px) {
 		.map-wrap {
 			grid-template-columns: 1fr;
+		}
+
+		.map-main {
+			position: relative;
+			top: auto;
+		}
+
+		.poc-stepper-head {
+			position: relative;
+			top: auto;
+		}
+
+		.poc-stepper-inline-rail {
+			gap: 18px;
+		}
+
+		.poc-stepper-card {
+			min-height: 0;
+			padding-top: 0;
 		}
 	}
 
@@ -1683,16 +1736,18 @@
 
 	.map-wrap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 260px;
-		gap: 12px;
+		grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+		gap: 28px;
 		width: 100%;
 		background: transparent;
 		align-items: stretch;
 	}
 
 	.map-main {
-		position: relative;
+		position: sticky;
+		top: 18px;
 		min-width: 0;
+		align-self: start;
 	}
 
 	.map-root {
