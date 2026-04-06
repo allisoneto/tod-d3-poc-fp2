@@ -49,6 +49,7 @@
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
 	let revealStage = $state(0);
 	let stepObserver = null;
+	let stepsEl = $state(null);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -92,7 +93,11 @@
 						.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
 					if (visible[0]) revealStage = Number(visible[0].target.dataset.stage) || 0;
 				},
-				{ rootMargin: '-18% 0px -42% 0px', threshold: [0.2, 0.4, 0.65] }
+				{
+					root: stepsEl,
+					rootMargin: '-8% 0px -38% 0px',
+					threshold: [0.2, 0.4, 0.65]
+				}
 			);
 		}
 		node.dataset.stage = String(stage);
@@ -103,6 +108,13 @@
 			}
 		};
 	}
+
+	$effect(() => {
+		void stepsEl;
+		if (!stepsEl) return;
+		stepObserver?.disconnect();
+		stepObserver = null;
+	});
 
 	/**
 	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
@@ -1113,7 +1125,7 @@
 			<p class="poc-map-zoom-hint">Scroll the steps to reveal layers · drag to pan · scroll or pinch to zoom</p>
 		</div>
 
-		<div class="poc-scrolly-steps" aria-label="Map explanation steps">
+		<div class="poc-scrolly-steps" bind:this={stepsEl} aria-label="Map explanation steps">
 			<section class="poc-step card-key" use:observeStep={0}>
 				<div class="poc-step-kicker">Step 1</div>
 				<h4>Start with the choropleth</h4>
@@ -1149,11 +1161,10 @@
 	}
 
 	.poc-scrolly-map {
-		position: sticky;
-		top: 16px;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+		min-height: 0;
 	}
 
 	.poc-stage-chip {
@@ -1172,11 +1183,17 @@
 		display: grid;
 		gap: 14px;
 		padding-block: 4px 10px;
+		max-height: 760px;
+		overflow-y: auto;
+		padding-right: 4px;
+		scroll-snap-type: y proximity;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	.poc-step {
 		padding: 12px 14px;
 		min-height: 180px;
+		scroll-snap-align: start;
 	}
 
 	.poc-step-kicker {
@@ -1234,8 +1251,10 @@
 			grid-template-columns: 1fr;
 		}
 
-		.poc-scrolly-map {
-			position: static;
+		.poc-scrolly-steps {
+			max-height: none;
+			overflow: visible;
+			padding-right: 0;
 		}
 
 		.poc-step {
