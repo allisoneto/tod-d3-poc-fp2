@@ -26,7 +26,18 @@
 	let { panelState, domainOverride = null } = $props();
 
 	let containerEl = $state(null);
-	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
+	let tooltip = $state({
+		visible: false,
+		x: 0,
+		y: 0,
+		eyebrow: '',
+		title: '',
+		badge: '',
+		badgeTone: '',
+		primaryRows: [],
+		secondaryRows: []
+	});
+	let revealStage = $state(2);
 
 	/* Map canvas + optional left (dev MF) and right (choropleth) legend columns; no extra height below map. */
 	const VIRIDIS_LEGEND_COL_W = 34;
@@ -42,6 +53,24 @@
 	const MAP_CTRL_COHORT_HEX = '#64748b';
 	/** Blend target to mute non-cohort tracts when a cohort highlight is active. */
 	const MAP_DIM_TOWARD_HEX = '#05070c';
+
+	const stepContent = [
+		{
+			kicker: 'Step 1',
+			title: 'Start with the choropleth',
+			body: 'Read the tract-level metric first, without extra overlays competing for attention.'
+		},
+		{
+			kicker: 'Step 2',
+			title: 'Add the tract cohorts',
+			body: 'Bring in the TOD and comparison tract categories so the cohort geography becomes easier to read.'
+		},
+		{
+			kicker: 'Step 3',
+			title: 'Add projects and transit',
+			body: 'Overlay developments and MBTA infrastructure to connect tract outcomes back to nearby projects and service.'
+		}
+	];
 
 	/**
 	 * Linear RGB blend for overlaying cohort highlights on choropleth fills.
@@ -81,12 +110,43 @@
 		return s != null && s >= minPct / 100;
 	}
 
+	function showTodShadeEffective() {
+		return revealStage >= 1 && panelState.showMapTodCohortShade;
+	}
+
+	function showCtrlShadeEffective() {
+		return revealStage >= 1 && panelState.showMapControlCohortShade;
+	}
+
+	function showDevelopmentsEffective() {
+		return revealStage >= 2 && panelState.showDevelopments;
+	}
+
+	function lineVisibilityEffective() {
+		if (revealStage < 2) return { rail: false, commuter_rail: false, bus: false };
+		return {
+			rail: panelState.showRailLines,
+			commuter_rail: panelState.showCommuterRailLines,
+			bus: panelState.showBusLines
+		};
+	}
+
+	function stopVisibilityEffective() {
+		if (revealStage < 2) return { rail: false, commuter_rail: false, bus: false };
+		return {
+			rail: panelState.showRailStops,
+			commuter_rail: panelState.showCommuterRailStops,
+			bus: panelState.showBusStops
+		};
+	}
+
 	const structuralKey = $derived(
 		JSON.stringify({
 			n: tractData.length,
 			gf: tractGeo?.features?.length ?? 0,
 			ms: mbtaStops.length,
-			showDev: panelState.showDevelopments
+			showDev: showDevelopmentsEffective(),
+			rs: revealStage
 		})
 	);
 
@@ -108,9 +168,10 @@
 			dn: developments.length,
 			domSync: domainOverride ? 'on' : 'off',
 			domColor: domainOverride?.colorDomain,
-			mapTod: panelState.showMapTodCohortShade,
-			mapCtrl: panelState.showMapControlCohortShade,
-			showDev: panelState.showDevelopments
+			mapTod: showTodShadeEffective(),
+			mapCtrl: showCtrlShadeEffective(),
+			showDev: showDevelopmentsEffective(),
+			rs: revealStage
 		})
 	);
 
@@ -172,7 +233,7 @@
 			return;
 		}
 
-		const showDevs = panelState.showDevelopments;
+		const showDevs = showDevelopmentsEffective();
 		mapCanvasLeft = showDevs ? DEV_LEGEND_COL_W : 0;
 		const svgW = mapCanvasLeft + mapW + VIRIDIS_LEGEND_COL_W;
 		const svgH = mapH;
@@ -320,8 +381,8 @@
 		const controlSet = new Set(
 			getNonTodTracts(tractData, panelState, developments).map((t) => t.gisjoin)
 		);
-		const showTodShade = panelState.showMapTodCohortShade;
-		const showCtrlShade = panelState.showMapControlCohortShade;
+		const showTodShade = showTodShadeEffective();
+		const showCtrlShade = showCtrlShadeEffective();
 
 		/** MBTA red (negative) → neutral → MBTA blue (positive). */
 		const divergingMap = d3.piecewise(d3.interpolateRgb, [MBTA_RED, MBTA_MAP_NEUTRAL, MBTA_BLUE]);
@@ -523,6 +584,8 @@
 		containerEl.__mapFilteredSet = filteredSet;
 		containerEl.__mapYLabel = yLabel;
 		containerEl.__mapYKey = yKey;
+		containerEl.__mapTodSet = todSet;
+		containerEl.__mapControlSet = controlSet;
 	}
 
 	/** Update development dots on the map based on showDevelopments toggle + dev filters. */
@@ -536,7 +599,7 @@
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		devLayer.selectAll('*').remove();
 
-		if (!panelState.showDevelopments) return;
+		if (!showDevelopmentsEffective()) return;
 
 		const { filteredDevs } = buildFilteredData(tractData, developments, panelState);
 		const projection = projectionRef;
@@ -631,8 +694,8 @@
 	function updateOverlays() {
 		if (!containerEl || !svgRef) return;
 
-		const lineVis = { rail: panelState.showRailLines, commuter_rail: panelState.showCommuterRailLines, bus: panelState.showBusLines };
-		const stopVis = { rail: panelState.showRailStops, commuter_rail: panelState.showCommuterRailStops, bus: panelState.showBusStops };
+		const lineVis = lineVisibilityEffective();
+		const stopVis = stopVisibilityEffective();
 
 		d3.select(containerEl).selectAll('path.mbta-line')
 			.attr('display', (d) => {
@@ -682,37 +745,55 @@
 		const tractLookup = buildTractLookup();
 		const t = tractLookup.get(id);
 		const county = t?.county;
-		const title = county && String(county) !== 'County Name' ? String(county) : String(id);
-
-		const lines = [{ bold: true, text: title }];
+		const tractPlace = county && String(county) !== 'County Name' ? String(county) : String(id);
+		const todSet = containerEl?.__mapTodSet;
+		const controlSet = containerEl?.__mapControlSet;
+		const badge = todSet?.has(id)
+			? 'TOD tract'
+			: controlSet?.has(id)
+				? 'non-TOD tract'
+				: '';
+		const badgeTone = todSet?.has(id) ? 'tod' : controlSet?.has(id) ? 'nontod' : 'neutral';
+		const primaryRows = [];
+		const secondaryRows = [];
 
 		if (t) {
 			const tp = panelState.timePeriod;
 			const { startY, endY } = periodCensusBounds(tp);
 
 			if (yLabel && lookup) {
-				lines.push({ bold: false, text: `${yLabel}: ${Number.isFinite(v) ? fmt(v) : '\u2014'}` });
+				primaryRows.push({ label: yLabel, value: Number.isFinite(v) ? fmt(v) : '\u2014' });
 			}
 
 			const pop = t[`pop_${startY}`];
-			if (pop != null) lines.push({ bold: false, text: `Pop (${startY}): ${fmtInt(pop)}` });
+			if (pop != null) secondaryRows.push({ label: `Population (${startY})`, value: fmtInt(pop) });
 			const hu = t[`total_hu_${startY}`];
-			if (hu != null) lines.push({ bold: false, text: `Housing units (${startY}): ${fmtInt(hu)}` });
+			if (hu != null) secondaryRows.push({ label: `Housing units (${startY})`, value: fmtInt(hu) });
 			const huEnd = t[`total_hu_${endY}`];
 			if (hu != null && huEnd != null) {
 				const diff = huEnd - hu;
 				const sign = diff >= 0 ? '+' : '';
-				lines.push({ bold: false, text: `HU change (census): ${sign}${fmtInt(diff)}` });
+				primaryRows.push({ label: 'HU change (census)', value: `${sign}${fmtInt(diff)}` });
 			}
 			const stopsRaw = Number(t.transit_stops) || 0;
-			lines.push({ bold: false, text: `MBTA stops (tract + buffer): ${stopsRaw}` });
+			secondaryRows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
 			const minPct = t[`minority_pct_${startY}`];
-			if (minPct != null) lines.push({ bold: false, text: `Minority %: ${fmt(minPct)}%` });
+			if (minPct != null) primaryRows.push({ label: `Minority share (${startY})`, value: `${fmt(minPct)}%` });
 		} else {
-			lines.push({ bold: false, text: 'No census data for this tract' });
+			secondaryRows.push({ label: 'Tract data', value: 'No census data for this tract' });
 		}
 
-		tooltip = { visible: true, x: event.clientX, y: event.clientY, lines };
+		tooltip = {
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			eyebrow: 'Census tract',
+			title: `Tract in ${tractPlace}`,
+			badge,
+			badgeTone,
+			primaryRows,
+			secondaryRows
+		};
 	}
 
 	function handleMouseMove(event) {
@@ -734,12 +815,18 @@
 		const routes = d.routes?.join(', ') || 'Unknown';
 		const modes = (d.modes ?? []).map((m) => transitModeUiLabel(m)).join(', ') || 'Unknown';
 		tooltip = {
-			visible: true, x: event.clientX, y: event.clientY,
-			lines: [
-				{ bold: true, text: d.name || 'MBTA Stop' },
-				{ bold: false, text: `Routes: ${routes}` },
-				{ bold: false, text: `Mode: ${modes}` }
-			]
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			eyebrow: 'Transit stop',
+			title: d.name || 'MBTA Stop',
+			badge: 'Transit stop',
+			badgeTone: 'neutral',
+			primaryRows: [
+				{ label: 'Routes', value: routes },
+				{ label: 'Mode', value: modes }
+			],
+			secondaryRows: []
 		};
 	}
 
@@ -747,22 +834,30 @@
 		const props = d.properties ?? {};
 		const name = props.route_long_name || props.route_short_name || props.route_id || 'MBTA Route';
 		tooltip = {
-			visible: true, x: event.clientX, y: event.clientY,
-			lines: [
-				{ bold: true, text: name },
-				{ bold: false, text: `Route: ${props.route_short_name || props.route_id || ''}` }
-			]
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			eyebrow: 'Transit line',
+			title: name,
+			badge: 'MBTA line',
+			badgeTone: 'neutral',
+			primaryRows: [
+				{ label: 'Route', value: props.route_short_name || props.route_id || '—' }
+			],
+			secondaryRows: []
 		};
 	}
 
 	function handleDevEnter(event, d) {
 		const fmtPct = d3.format('.1f');
-		const lines = [{ bold: true, text: d.name || 'Development' }];
-		lines.push({ bold: false, text: `${d.municipal}` });
-		lines.push({ bold: false, text: `Units: ${d.hu}` });
+		const primaryRows = [
+			{ label: 'Municipality', value: `${d.municipal ?? '—'}` },
+			{ label: 'Units', value: `${d.hu ?? '—'}` }
+		];
+		const secondaryRows = [];
 		const mf = developmentMultifamilyShare(d);
 		if (mf != null && Number.isFinite(mf)) {
-			lines.push({ bold: false, text: `Multifamily (share): ${fmtPct(mf * 100)}%` });
+			primaryRows.push({ label: 'Multifamily share', value: `${fmtPct(mf * 100)}%` });
 		}
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
 		const todMi = panelState.transitDistanceMi ?? 0.5;
@@ -772,25 +867,32 @@
 		const nearestM = prox.nearestDistM;
 		const nWithin = prox.stopsWithinRadius;
 		if (nearestM != null && Number.isFinite(nearestM)) {
-			lines.push({
-				bold: false,
-				text: `Nearest stop: ${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
+			secondaryRows.push({
+				label: 'Nearest stop',
+				value: `${nearestM.toFixed(0)} m${access ? ' (within TOD radius)' : ''}`
 			});
 		} else {
-			lines.push({ bold: false, text: 'Nearest stop: \u2014' });
+			secondaryRows.push({ label: 'Nearest stop', value: '\u2014' });
 		}
-		lines.push({
-			bold: false,
-			text: `Stops within ${todMi} mi: ${nWithin}`
-		});
+		secondaryRows.push({ label: `Stops within ${todMi} mi`, value: `${nWithin}` });
 		const affCap = developmentAffordableUnitsCapped(d);
 		if (affCap > 0) {
 			const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
-			lines.push({ bold: false, text: `Affordable: ${affCap}${src}` });
+			primaryRows.push({ label: 'Affordable units', value: `${affCap}${src}` });
 		}
-		lines.push({ bold: false, text: d.mixed_use ? 'Mixed-use' : 'Residential' });
-		if (d.rdv) lines.push({ bold: false, text: 'Redevelopment' });
-		tooltip = { visible: true, x: event.clientX, y: event.clientY, lines };
+		secondaryRows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
+		if (d.rdv) secondaryRows.push({ label: 'Redevelopment', value: 'Yes' });
+		tooltip = {
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			eyebrow: 'MassBuilds project',
+			title: `Development: ${d.name || 'Unnamed project'}`,
+			badge: access ? 'Transit-accessible' : 'Not transit-accessible',
+			badgeTone: access ? 'tod' : 'minimal',
+			primaryRows,
+			secondaryRows
+		};
 	}
 
 	function handleOverlayLeave() {
@@ -828,6 +930,7 @@
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
+		updateOverlays();
 		updateSelection();
 	});
 
@@ -835,6 +938,7 @@
 		void panelState.showDevelopments;
 		if (!containerEl || !svgRef) return;
 		updateDevelopments();
+		updateOverlays();
 	});
 
 	$effect(() => {
@@ -860,6 +964,33 @@
 </script>
 
 <div class="map-wrap">
+	<div class="map-stepper card-key" aria-label="Map walkthrough">
+		<div class="map-stepper__head">
+			<p class="map-stepper__kicker">Map walkthrough</p>
+			<p class="map-stepper__hint">Use 3 layers to build up context.</p>
+		</div>
+		<div class="map-stepper__rail" role="tablist" aria-label="Map steps">
+			{#each stepContent as step, i}
+				<button
+					type="button"
+					class="map-stepper__pill"
+					class:map-stepper__pill--active={revealStage === i}
+					role="tab"
+					aria-selected={revealStage === i}
+					onclick={() => {
+						revealStage = i;
+					}}
+				>
+					<span class="map-stepper__num">{i + 1}</span>
+					<span class="map-stepper__title">{step.title}</span>
+				</button>
+			{/each}
+		</div>
+		<div class="map-stepper__body">
+			<p class="map-stepper__body-kicker">{stepContent[revealStage].kicker}</p>
+			<p class="map-stepper__body-copy">{stepContent[revealStage].body}</p>
+		</div>
+	</div>
 	<div class="map-root" bind:this={containerEl}></div>
 	{#if tooltip.visible}
 		<div
@@ -867,9 +998,40 @@
 			style:left="{tooltip.x + 12}px"
 			style:top="{tooltip.y + 12}px"
 		>
-			{#each tooltip.lines as line, i (i)}
-				<p class:tooltip-bold={line.bold}>{line.text}</p>
-			{/each}
+			<div class="map-tooltip__header">
+				<div class="map-tooltip__header-copy">
+					{#if tooltip.eyebrow}
+						<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
+					{/if}
+					<p class="map-tooltip__title">{tooltip.title}</p>
+				</div>
+				{#if tooltip.badge}
+					<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+				{/if}
+			</div>
+			{#if tooltip.primaryRows.length > 0}
+				<div class="map-tooltip__primary">
+					{#each tooltip.primaryRows as row, i (i)}
+						<div class="map-tooltip__primary-row">
+							<span class="map-tooltip__primary-label">{row.label}</span>
+							<span class="map-tooltip__primary-value">{row.value}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+			{#if tooltip.secondaryRows.length > 0}
+				<div class="map-tooltip__details">
+					<p class="map-tooltip__details-label">Details</p>
+					<div class="map-tooltip__rows">
+						{#each tooltip.secondaryRows as row, i (i)}
+							<div class="map-tooltip__row">
+								<span class="map-tooltip__label">{row.label}</span>
+								<span class="map-tooltip__value">{row.value}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -880,6 +1042,98 @@
 		width: 100%;
 		background: transparent;
 	}
+
+	.card-key {
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+		background: color-mix(in srgb, var(--bg-card) 92%, white);
+		border-radius: 10px;
+		box-shadow: 0 4px 18px rgb(15 23 42 / 0.08);
+	}
+
+	.map-stepper {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		z-index: 8;
+		display: grid;
+		gap: 8px;
+		width: min(320px, calc(100% - 20px));
+		padding: 10px 12px;
+		backdrop-filter: blur(8px);
+	}
+
+	.map-stepper__head,
+	.map-stepper__body {
+		display: grid;
+		gap: 2px;
+	}
+
+	.map-stepper__kicker,
+	.map-stepper__body-kicker {
+		margin: 0;
+		font-size: 0.66rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	.map-stepper__hint,
+	.map-stepper__body-copy {
+		margin: 0;
+		font-size: 0.74rem;
+		line-height: 1.4;
+		color: var(--text-muted);
+	}
+
+	.map-stepper__rail {
+		display: grid;
+		gap: 6px;
+	}
+
+	.map-stepper__pill {
+		display: grid;
+		grid-template-columns: 26px minmax(0, 1fr);
+		gap: 8px;
+		align-items: center;
+		width: 100%;
+		padding: 7px 9px;
+		border-radius: 8px;
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 95%, white);
+		text-align: left;
+		color: var(--text);
+	}
+
+	.map-stepper__pill--active {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+	}
+
+	.map-stepper__num {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		font-size: 0.78rem;
+		font-weight: 700;
+	}
+
+	.map-stepper__pill--active .map-stepper__num {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+	}
+
+	.map-stepper__title {
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1.25;
+		color: var(--text);
+	}
+
 	.map-root {
 		width: 100%;
 		max-width: 100%;
@@ -894,25 +1148,147 @@
 	.map-tooltip {
 		position: fixed;
 		z-index: 20;
-		max-width: 320px;
-		padding: 8px 10px;
-		font-size: 0.75rem;
-		line-height: 1.35;
+		max-width: 360px;
+		padding: 12px 13px;
+		font-size: 0.78rem;
+		line-height: 1.4;
 		color: var(--text);
 		pointer-events: none;
-		background: color-mix(in srgb, var(--bg, #111) 92%, transparent);
+		background: var(--bg-card);
 		border: 1px solid var(--border);
-		border-radius: 6px;
-		box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+		border-radius: 10px;
+		box-shadow: 0 10px 28px rgb(15 23 42 / 0.16);
 	}
-	.map-tooltip p {
+
+	.map-tooltip__header {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+		align-items: flex-start;
+		margin-bottom: 8px;
+	}
+
+	.map-tooltip__header-copy {
+		display: grid;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.map-tooltip__eyebrow,
+	.map-tooltip__details-label {
 		margin: 0;
+		font-size: 0.63rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
 	}
-	.map-tooltip p + p {
-		margin-top: 3px;
-	}
-	.tooltip-bold {
-		font-weight: 600;
+
+	.map-tooltip__title {
+		margin: 0;
+		font-size: 0.92rem;
+		font-weight: 700;
+		line-height: 1.2;
 		color: var(--text);
+	}
+
+	.map-tooltip__badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 3px 8px;
+		border-radius: 999px;
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+	}
+
+	.map-tooltip__badge--tod {
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		background: color-mix(in srgb, var(--accent) 13%, var(--bg-card));
+		color: var(--accent);
+	}
+
+	.map-tooltip__badge--nontod {
+		border-color: color-mix(in srgb, #64748b 55%, var(--border));
+		background: color-mix(in srgb, #64748b 13%, var(--bg-card));
+		color: #526074;
+	}
+
+	.map-tooltip__badge--minimal {
+		border-color: #94a3b8;
+		background: color-mix(in srgb, #94a3b8 13%, var(--bg-card));
+		color: #526074;
+	}
+
+	.map-tooltip__badge--neutral {
+		color: var(--text-muted);
+	}
+
+	.map-tooltip__primary {
+		display: grid;
+		gap: 6px;
+		padding: 8px 10px;
+		margin-bottom: 8px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+	}
+
+	.map-tooltip__primary-row,
+	.map-tooltip__row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 10px;
+		align-items: baseline;
+	}
+
+	.map-tooltip__primary-label {
+		font-size: 0.68rem;
+		font-weight: 700;
+		line-height: 1.3;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--text-muted);
+	}
+
+	.map-tooltip__primary-value {
+		font-size: 0.86rem;
+		font-weight: 700;
+		line-height: 1.25;
+		text-align: right;
+		color: var(--text);
+	}
+
+	.map-tooltip__details,
+	.map-tooltip__rows {
+		display: grid;
+		gap: 6px;
+	}
+
+	.map-tooltip__label {
+		color: var(--text-muted);
+		font-size: 0.73rem;
+		line-height: 1.35;
+	}
+
+	.map-tooltip__value {
+		color: var(--text);
+		font-size: 0.76rem;
+		font-weight: 600;
+		line-height: 1.35;
+		text-align: right;
+	}
+
+	@media (max-width: 720px) {
+		.map-stepper {
+			position: relative;
+			top: auto;
+			left: auto;
+			width: 100%;
+			margin-bottom: 8px;
+			backdrop-filter: none;
+		}
 	}
 </style>
