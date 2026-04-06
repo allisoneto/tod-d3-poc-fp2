@@ -46,6 +46,7 @@
 	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
 
 	let containerEl = $state(null);
+	let stepperScrollEl = $state(null);
 	let tooltip = $state({
 		visible: false,
 		x: 0,
@@ -108,6 +109,34 @@
 			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
 		}
 	];
+
+	function setRevealStageFromScroll() {
+		const el = stepperScrollEl;
+		if (!el) return;
+		const cards = [...el.querySelectorAll('[data-step-index]')];
+		if (cards.length === 0) return;
+		const mid = el.scrollTop + el.clientHeight / 2;
+		let best = revealStage;
+		let bestDist = Infinity;
+		for (const card of cards) {
+			const idx = Number(card.getAttribute('data-step-index'));
+			const center = card.offsetTop + card.offsetHeight / 2;
+			const dist = Math.abs(center - mid);
+			if (dist < bestDist) {
+				best = idx;
+				bestDist = dist;
+			}
+		}
+		if (best !== revealStage) revealStage = best;
+	}
+
+	function scrollStepIntoView(i, behavior = 'smooth') {
+		const el = stepperScrollEl;
+		if (!el) return;
+		const card = el.querySelector(`[data-step-index="${i}"]`);
+		if (!card) return;
+		card.scrollIntoView({ block: 'nearest', behavior });
+	}
 
 	/**
 	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
@@ -989,6 +1018,14 @@
 	});
 
 	$effect(() => {
+		void stepperScrollEl;
+		if (!stepperScrollEl) return;
+		requestAnimationFrame(() => {
+			scrollStepIntoView(revealStage, 'auto');
+		});
+	});
+
+	$effect(() => {
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
@@ -1126,30 +1163,37 @@
 				<div class="poc-stepper-overlay card-key" aria-label="Map explanation steps">
 					<div class="poc-stepper-overlay-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">Build up the map in 3 layers.</p>
+						<p class="poc-stepper-inline-hint">Scroll this panel to build up the map in 3 layers.</p>
 					</div>
-					<div class="poc-stepper-inline-rail" role="tablist" aria-label="Map steps">
+					<div
+						class="poc-stepper-inline-rail"
+						role="tablist"
+						aria-label="Map steps"
+						bind:this={stepperScrollEl}
+						onscroll={setRevealStageFromScroll}
+					>
 						{#each stepContent as step, i}
-							<button
-								type="button"
-								class="poc-stepper-pill"
-								class:poc-stepper-pill--active={revealStage === i}
+							<article
+								class="poc-stepper-card"
+								class:poc-stepper-card--active={revealStage === i}
+								data-step-index={i}
 								role="tab"
 								aria-selected={revealStage === i}
 								onclick={() => {
 									revealStage = i;
+									scrollStepIntoView(i);
 								}}
 							>
-								<span class="poc-stepper-pill-num">{i + 1}</span>
-								<span class="poc-stepper-pill-text">
-									<span class="poc-stepper-pill-title">{step.title}</span>
-								</span>
-							</button>
+								<div class="poc-stepper-card-top">
+									<span class="poc-stepper-pill-num">{i + 1}</span>
+									<div class="poc-stepper-pill-text">
+										<span class="poc-stepper-pill-kicker">{step.kicker}</span>
+										<span class="poc-stepper-pill-title">{step.title}</span>
+									</div>
+								</div>
+								<p class="poc-stepper-card-body">{step.body}</p>
+							</article>
 						{/each}
-					</div>
-					<div class="poc-stepper-inline-body">
-						<p class="poc-stepper-inline-body-kicker">{stepContent[revealStage].kicker}</p>
-						<p class="poc-stepper-inline-body-copy">{stepContent[revealStage].body}</p>
 					</div>
 				</div>
 				<div class="map-root" bind:this={containerEl}></div>
@@ -1271,13 +1315,15 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 6px;
+		max-height: 210px;
+		overflow-y: auto;
+		scroll-snap-type: y proximity;
+		padding-right: 2px;
 	}
 
-	.poc-stepper-pill {
+	.poc-stepper-card {
 		display: grid;
-		grid-template-columns: 28px minmax(0, 1fr);
-		gap: 10px;
-		align-items: center;
+		gap: 8px;
 		width: 100%;
 		padding: 8px 9px;
 		border-radius: var(--radius-sm);
@@ -1285,11 +1331,20 @@
 		background: color-mix(in srgb, var(--bg-card) 95%, white);
 		text-align: left;
 		color: var(--text);
+		scroll-snap-align: center;
+		cursor: pointer;
 	}
 
-	.poc-stepper-pill--active {
+	.poc-stepper-card--active {
 		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+	}
+
+	.poc-stepper-card-top {
+		display: grid;
+		grid-template-columns: 28px minmax(0, 1fr);
+		gap: 10px;
+		align-items: center;
 	}
 
 	.poc-stepper-pill-num {
@@ -1305,7 +1360,7 @@
 		color: var(--text);
 	}
 
-	.poc-stepper-pill--active .poc-stepper-pill-num {
+	.poc-stepper-card--active .poc-stepper-pill-num {
 		border-color: var(--accent);
 		background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
 	}
@@ -1326,12 +1381,15 @@
 		font-size: 0.65rem;
 		line-height: 1.25;
 		color: var(--text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
-	.poc-stepper-inline-body {
-		display: grid;
-		gap: 4px;
-		padding-top: 1px;
+	.poc-stepper-card-body {
+		margin: 0;
+		font-size: 0.73rem;
+		line-height: 1.45;
+		color: var(--text-muted);
 	}
 
 	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */

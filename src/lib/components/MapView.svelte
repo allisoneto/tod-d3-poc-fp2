@@ -26,6 +26,7 @@
 	let { panelState, domainOverride = null } = $props();
 
 	let containerEl = $state(null);
+	let stepperScrollEl = $state(null);
 	let tooltip = $state({
 		visible: false,
 		x: 0,
@@ -71,6 +72,34 @@
 			body: 'Overlay developments and MBTA infrastructure to connect tract outcomes back to nearby projects and service.'
 		}
 	];
+
+	function setRevealStageFromScroll() {
+		const el = stepperScrollEl;
+		if (!el) return;
+		const cards = [...el.querySelectorAll('[data-step-index]')];
+		if (cards.length === 0) return;
+		const mid = el.scrollTop + el.clientHeight / 2;
+		let best = revealStage;
+		let bestDist = Infinity;
+		for (const card of cards) {
+			const idx = Number(card.getAttribute('data-step-index'));
+			const center = card.offsetTop + card.offsetHeight / 2;
+			const dist = Math.abs(center - mid);
+			if (dist < bestDist) {
+				best = idx;
+				bestDist = dist;
+			}
+		}
+		if (best !== revealStage) revealStage = best;
+	}
+
+	function scrollStepIntoView(i, behavior = 'smooth') {
+		const el = stepperScrollEl;
+		if (!el) return;
+		const card = el.querySelector(`[data-step-index="${i}"]`);
+		if (!card) return;
+		card.scrollIntoView({ block: 'nearest', behavior });
+	}
 
 	/**
 	 * Linear RGB blend for overlaying cohort highlights on choropleth fills.
@@ -948,6 +977,14 @@
 	});
 
 	$effect(() => {
+		void stepperScrollEl;
+		if (!stepperScrollEl) return;
+		requestAnimationFrame(() => {
+			scrollStepIntoView(revealStage, 'auto');
+		});
+	});
+
+	$effect(() => {
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
@@ -967,28 +1004,37 @@
 	<div class="map-stepper card-key" aria-label="Map walkthrough">
 		<div class="map-stepper__head">
 			<p class="map-stepper__kicker">Map walkthrough</p>
-			<p class="map-stepper__hint">Use 3 layers to build up context.</p>
+			<p class="map-stepper__hint">Scroll this panel to build up context in 3 layers.</p>
 		</div>
-		<div class="map-stepper__rail" role="tablist" aria-label="Map steps">
+		<div
+			class="map-stepper__rail"
+			role="tablist"
+			aria-label="Map steps"
+			bind:this={stepperScrollEl}
+			onscroll={setRevealStageFromScroll}
+		>
 			{#each stepContent as step, i}
-				<button
-					type="button"
-					class="map-stepper__pill"
-					class:map-stepper__pill--active={revealStage === i}
+				<article
+					class="map-stepper__card"
+					class:map-stepper__card--active={revealStage === i}
+					data-step-index={i}
 					role="tab"
 					aria-selected={revealStage === i}
 					onclick={() => {
 						revealStage = i;
+						scrollStepIntoView(i);
 					}}
 				>
-					<span class="map-stepper__num">{i + 1}</span>
-					<span class="map-stepper__title">{step.title}</span>
-				</button>
+					<div class="map-stepper__card-top">
+						<span class="map-stepper__num">{i + 1}</span>
+						<div class="map-stepper__card-copy">
+							<span class="map-stepper__body-kicker">{step.kicker}</span>
+							<span class="map-stepper__title">{step.title}</span>
+						</div>
+					</div>
+					<p class="map-stepper__card-body">{step.body}</p>
+				</article>
 			{/each}
-		</div>
-		<div class="map-stepper__body">
-			<p class="map-stepper__body-kicker">{stepContent[revealStage].kicker}</p>
-			<p class="map-stepper__body-copy">{stepContent[revealStage].body}</p>
 		</div>
 	</div>
 	<div class="map-root" bind:this={containerEl}></div>
@@ -1089,13 +1135,15 @@
 	.map-stepper__rail {
 		display: grid;
 		gap: 6px;
+		max-height: 210px;
+		overflow-y: auto;
+		scroll-snap-type: y proximity;
+		padding-right: 2px;
 	}
 
-	.map-stepper__pill {
+	.map-stepper__card {
 		display: grid;
-		grid-template-columns: 26px minmax(0, 1fr);
 		gap: 8px;
-		align-items: center;
 		width: 100%;
 		padding: 7px 9px;
 		border-radius: 8px;
@@ -1103,11 +1151,26 @@
 		background: color-mix(in srgb, var(--bg-card) 95%, white);
 		text-align: left;
 		color: var(--text);
+		scroll-snap-align: center;
+		cursor: pointer;
 	}
 
-	.map-stepper__pill--active {
+	.map-stepper__card--active {
 		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+	}
+
+	.map-stepper__card-top {
+		display: grid;
+		grid-template-columns: 26px minmax(0, 1fr);
+		gap: 8px;
+		align-items: center;
+	}
+
+	.map-stepper__card-copy {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
 	}
 
 	.map-stepper__num {
@@ -1122,7 +1185,7 @@
 		font-weight: 700;
 	}
 
-	.map-stepper__pill--active .map-stepper__num {
+	.map-stepper__card--active .map-stepper__num {
 		border-color: var(--accent);
 		background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
 	}
@@ -1132,6 +1195,13 @@
 		font-weight: 600;
 		line-height: 1.25;
 		color: var(--text);
+	}
+
+	.map-stepper__card-body {
+		margin: 0;
+		font-size: 0.73rem;
+		line-height: 1.45;
+		color: var(--text-muted);
 	}
 
 	.map-root {
