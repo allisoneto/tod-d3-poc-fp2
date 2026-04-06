@@ -48,8 +48,6 @@
 	let containerEl = $state(null);
 	let tooltip = $state({ visible: false, x: 0, y: 0, lines: [] });
 	let revealStage = $state(0);
-	let stepObserver = null;
-	let stepsEl = $state(null);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -83,38 +81,23 @@
 		return d3.interpolateRgb(baseFill, accent)(dc === 'minimal' ? 0.1 : 0.17);
 	}
 
-	function observeStep(node, stage) {
-		if (typeof IntersectionObserver === 'undefined') return;
-		if (!stepObserver) {
-			stepObserver = new IntersectionObserver(
-				(entries) => {
-					const visible = entries
-						.filter((entry) => entry.isIntersecting)
-						.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-					if (visible[0]) revealStage = Number(visible[0].target.dataset.stage) || 0;
-				},
-				{
-					root: stepsEl,
-					rootMargin: '-8% 0px -38% 0px',
-					threshold: [0.2, 0.4, 0.65]
-				}
-			);
+	const stepContent = [
+		{
+			kicker: 'Step 1',
+			title: 'Start with the choropleth',
+			body: 'Focus first on tract color alone. Blue tracts added more housing units over the period; red tracts grew less or lost units.'
+		},
+		{
+			kicker: 'Step 2',
+			title: 'Add the tract categories',
+			body: 'Then add the outline colors and the slight interior tint: green for TOD-dominated, orange for non-TOD-dominated, and gray for minimal-development tracts.'
+		},
+		{
+			kicker: 'Step 3',
+			title: 'Add the projects',
+			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
 		}
-		node.dataset.stage = String(stage);
-		stepObserver.observe(node);
-		return {
-			destroy() {
-				stepObserver?.unobserve(node);
-			}
-		};
-	}
-
-	$effect(() => {
-		void stepsEl;
-		if (!stepsEl) return;
-		stepObserver?.disconnect();
-		stepObserver = null;
-	});
+	];
 
 	/**
 	 * Z-order rank for tract polygons (later in DOM = drawn on top at shared edges).
@@ -982,8 +965,6 @@
 
 	onDestroy(() => {
 		if (containerEl) d3.select(containerEl).selectAll('*').remove();
-		stepObserver?.disconnect();
-		stepObserver = null;
 		lastStructuralKey = '';
 		svgRef = null;
 		projectionRef = null;
@@ -1122,25 +1103,32 @@
 					</div>
 				{/if}
 			</div>
-			<p class="poc-map-zoom-hint">Scroll the steps to reveal layers · drag to pan · scroll or pinch to zoom</p>
+			<p class="poc-map-zoom-hint">Use the stepper to reveal layers · drag to pan · scroll or pinch to zoom</p>
 		</div>
 
-		<div class="poc-scrolly-steps" bind:this={stepsEl} aria-label="Map explanation steps">
-			<section class="poc-step card-key" use:observeStep={0}>
-				<div class="poc-step-kicker">Step 1</div>
-				<h4>Start with the choropleth</h4>
-				<p>Focus first on tract color alone. Blue tracts added more housing units over the period; red tracts grew less or lost units.</p>
-			</section>
-			<section class="poc-step card-key" use:observeStep={1}>
-				<div class="poc-step-kicker">Step 2</div>
-				<h4>Add the tract categories</h4>
-				<p>Then add the outline colors and the slight interior tint: green for TOD-dominated, orange for non-TOD-dominated, and gray for minimal-development tracts.</p>
-			</section>
-			<section class="poc-step card-key" use:observeStep={2}>
-				<div class="poc-step-kicker">Step 3</div>
-				<h4>Add the projects</h4>
-				<p>Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.</p>
-			</section>
+		<div class="poc-stepper card-key" aria-label="Map explanation steps">
+			<div class="poc-stepper-rail" role="tablist" aria-label="Map steps">
+				{#each stepContent as step, i}
+					<button
+						type="button"
+						class="poc-stepper-btn"
+						class:poc-stepper-btn--active={revealStage === i}
+						role="tab"
+						aria-selected={revealStage === i}
+						onclick={() => {
+							revealStage = i;
+						}}
+					>
+						<span class="poc-stepper-num">{i + 1}</span>
+						<span class="poc-stepper-label">{step.title}</span>
+					</button>
+				{/each}
+			</div>
+			<div class="poc-step card-key">
+				<div class="poc-step-kicker">{stepContent[revealStage].kicker}</div>
+				<h4>{stepContent[revealStage].title}</h4>
+				<p>{stepContent[revealStage].body}</p>
+			</div>
 		</div>
 	</div>
 </div>
@@ -1179,21 +1167,64 @@
 		color: var(--text);
 	}
 
-	.poc-scrolly-steps {
+	.poc-stepper {
 		display: grid;
-		gap: 14px;
-		padding-block: 4px 10px;
-		max-height: 760px;
-		overflow-y: auto;
-		padding-right: 4px;
-		scroll-snap-type: y proximity;
-		-webkit-overflow-scrolling: touch;
+		gap: 12px;
+		align-self: start;
+	}
+
+	.poc-stepper-rail {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-stepper-btn {
+		display: grid;
+		grid-template-columns: 28px 1fr;
+		gap: 10px;
+		align-items: center;
+		width: 100%;
+		padding: 10px 12px;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-card);
+		text-align: left;
+		color: var(--text);
+	}
+
+	.poc-stepper-btn--active {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 9%, var(--bg-card));
+	}
+
+	.poc-stepper-num {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-stepper-btn--active .poc-stepper-num {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
+	}
+
+	.poc-stepper-label {
+		font-size: 0.84rem;
+		font-weight: 600;
+		line-height: 1.35;
+		color: var(--text);
 	}
 
 	.poc-step {
 		padding: 12px 14px;
 		min-height: 180px;
-		scroll-snap-align: start;
 	}
 
 	.poc-step-kicker {
@@ -1249,12 +1280,6 @@
 	@media (max-width: 900px) {
 		.poc-scrolly {
 			grid-template-columns: 1fr;
-		}
-
-		.poc-scrolly-steps {
-			max-height: none;
-			overflow: visible;
-			padding-right: 0;
 		}
 
 		.poc-step {
