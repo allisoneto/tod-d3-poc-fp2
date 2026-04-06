@@ -965,6 +965,7 @@
 	}
 
 	function handleOverlayLeave() {
+		panelState.setHovered(null);
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -1144,7 +1145,7 @@
 			</div>
 
 			<div class="map-wrap">
-				<div class="map-main">
+				<div class="map-main" onmouseleave={handleOverlayLeave}>
 					<div class="map-root" bind:this={containerEl}></div>
 					{#if tooltip.visible}
 						<div
@@ -1296,9 +1297,10 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 18px;
-		height: 100%;
+		height: min(480px, 72vh);
 		overflow-y: auto;
 		scroll-snap-type: y mandatory;
+		overscroll-behavior: contain;
 		padding: 16% 4px 16% 0;
 	}
 
