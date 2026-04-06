@@ -1122,41 +1122,36 @@
 				</div>
 			</div>
 
-			<div class="poc-stepper-inline card-key" aria-label="Map explanation steps">
-				<div class="poc-stepper-inline-head">
-					<div>
-						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<h4>Build up the map in 3 layers</h4>
-					</div>
-					<p class="poc-stepper-inline-hint">Step through the overlays to see how tract conditions, TOD status, and MassBuilds projects line up.</p>
-				</div>
-				<div class="poc-stepper-inline-rail" role="tablist" aria-label="Map steps">
-					{#each stepContent as step, i}
-						<button
-							type="button"
-							class="poc-stepper-pill"
-							class:poc-stepper-pill--active={revealStage === i}
-							role="tab"
-							aria-selected={revealStage === i}
-							onclick={() => {
-								revealStage = i;
-							}}
-						>
-							<span class="poc-stepper-pill-num">{i + 1}</span>
-							<span class="poc-stepper-pill-text">
-								<span class="poc-stepper-pill-title">{step.title}</span>
-								<span class="poc-stepper-pill-kicker">{step.kicker}</span>
-							</span>
-						</button>
-					{/each}
-				</div>
-				<div class="poc-stepper-inline-body">
-					<p class="poc-stepper-inline-body-kicker">{stepContent[revealStage].kicker}</p>
-					<p class="poc-stepper-inline-body-copy">{stepContent[revealStage].body}</p>
-				</div>
-			</div>
-
 			<div class="map-wrap">
+				<div class="poc-stepper-overlay card-key" aria-label="Map explanation steps">
+					<div class="poc-stepper-overlay-head">
+						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
+						<p class="poc-stepper-inline-hint">Build up the map in 3 layers.</p>
+					</div>
+					<div class="poc-stepper-inline-rail" role="tablist" aria-label="Map steps">
+						{#each stepContent as step, i}
+							<button
+								type="button"
+								class="poc-stepper-pill"
+								class:poc-stepper-pill--active={revealStage === i}
+								role="tab"
+								aria-selected={revealStage === i}
+								onclick={() => {
+									revealStage = i;
+								}}
+							>
+								<span class="poc-stepper-pill-num">{i + 1}</span>
+								<span class="poc-stepper-pill-text">
+									<span class="poc-stepper-pill-title">{step.title}</span>
+								</span>
+							</button>
+						{/each}
+					</div>
+					<div class="poc-stepper-inline-body">
+						<p class="poc-stepper-inline-body-kicker">{stepContent[revealStage].kicker}</p>
+						<p class="poc-stepper-inline-body-copy">{stepContent[revealStage].body}</p>
+					</div>
+				</div>
 				<div class="map-root" bind:this={containerEl}></div>
 				{#if tooltip.visible}
 					<div
@@ -1237,17 +1232,22 @@
 		color: var(--text);
 	}
 
-	.poc-stepper-inline {
+	.poc-stepper-overlay {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		z-index: 8;
 		display: grid;
-		gap: 10px;
+		gap: 8px;
+		width: min(340px, calc(100% - 20px));
 		padding: 10px 12px;
+		background: color-mix(in srgb, var(--bg-card) 92%, white);
+		backdrop-filter: blur(8px);
 	}
 
-	.poc-stepper-inline-head {
+	.poc-stepper-overlay-head {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(220px, 0.85fr);
-		gap: 10px 16px;
-		align-items: end;
+		gap: 2px;
 	}
 
 	.poc-stepper-inline-kicker,
@@ -1260,25 +1260,17 @@
 		color: var(--accent);
 	}
 
-	.poc-stepper-inline-head h4 {
-		margin: 2px 0 0;
-		font-size: 1rem;
-		line-height: 1.2;
-		color: var(--text);
-	}
-
 	.poc-stepper-inline-hint,
 	.poc-stepper-inline-body-copy {
 		margin: 0;
-		font-size: 0.8rem;
-		line-height: 1.5;
+		font-size: 0.76rem;
+		line-height: 1.4;
 		color: var(--text-muted);
 	}
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 8px;
+		gap: 6px;
 	}
 
 	.poc-stepper-pill {
@@ -1287,10 +1279,10 @@
 		gap: 10px;
 		align-items: center;
 		width: 100%;
-		padding: 9px 10px;
+		padding: 8px 9px;
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--border);
-		background: var(--bg-card);
+		background: color-mix(in srgb, var(--bg-card) 95%, white);
 		text-align: left;
 		color: var(--text);
 	}
@@ -1320,12 +1312,11 @@
 
 	.poc-stepper-pill-text {
 		display: grid;
-		gap: 2px;
 		min-width: 0;
 	}
 
 	.poc-stepper-pill-title {
-		font-size: 0.82rem;
+		font-size: 0.76rem;
 		font-weight: 600;
 		line-height: 1.25;
 		color: var(--text);
@@ -1340,7 +1331,7 @@
 	.poc-stepper-inline-body {
 		display: grid;
 		gap: 4px;
-		padding-top: 2px;
+		padding-top: 1px;
 	}
 
 	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */
@@ -1372,9 +1363,13 @@
 	}
 
 	@media (max-width: 900px) {
-		.poc-stepper-inline-head,
-		.poc-stepper-inline-rail {
-			grid-template-columns: 1fr;
+		.poc-stepper-overlay {
+			position: relative;
+			top: auto;
+			left: auto;
+			width: 100%;
+			margin-bottom: 8px;
+			backdrop-filter: none;
 		}
 	}
 
