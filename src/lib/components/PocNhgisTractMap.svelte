@@ -836,7 +836,7 @@
 			x: event.clientX,
 			y: event.clientY,
 			eyebrow: 'Census tract',
-			title: `Tract in ${tractPlace}`,
+			title: county && String(county) !== 'County Name' ? `Tract in ${tractPlace}` : `Tract: ${tractPlace}`,
 			badge: tier,
 			badgeTone,
 			primaryRows,
