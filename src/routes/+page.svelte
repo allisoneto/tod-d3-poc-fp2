@@ -799,7 +799,6 @@
 				</details>
 			</section>
 
-			
 			<!-- ── Higher-vulnerability areas (single card: narrative + chart) ─────────── -->
 			<section class="card story-chart-panel story-chart-panel--stacked">
 				<div class="story-chart-panel__grid">
@@ -816,6 +815,18 @@
 						<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
 					</div>
 				</div>
+				<section class="story card story-card--embedded">
+					<h3>What zoning flexibility means here</h3>
+					<p>
+						When this dashboard refers to <strong>zoning flexibility</strong>, it means how easily local land-use rules allow
+						multifamily housing or denser housing near transit. More flexible zoning generally means fewer barriers such as large
+						minimum lot sizes, low height limits, or parking requirements that make it harder to build homes near stations.
+					</p>
+					<p>
+						It is not the same thing as development itself, but it helps explain why some municipalities are structurally better positioned
+						to absorb growth than others.
+					</p>
+				</section>
 				<details class="supplemental">
 					<summary>Open supplemental charts: income scatter, concentration ranking, and municipal map</summary>
 					<section class="chart-card card supplemental-card">
@@ -912,6 +923,11 @@
 				<strong>Caveats:</strong> These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
 				broader urban form, pre-existing neighborhood trends, or regional labor-market dynamics rather than TOD alone.
 			</p>
+			<p>
+				Because these demographic shifts are measured using census tracts from the decennial census,
+				municipality filters and year-to-year playback are not applied here.
+				This tract analysis uses a fixed TOD distance threshold of <strong>{threshold.toFixed(2)} miles</strong>.
+			</p>
 		</section>
 
 		{#if tractLoading}
@@ -934,6 +950,11 @@
 					Use the overlays to show MBTA lines and stops, as well as development projects from the 
 					<a href="https://www.massbuilds.com/map" target="_blank" rel="noopener noreferrer">MassBuilds dataset</a>.
 				</p>
+				<ul class="story-list chart-guide">
+					<li><strong>Pay most attention to TOD-dominated tracts with stronger housing growth.</strong> Those are the places where transit-oriented development and neighborhood change appear together most clearly.</li>
+					<li><strong>Compare TOD-dominated tracts to nearby non-TOD-dominated tracts.</strong> That helps separate “development near transit” from development that happened for other reasons.</li>
+					<li><strong>Use minimal-development tracts as the baseline.</strong> They show what neighborhood change looks like in places without much recent building.</li>
+				</ul>
 				<div class="chart-wrap chart-tall chart-wrap--poc-map">
 					<PocNhgisTractMap
 						panelState={pocMapPanel}
@@ -1606,6 +1627,13 @@
 	/* Narrative + chart in one white card (municipal affordability & vulnerability) */
 	.story-chart-panel {
 		padding: 18px;
+	}
+
+	.story-card--embedded {
+		margin-top: 12px;
+		padding: 0;
+		border: 0;
+		background: transparent;
 	}
 
 	.story-chart-panel__grid {
