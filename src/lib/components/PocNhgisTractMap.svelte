@@ -59,6 +59,8 @@
 		secondaryRows: []
 	});
 	let revealStage = $state(0);
+	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
+	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -77,6 +79,30 @@
 		if (dc === 'nontod_dominated') return 'var(--warning, #ea580c)';
 		if (dc === 'minimal') return MINIMAL_TRACT_STROKE;
 		return 'rgba(60,64,67,0.22)';
+	}
+
+	function cohortLabel(devClass) {
+		if (devClass === 'tod_dominated') return 'TOD-dominated';
+		if (devClass === 'nontod_dominated') return 'Non-TOD-dominated';
+		if (devClass === 'minimal') return 'Minimal development';
+		return 'Unclassified';
+	}
+
+	function spotlightDescription(devClass) {
+		if (devClass === 'tod_dominated') {
+			return 'Most filtered new development in these tracts is clustered near transit.';
+		}
+		if (devClass === 'nontod_dominated') {
+			return 'These tracts saw significant development, but less of it is concentrated near transit.';
+		}
+		if (devClass === 'minimal') {
+			return 'These tracts had relatively little filtered housing growth in the selected period.';
+		}
+		return '';
+	}
+
+	function isSpotlightMatch(row, spotlight) {
+		return !!spotlight && row?.devClass === spotlight;
 	}
 
 	function tintFill(baseFill, row) {
@@ -486,6 +512,7 @@
 		refreshMetrics();
 
 		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const spotlight = activeSpotlight;
 		const values = (nhgisRows ?? [])
 			.map((r) => Number(r.census_hu_pct_change))
 			.filter(Number.isFinite);
@@ -518,7 +545,13 @@
 				const dc = row?.devClass;
 				if (revealStage < 1) return 0.45;
 				if (!dc) return 0.5;
+				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
 				return dc === 'minimal' ? 1.15 : 2.4;
+			})
+			.attr('opacity', (d) => {
+				const row = rowByGj.get(d.properties?.gisjoin);
+				if (!spotlight) return 1;
+				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
 
 		const svg = svgRef;
@@ -730,6 +763,7 @@
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
 		const rowByGj = containerEl.__pocRowByGj;
+		const spotlight = activeSpotlight;
 		d3.select(containerEl)
 			.selectAll('path.tract-poly')
 			.attr('stroke', (d) => {
@@ -748,7 +782,15 @@
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
 				if (revealStage < 1) return 0.45;
 				if (!dc) return 0.5;
+				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
 				return dc === 'minimal' ? 1.15 : 2.4;
+			})
+			.attr('opacity', (d) => {
+				const id = d.properties?.gisjoin;
+				const row = rowByGj?.get(id);
+				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (!spotlight) return 1;
+				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
 	}
 
@@ -969,6 +1011,44 @@
 		})
 	);
 
+	const activeSpotlight = $derived(hoveredSpotlight ?? pinnedSpotlight);
+
+	const spotlightSummary = $derived.by(() => {
+		const spotlight = activeSpotlight;
+		if (!spotlight) return null;
+		const rows = (nhgisRows ?? []).filter((row) => row?.devClass === spotlight);
+		if (!rows.length) {
+			return {
+				label: cohortLabel(spotlight),
+				description: spotlightDescription(spotlight),
+				count: 0,
+				avgHuGrowth: null,
+				avgTodShare: null,
+				avgStockIncrease: null
+			};
+		}
+		const huVals = rows
+			.map((row) => Number(row.census_hu_pct_change))
+			.filter(Number.isFinite);
+		const metricVals = rows
+			.map((row) => tractTodMetricsMap?.get(row.gisjoin))
+			.filter(Boolean);
+		const todShares = metricVals
+			.map((m) => Number(m.todFraction))
+			.filter(Number.isFinite);
+		const stockIncreases = metricVals
+			.map((m) => Number(m.pctStockIncrease))
+			.filter(Number.isFinite);
+		return {
+			label: cohortLabel(spotlight),
+			description: spotlightDescription(spotlight),
+			count: rows.length,
+			avgHuGrowth: huVals.length ? d3.mean(huVals) : null,
+			avgTodShare: todShares.length ? d3.mean(todShares) : null,
+			avgStockIncrease: stockIncreases.length ? d3.mean(stockIncreases) : null
+		};
+	});
+
 	$effect(() => {
 		void structuralKey;
 		void containerEl;
@@ -986,6 +1066,7 @@
 	$effect(() => {
 		void dataKey;
 		void revealStage;
+		void activeSpotlight;
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
@@ -1068,6 +1149,95 @@
 						</div>
 					</div>
 				</fieldset>
+
+				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
+					<div class="poc-spotlight__head">
+						<p class="poc-spotlight__kicker">Cohort spotlight</p>
+						{#if pinnedSpotlight}
+							<button
+								class="poc-spotlight__clear"
+								type="button"
+								onclick={() => {
+									pinnedSpotlight = null;
+									hoveredSpotlight = null;
+								}}
+							>
+								Clear
+							</button>
+						{/if}
+					</div>
+					<div class="poc-spotlight__buttons">
+						<button
+							type="button"
+							class="poc-spotlight__button"
+							class:poc-spotlight__button--active={activeSpotlight === 'tod_dominated'}
+							data-tone="tod"
+							onmouseenter={() => (hoveredSpotlight = 'tod_dominated')}
+							onmouseleave={() => (hoveredSpotlight = null)}
+							onfocus={() => (hoveredSpotlight = 'tod_dominated')}
+							onblur={() => (hoveredSpotlight = null)}
+							onclick={() => (pinnedSpotlight = pinnedSpotlight === 'tod_dominated' ? null : 'tod_dominated')}
+						>
+							TOD-dominated
+						</button>
+						<button
+							type="button"
+							class="poc-spotlight__button"
+							class:poc-spotlight__button--active={activeSpotlight === 'nontod_dominated'}
+							data-tone="nontod"
+							onmouseenter={() => (hoveredSpotlight = 'nontod_dominated')}
+							onmouseleave={() => (hoveredSpotlight = null)}
+							onfocus={() => (hoveredSpotlight = 'nontod_dominated')}
+							onblur={() => (hoveredSpotlight = null)}
+							onclick={() => (pinnedSpotlight = pinnedSpotlight === 'nontod_dominated' ? null : 'nontod_dominated')}
+						>
+							Non-TOD-dominated
+						</button>
+						<button
+							type="button"
+							class="poc-spotlight__button"
+							class:poc-spotlight__button--active={activeSpotlight === 'minimal'}
+							data-tone="minimal"
+							onmouseenter={() => (hoveredSpotlight = 'minimal')}
+							onmouseleave={() => (hoveredSpotlight = null)}
+							onfocus={() => (hoveredSpotlight = 'minimal')}
+							onblur={() => (hoveredSpotlight = null)}
+							onclick={() => (pinnedSpotlight = pinnedSpotlight === 'minimal' ? null : 'minimal')}
+						>
+							Minimal development
+						</button>
+					</div>
+					{#if spotlightSummary}
+						<div class="poc-spotlight__summary">
+							<p class="poc-spotlight__summary-title">{spotlightSummary.label}</p>
+							<p class="poc-spotlight__summary-copy">{spotlightSummary.description}</p>
+							<div class="poc-spotlight__stats">
+								<div>
+									<span class="poc-spotlight__stat-label">Tracts</span>
+									<span class="poc-spotlight__stat-value">{spotlightSummary.count}</span>
+								</div>
+								<div>
+									<span class="poc-spotlight__stat-label">Avg. housing growth</span>
+									<span class="poc-spotlight__stat-value">
+										{spotlightSummary.avgHuGrowth == null ? '—' : `${d3.format('.1f')(spotlightSummary.avgHuGrowth)}%`}
+									</span>
+								</div>
+								<div>
+									<span class="poc-spotlight__stat-label">Avg. TOD share</span>
+									<span class="poc-spotlight__stat-value">
+										{spotlightSummary.avgTodShare == null ? '—' : `${d3.format('.1f')(spotlightSummary.avgTodShare * 100)}%`}
+									</span>
+								</div>
+								<div>
+									<span class="poc-spotlight__stat-label">Avg. housing stock increase</span>
+									<span class="poc-spotlight__stat-value">
+										{spotlightSummary.avgStockIncrease == null ? '—' : `${d3.format('.1f')(spotlightSummary.avgStockIncrease)}%`}
+									</span>
+								</div>
+							</div>
+						</div>
+					{/if}
+				</div>
 
 				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
 					<div
@@ -1472,6 +1642,129 @@
 		margin: 0;
 	}
 
+	.poc-spotlight {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-spotlight__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	.poc-spotlight__kicker {
+		margin: 0;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--accent);
+	}
+
+	.poc-spotlight__clear {
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--bg-card);
+		color: var(--text);
+		font-size: 0.68rem;
+		font-weight: 700;
+		padding: 0.28rem 0.55rem;
+	}
+
+	.poc-spotlight__buttons {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 6px;
+	}
+
+	.poc-spotlight__button {
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: var(--bg-card);
+		color: var(--text);
+		padding: 0.58rem 0.6rem;
+		font-size: 0.74rem;
+		font-weight: 700;
+		line-height: 1.25;
+		text-align: left;
+		transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+	}
+
+	.poc-spotlight__button:hover,
+	.poc-spotlight__button:focus-visible,
+	.poc-spotlight__button--active {
+		transform: translateY(-1px);
+	}
+
+	.poc-spotlight__button[data-tone='tod']:hover,
+	.poc-spotlight__button[data-tone='tod']:focus-visible,
+	.poc-spotlight__button[data-tone='tod'].poc-spotlight__button--active {
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		background: color-mix(in srgb, var(--accent) 11%, var(--bg-card));
+	}
+
+	.poc-spotlight__button[data-tone='nontod']:hover,
+	.poc-spotlight__button[data-tone='nontod']:focus-visible,
+	.poc-spotlight__button[data-tone='nontod'].poc-spotlight__button--active {
+		border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
+		background: color-mix(in srgb, var(--warning) 12%, var(--bg-card));
+	}
+
+	.poc-spotlight__button[data-tone='minimal']:hover,
+	.poc-spotlight__button[data-tone='minimal']:focus-visible,
+	.poc-spotlight__button[data-tone='minimal'].poc-spotlight__button--active {
+		border-color: #94a3b8;
+		background: color-mix(in srgb, #94a3b8 14%, var(--bg-card));
+	}
+
+	.poc-spotlight__summary {
+		display: grid;
+		gap: 6px;
+		padding: 8px 10px;
+		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
+	}
+
+	.poc-spotlight__summary-title {
+		margin: 0;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-spotlight__summary-copy {
+		margin: 0;
+		font-size: 0.71rem;
+		line-height: 1.45;
+		color: var(--text-muted);
+	}
+
+	.poc-spotlight__stats {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px 12px;
+	}
+
+	.poc-spotlight__stat-label {
+		display: block;
+		font-size: 0.62rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-muted);
+	}
+
+	.poc-spotlight__stat-value {
+		display: block;
+		margin-top: 2px;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
 	.poc-transit-legend {
 		padding: 0 2px;
 		font-size: 0.58rem;
@@ -1556,6 +1849,14 @@
 	}
 
 	@media (max-width: 639px) {
+		.poc-spotlight__buttons {
+			grid-template-columns: 1fr;
+		}
+
+		.poc-spotlight__stats {
+			grid-template-columns: 1fr;
+		}
+
 		.poc-map-key-compact--split {
 			grid-template-columns: 1fr;
 		}
