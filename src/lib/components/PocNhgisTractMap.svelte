@@ -1373,11 +1373,6 @@
 							bind:value={growthFilterMin}
 						/>
 					</div>
-					<div class="poc-filter__chips">
-						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 0} onclick={() => (growthFilterMin = 0)}>0%</button>
-						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 10} onclick={() => (growthFilterMin = 10)}>10%</button>
-						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 20} onclick={() => (growthFilterMin = 20)}>20%</button>
-					</div>
 					<p class="poc-filter__note">
 						The map, spotlight summaries, and linked chart all update together as you change this threshold.
 					</p>
@@ -1978,27 +1973,6 @@
 	.poc-filter__slider input[type='range'] {
 		width: 100%;
 		accent-color: var(--accent);
-	}
-
-	.poc-filter__chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-	}
-
-	.poc-filter__chip {
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		background: var(--bg-card);
-		color: var(--text);
-		padding: 0.28rem 0.58rem;
-		font-size: 0.68rem;
-		font-weight: 700;
-	}
-
-	.poc-filter__chip--active {
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
 	}
 
 	.poc-filter__note {
