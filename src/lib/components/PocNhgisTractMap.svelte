@@ -260,6 +260,24 @@
 			.call(zoomBehaviorRef.transform, d3.zoomIdentity);
 	}
 
+	function zoomToTract(gisjoin) {
+		if (!gisjoin || !svgRef || !zoomBehaviorRef || !projectionRef) return;
+		const feature = (tractGeo?.features ?? []).find((f) => f.properties?.gisjoin === gisjoin);
+		if (!feature) return;
+		const path = d3.geoPath(projectionRef);
+		const [[x0, y0], [x1, y1]] = path.bounds(feature);
+		const dx = x1 - x0;
+		const dy = y1 - y0;
+		if (!Number.isFinite(dx) || !Number.isFinite(dy) || dx <= 0 || dy <= 0) return;
+		const scale = Math.max(1, Math.min(10, 0.82 / Math.max(dx / mapW, dy / mapH)));
+		const tx = mapCanvasLeft + mapW / 2 - scale * (x0 + x1) / 2;
+		const ty = mapH / 2 - scale * (y0 + y1) / 2;
+		svgRef
+			.transition()
+			.duration(500)
+			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+	}
+
 	function stopRadius(stop) {
 		const m = stop.modes ?? [];
 		if (m.includes('rail') || m.includes('commuter_rail')) return 3;
@@ -1049,6 +1067,42 @@
 		};
 	});
 
+	const focusedSelection = $derived.by(() => {
+		const selected = [...panelState.selectedTracts];
+		if (!selected.length) return null;
+		return panelState.lastInteractedGisjoin && panelState.selectedTracts.has(panelState.lastInteractedGisjoin)
+			? panelState.lastInteractedGisjoin
+			: selected[0];
+	});
+
+	const selectedTractDetail = $derived.by(() => {
+		const gisjoin = focusedSelection;
+		if (!gisjoin) return null;
+		const tract = tractList.find((t) => t.gisjoin === gisjoin) ?? null;
+		const row = (nhgisRows ?? []).find((r) => r.gisjoin === gisjoin) ?? null;
+		if (!tract && !row) return null;
+		const metric = tractTodMetricsMap?.get(gisjoin) ?? null;
+		const devClass = row?.devClass ?? null;
+		const cohortRows = (nhgisRows ?? []).filter((r) => r?.devClass === devClass);
+		const cohortHu = cohortRows
+			.map((r) => Number(r.census_hu_pct_change))
+			.filter(Number.isFinite);
+		const cohortAvgHu = cohortHu.length ? d3.mean(cohortHu) : null;
+		const county = tract?.county && String(tract.county) !== 'County Name' ? String(tract.county) : null;
+		return {
+			gisjoin,
+			title: county ? `Tract in ${county}` : `Tract ${gisjoin}`,
+			cohortLabel: cohortLabel(devClass),
+			description: spotlightDescription(devClass),
+			countSelected: panelState.selectedTracts.size,
+			huGrowth: row && Number.isFinite(Number(row.census_hu_pct_change)) ? Number(row.census_hu_pct_change) : null,
+			cohortAvgHu,
+			todShare: metric && Number.isFinite(Number(metric.todFraction)) ? Number(metric.todFraction) : null,
+			stockIncrease: metric && Number.isFinite(Number(metric.pctStockIncrease)) ? Number(metric.pctStockIncrease) : null,
+			newUnits: metric && Number.isFinite(Number(metric.totalNewUnits)) ? Number(metric.totalNewUnits) : null
+		};
+	});
+
 	$effect(() => {
 		void structuralKey;
 		void containerEl;
@@ -1323,6 +1377,75 @@
 						{/if}
 					</div>
 				</div>
+
+				{#if selectedTractDetail}
+					<div class="poc-detail card-key" role="region" aria-label="Selected tract detail">
+						<div class="poc-detail__head">
+							<div>
+								<p class="poc-detail__kicker">Selected tract detail</p>
+								<p class="poc-detail__title">{selectedTractDetail.title}</p>
+							</div>
+							<div class="poc-detail__actions">
+								<button
+									type="button"
+									class="poc-detail__btn"
+									onclick={() => zoomToTract(selectedTractDetail.gisjoin)}
+								>
+									Zoom to tract
+								</button>
+								<button
+									type="button"
+									class="poc-detail__btn poc-detail__btn--ghost"
+									onclick={() => panelState.clearSelection()}
+								>
+									Clear
+								</button>
+							</div>
+						</div>
+						<p class="poc-detail__summary">
+							<span class="poc-detail__cohort">{selectedTractDetail.cohortLabel}</span>
+							{#if selectedTractDetail.description}
+								<span>{selectedTractDetail.description}</span>
+							{/if}
+						</p>
+						<div class="poc-detail__stats">
+							<div>
+								<span class="poc-detail__stat-label">Housing growth</span>
+								<span class="poc-detail__stat-value">
+									{selectedTractDetail.huGrowth == null ? '—' : `${d3.format('.1f')(selectedTractDetail.huGrowth)}%`}
+								</span>
+							</div>
+							<div>
+								<span class="poc-detail__stat-label">Cohort avg.</span>
+								<span class="poc-detail__stat-value">
+									{selectedTractDetail.cohortAvgHu == null ? '—' : `${d3.format('.1f')(selectedTractDetail.cohortAvgHu)}%`}
+								</span>
+							</div>
+							<div>
+								<span class="poc-detail__stat-label">TOD share</span>
+								<span class="poc-detail__stat-value">
+									{selectedTractDetail.todShare == null ? '—' : `${d3.format('.1f')(selectedTractDetail.todShare * 100)}%`}
+								</span>
+							</div>
+							<div>
+								<span class="poc-detail__stat-label">Housing stock increase</span>
+								<span class="poc-detail__stat-value">
+									{selectedTractDetail.stockIncrease == null ? '—' : `${d3.format('.1f')(selectedTractDetail.stockIncrease)}%`}
+								</span>
+							</div>
+							<div>
+								<span class="poc-detail__stat-label">New units</span>
+								<span class="poc-detail__stat-value">
+									{selectedTractDetail.newUnits == null ? '—' : d3.format(',.0f')(selectedTractDetail.newUnits)}
+								</span>
+							</div>
+							<div>
+								<span class="poc-detail__stat-label">Selected tracts</span>
+								<span class="poc-detail__stat-value">{selectedTractDetail.countSelected}</span>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 
 				<div
@@ -1765,6 +1888,93 @@
 		color: var(--text);
 	}
 
+	.poc-detail {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-detail__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 10px;
+	}
+
+	.poc-detail__kicker {
+		margin: 0 0 2px;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--accent);
+	}
+
+	.poc-detail__title {
+		margin: 0;
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-detail__actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 6px;
+	}
+
+	.poc-detail__btn {
+		border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
+		color: var(--text);
+		padding: 0.38rem 0.68rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+	}
+
+	.poc-detail__btn--ghost {
+		border-color: var(--border);
+		background: var(--bg-card);
+	}
+
+	.poc-detail__summary {
+		display: grid;
+		gap: 2px;
+		margin: 0;
+		font-size: 0.73rem;
+		line-height: 1.45;
+		color: var(--text-muted);
+	}
+
+	.poc-detail__cohort {
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-detail__stats {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px 12px;
+	}
+
+	.poc-detail__stat-label {
+		display: block;
+		font-size: 0.62rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-muted);
+	}
+
+	.poc-detail__stat-value {
+		display: block;
+		margin-top: 2px;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
 	.poc-transit-legend {
 		padding: 0 2px;
 		font-size: 0.58rem;
@@ -1854,6 +2064,10 @@
 		}
 
 		.poc-spotlight__stats {
+			grid-template-columns: 1fr;
+		}
+
+		.poc-detail__stats {
 			grid-template-columns: 1fr;
 		}
 
