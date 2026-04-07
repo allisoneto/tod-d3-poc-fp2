@@ -61,6 +61,7 @@
 	let revealStage = $state(0);
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
+	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -1103,6 +1104,53 @@
 		};
 	});
 
+	const cohortChartRows = $derived.by(() => {
+		/** @type {Array<'tod_dominated' | 'nontod_dominated' | 'minimal'>} */
+		const order = ['tod_dominated', 'nontod_dominated', 'minimal'];
+		const rows = order.map((devClass) => {
+			const cohortRows = (nhgisRows ?? []).filter((row) => row?.devClass === devClass);
+			const huVals = cohortRows
+				.map((row) => Number(row.census_hu_pct_change))
+				.filter(Number.isFinite);
+			const metricVals = cohortRows
+				.map((row) => tractTodMetricsMap?.get(row.gisjoin))
+				.filter(Boolean);
+			const todShares = metricVals
+				.map((m) => Number(m.todFraction) * 100)
+				.filter(Number.isFinite);
+			const stockIncreases = metricVals
+				.map((m) => Number(m.pctStockIncrease))
+				.filter(Number.isFinite);
+			const value =
+				comparisonMetric === 'hu_growth'
+					? (huVals.length ? d3.mean(huVals) : null)
+					: comparisonMetric === 'tod_share'
+						? (todShares.length ? d3.mean(todShares) : null)
+						: (stockIncreases.length ? d3.mean(stockIncreases) : null);
+			return {
+				key: devClass,
+				label: cohortLabel(devClass),
+				value,
+				count: cohortRows.length
+			};
+		});
+		const maxValue = d3.max(rows, (row) => Math.abs(Number(row.value) || 0)) || 1;
+		return rows.map((row) => ({
+			...row,
+			widthPct: row.value == null ? 0 : Math.max(6, (Math.abs(row.value) / maxValue) * 100)
+		}));
+	});
+
+	const comparisonMetricMeta = $derived.by(() => {
+		if (comparisonMetric === 'tod_share') {
+			return { label: 'Avg. TOD share', suffix: '%', formatter: d3.format('.1f') };
+		}
+		if (comparisonMetric === 'stock_increase') {
+			return { label: 'Avg. housing stock increase', suffix: '%', formatter: d3.format('.1f') };
+		}
+		return { label: 'Avg. housing growth', suffix: '%', formatter: d3.format('.1f') };
+	});
+
 	$effect(() => {
 		void structuralKey;
 		void containerEl;
@@ -1446,6 +1494,67 @@
 						</div>
 					</div>
 				{/if}
+
+				<div class="poc-compare card-key" role="region" aria-label="Linked cohort comparison chart">
+					<div class="poc-compare__head">
+						<div>
+							<p class="poc-detail__kicker">Linked cohort chart</p>
+							<p class="poc-detail__title">Compare the three tract groups</p>
+						</div>
+						<div class="poc-compare__metric-tabs">
+							<button
+								type="button"
+								class="poc-compare__tab"
+								class:poc-compare__tab--active={comparisonMetric === 'hu_growth'}
+								onclick={() => (comparisonMetric = 'hu_growth')}
+							>
+								Growth
+							</button>
+							<button
+								type="button"
+								class="poc-compare__tab"
+								class:poc-compare__tab--active={comparisonMetric === 'tod_share'}
+								onclick={() => (comparisonMetric = 'tod_share')}
+							>
+								TOD share
+							</button>
+							<button
+								type="button"
+								class="poc-compare__tab"
+								class:poc-compare__tab--active={comparisonMetric === 'stock_increase'}
+								onclick={() => (comparisonMetric = 'stock_increase')}
+							>
+								Stock
+							</button>
+						</div>
+					</div>
+					<p class="poc-detail__summary">
+						Hover a bar to highlight that cohort on the map, or click to pin it.
+					</p>
+					<div class="poc-compare__bars" aria-label={comparisonMetricMeta.label}>
+						{#each cohortChartRows as row (row.key)}
+							<button
+								type="button"
+								class="poc-compare__row"
+								class:poc-compare__row--active={activeSpotlight === row.key}
+								data-tone={row.key}
+								onmouseenter={() => (hoveredSpotlight = row.key)}
+								onmouseleave={() => (hoveredSpotlight = null)}
+								onfocus={() => (hoveredSpotlight = row.key)}
+								onblur={() => (hoveredSpotlight = null)}
+								onclick={() => (pinnedSpotlight = pinnedSpotlight === row.key ? null : row.key)}
+							>
+								<span class="poc-compare__label">{row.label}</span>
+								<span class="poc-compare__track">
+									<span class="poc-compare__bar" style:width={`${row.widthPct}%`}></span>
+								</span>
+								<span class="poc-compare__value">
+									{row.value == null ? '—' : `${comparisonMetricMeta.formatter(row.value)}${comparisonMetricMeta.suffix}`}
+								</span>
+							</button>
+						{/each}
+					</div>
+				</div>
 			</div>
 
 				<div
@@ -1975,6 +2084,97 @@
 		color: var(--text);
 	}
 
+	.poc-compare {
+		display: grid;
+		gap: 10px;
+	}
+
+	.poc-compare__head {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-compare__metric-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.poc-compare__tab {
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--bg-card);
+		color: var(--text);
+		padding: 0.32rem 0.62rem;
+		font-size: 0.69rem;
+		font-weight: 700;
+	}
+
+	.poc-compare__tab--active {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
+	}
+
+	.poc-compare__bars {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-compare__row {
+		display: grid;
+		grid-template-columns: minmax(0, 116px) minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 10px;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		color: inherit;
+		text-align: left;
+	}
+
+	.poc-compare__label {
+		font-size: 0.74rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-compare__track {
+		display: flex;
+		align-items: center;
+		height: 12px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--border) 60%, var(--bg-card));
+		overflow: hidden;
+	}
+
+	.poc-compare__bar {
+		display: block;
+		height: 100%;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 74%, white 26%);
+	}
+
+	.poc-compare__row[data-tone='nontod_dominated'] .poc-compare__bar {
+		background: color-mix(in srgb, var(--warning) 78%, white 22%);
+	}
+
+	.poc-compare__row[data-tone='minimal'] .poc-compare__bar {
+		background: #94a3b8;
+	}
+
+	.poc-compare__row--active .poc-compare__track,
+	.poc-compare__row:hover .poc-compare__track,
+	.poc-compare__row:focus-visible .poc-compare__track {
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+	}
+
+	.poc-compare__value {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--text);
+		font-variant-numeric: tabular-nums;
+	}
+
 	.poc-transit-legend {
 		padding: 0 2px;
 		font-size: 0.58rem;
@@ -2059,6 +2259,11 @@
 	}
 
 	@media (max-width: 639px) {
+		.poc-compare__row {
+			grid-template-columns: 1fr;
+			gap: 4px;
+		}
+
 		.poc-spotlight__buttons {
 			grid-template-columns: 1fr;
 		}
