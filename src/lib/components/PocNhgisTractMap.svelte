@@ -1252,6 +1252,94 @@
 					</div>
 				</fieldset>
 
+				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
+					<div
+						class="poc-map-key-compact"
+						class:poc-map-key-compact--split={revealStage >= 2}
+					>
+						<div class="poc-map-key-col poc-map-key-col--tract">
+							<p class="poc-key-one poc-key-tract-fill">
+								<strong>Tract fill</strong>
+								<span class="poc-key-tract-fill-body">
+									<span class="poc-key-tract-fill-line">
+										Census % housing growth ({periodDisplayLabel(panelState.timePeriod)}), vs housing stock at period start. Full scale on map colorbar.
+									</span>
+									<span
+										class="poc-key-tract-bar"
+										style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
+										role="img"
+										aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
+									></span>
+								</span>
+							</p>
+							<p class="poc-key-no-data">
+								<span
+									class="poc-key-fill-swatch poc-key-fill-swatch--no-data"
+									style="background: #e7e0d5;"
+									role="img"
+									aria-hidden="true"
+								></span>
+								<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
+							</p>
+							{#if revealStage >= 1}
+								<ul class="poc-key-rings">
+									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
+									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
+									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
+								</ul>
+							{/if}
+						</div>
+						{#if revealStage >= 2}
+							<div class="poc-map-key-col poc-map-key-col--dev">
+								<p class="poc-key-one poc-key-dev">
+									<strong>Developments</strong>
+									<span class="poc-key-tract-fill-body">
+										<span class="poc-key-tract-fill-line">
+											Fill = share of new units that are multi-family. Full scale on map colorbar.
+										</span>
+										<span
+											class="poc-key-tract-bar"
+											style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
+											role="img"
+											aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
+										></span>
+									</span>
+								</p>
+								{#if devSizeLegendTicks && devSizeLegendTicks.length > 0}
+									<div class="poc-key-dev-sizes" aria-label="Development dot size by unit count">
+										<p class="poc-key-dev-sizes-title">Units (radius ∝ √units, same as map)</p>
+										<ul class="poc-key-dev-sizes-list">
+											{#each devSizeLegendTicks as t, i (i)}
+												<li class="poc-key-dev-size-item">
+													<span class="poc-key-dev-size-dot-wrap">
+														<span
+															class="poc-key-dev-size-dot"
+															style:width="{2 * t.rPx}px"
+															style:height="{2 * t.rPx}px"
+														></span>
+													</span>
+													<span class="poc-key-dev-size-num">{formatDevUnitsLegend(t.units)}</span>
+												</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
+								<ul class="poc-key-rings" aria-label="Development dot outlines">
+									<li>
+										<span class="poc-k-ring poc-k-ring--dev-access"></span> Transit-accessible
+									</li>
+									<li>
+										<span class="poc-k-ring poc-k-ring--dev-noaccess"></span> Not transit-accessible
+									</li>
+								</ul>
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<div class="poc-control-stack">
+
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
 					<div class="poc-spotlight__head">
 						<p class="poc-spotlight__kicker">Cohort spotlight</p>
@@ -1339,91 +1427,6 @@
 							</div>
 						</div>
 					{/if}
-				</div>
-
-				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
-					<div
-						class="poc-map-key-compact"
-						class:poc-map-key-compact--split={revealStage >= 2}
-					>
-						<div class="poc-map-key-col poc-map-key-col--tract">
-							<p class="poc-key-one poc-key-tract-fill">
-								<strong>Tract fill</strong>
-								<span class="poc-key-tract-fill-body">
-									<span class="poc-key-tract-fill-line">
-										Census % housing growth ({periodDisplayLabel(panelState.timePeriod)}), vs housing stock at period start. Full scale on map colorbar.
-									</span>
-									<span
-										class="poc-key-tract-bar"
-										style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
-										role="img"
-										aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
-									></span>
-								</span>
-							</p>
-							<p class="poc-key-no-data">
-								<span
-									class="poc-key-fill-swatch poc-key-fill-swatch--no-data"
-									style="background: #e7e0d5;"
-									role="img"
-									aria-hidden="true"
-								></span>
-								<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
-							</p>
-							{#if revealStage >= 1}
-								<ul class="poc-key-rings">
-									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
-									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
-									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
-								</ul>
-							{/if}
-						</div>
-						{#if revealStage >= 2}
-							<div class="poc-map-key-col poc-map-key-col--dev">
-								<p class="poc-key-one poc-key-dev">
-									<strong>Developments</strong>
-									<span class="poc-key-tract-fill-body">
-										<span class="poc-key-tract-fill-line">
-											Fill = share of new units that are multi-family. Full scale on map colorbar.
-										</span>
-										<span
-											class="poc-key-tract-bar"
-											style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
-											role="img"
-											aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
-										></span>
-									</span>
-								</p>
-								{#if devSizeLegendTicks && devSizeLegendTicks.length > 0}
-									<div class="poc-key-dev-sizes" aria-label="Development dot size by unit count">
-										<p class="poc-key-dev-sizes-title">Units (radius ∝ √units, same as map)</p>
-										<ul class="poc-key-dev-sizes-list">
-											{#each devSizeLegendTicks as t, i (i)}
-												<li class="poc-key-dev-size-item">
-													<span class="poc-key-dev-size-dot-wrap">
-														<span
-															class="poc-key-dev-size-dot"
-															style:width="{2 * t.rPx}px"
-															style:height="{2 * t.rPx}px"
-														></span>
-													</span>
-													<span class="poc-key-dev-size-num">{formatDevUnitsLegend(t.units)}</span>
-												</li>
-											{/each}
-										</ul>
-									</div>
-								{/if}
-								<ul class="poc-key-rings" aria-label="Development dot outlines">
-									<li>
-										<span class="poc-k-ring poc-k-ring--dev-access"></span> Transit-accessible
-									</li>
-									<li>
-										<span class="poc-k-ring poc-k-ring--dev-noaccess"></span> Not transit-accessible
-									</li>
-								</ul>
-							</div>
-						{/if}
-					</div>
 				</div>
 
 				{#if selectedTractDetail}
@@ -1556,6 +1559,7 @@
 					</div>
 				</div>
 			</div>
+			</div>
 
 				<div
 					class="map-main"
@@ -1613,10 +1617,9 @@
 							{/if}
 						</div>
 					{/if}
-				</div>
-				</div>
+					</div>
 
-				<aside class="poc-stepper-side" aria-label="Map explanation steps">
+					<aside class="poc-stepper-side" aria-label="Map explanation steps">
 					<div class="poc-stepper-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
 						<p class="poc-stepper-inline-hint">Scroll down the page and the map will progressively add layers.</p>
@@ -1812,6 +1815,11 @@
 		min-width: 0;
 	}
 
+	.poc-control-stack {
+		display: grid;
+		gap: 8px;
+	}
+
 	@media (min-width: 640px) {
 		.poc-legend-row {
 			flex-direction: row;
@@ -1828,6 +1836,15 @@
 		.poc-map-key {
 			flex: 1 1 0;
 			min-width: 0;
+		}
+
+		.poc-control-stack {
+			grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+			align-items: start;
+		}
+
+		.poc-detail {
+			grid-column: 1 / -1;
 		}
 	}
 
@@ -1877,6 +1894,7 @@
 	.poc-spotlight {
 		display: grid;
 		gap: 8px;
+		align-content: start;
 	}
 
 	.poc-spotlight__head {
@@ -1921,6 +1939,7 @@
 		font-weight: 700;
 		line-height: 1.25;
 		text-align: left;
+		min-height: 76px;
 		transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
 	}
 
@@ -2087,6 +2106,7 @@
 	.poc-compare {
 		display: grid;
 		gap: 10px;
+		align-content: start;
 	}
 
 	.poc-compare__head {
@@ -2117,17 +2137,18 @@
 
 	.poc-compare__bars {
 		display: grid;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.poc-compare__row {
 		display: grid;
-		grid-template-columns: minmax(0, 116px) minmax(0, 1fr) auto;
+		grid-template-columns: minmax(0, 156px) minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 10px;
-		border: 0;
-		padding: 0;
-		background: transparent;
+		border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--border));
+		border-radius: 12px;
+		padding: 0.55rem 0.7rem;
+		background: color-mix(in srgb, var(--bg-card) 96%, white 4%);
 		color: inherit;
 		text-align: left;
 	}
@@ -2141,9 +2162,9 @@
 	.poc-compare__track {
 		display: flex;
 		align-items: center;
-		height: 12px;
+		height: 14px;
 		border-radius: 999px;
-		background: color-mix(in srgb, var(--border) 60%, var(--bg-card));
+		background: color-mix(in srgb, var(--border) 72%, var(--bg-card));
 		overflow: hidden;
 	}
 
@@ -2166,6 +2187,13 @@
 	.poc-compare__row:hover .poc-compare__track,
 	.poc-compare__row:focus-visible .poc-compare__track {
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+	}
+
+	.poc-compare__row--active,
+	.poc-compare__row:hover,
+	.poc-compare__row:focus-visible {
+		border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
 	}
 
 	.poc-compare__value {
@@ -2259,6 +2287,10 @@
 	}
 
 	@media (max-width: 639px) {
+		.poc-control-stack {
+			grid-template-columns: 1fr;
+		}
+
 		.poc-compare__row {
 			grid-template-columns: 1fr;
 			gap: 4px;
