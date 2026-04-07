@@ -834,7 +834,7 @@
 			<section class="chart-card card full-width">
 				<h3>Tract categorizations and housing change overview (tract, 2000–2020 window)</h3>
 				<p class="chart-note">
-					Tracts are colored by <strong>census net change in housing units (2000–2020)</strong> and outlined by
+					Tracts are colored by <strong>census percent change in housing units (2000–2020)</strong>, relative to 2000 stock, and outlined by
 					MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development). Use the overlays for
 					MBTA lines, stops, and MassBuilds projects (same encoding as the
 					<a href="{base}/tract">tract map</a>).

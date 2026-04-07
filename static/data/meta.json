@@ -76,7 +76,7 @@
   "xVariables": [
     {
       "key": "census_hu_change",
-      "label": "Net HU change (decennial census)",
+      "label": "Census % HU change (decennial)",
       "source": "census",
       "sourceLabel": "Census (decennial)"
     },

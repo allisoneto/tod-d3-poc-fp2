@@ -1292,6 +1292,36 @@ export function getXValue(gisjoin, xBase, devAgg) {
 }
 
 /**
+ * Census housing stock percent change over ``timePeriod``:
+ * ``100 * (HU_end − HU_start) / HU_start`` from decennial counts / ``census_hu_change_*``.
+ *
+ * Parameters
+ * ----------
+ * tract : object | null | undefined
+ * timePeriod : string
+ *     Panel period tag (e.g. ``'10_20'``, ``'00_20'``).
+ *
+ * Returns
+ * -------
+ * number
+ *     Percent change, or ``NaN`` when net change or baseline stock is missing or baseline is zero.
+ */
+export function censusHuPctChangeForPeriod(tract, timePeriod) {
+	if (!tract) return NaN;
+	const { startY } = periodCensusBounds(timePeriod);
+	let net = Number(tract[`census_hu_change_${timePeriod}`]);
+	if (!Number.isFinite(net) && timePeriod === '00_20') {
+		const hu0 = Number(tract.total_hu_2000);
+		const hu1 = Number(tract.total_hu_2020);
+		if (Number.isFinite(hu0) && Number.isFinite(hu1)) net = hu1 - hu0;
+	}
+	if (!Number.isFinite(net)) return NaN;
+	const base = Number(tract[`total_hu_${startY}`]);
+	if (!Number.isFinite(base) || base <= 0) return NaN;
+	return (100 * net) / base;
+}
+
+/**
  * Scatter / bar X value: census fields on the tract row or MassBuilds aggregates in ``devAgg``.
  *
  * Parameters
@@ -1311,12 +1341,7 @@ export function getXValue(gisjoin, xBase, devAgg) {
 export function getScatterXValue(tract, gisjoin, xBase, devAgg, timePeriod) {
 	if (xBase === 'census_hu_change') {
 		if (!tract) return null;
-		let v = Number(tract[`census_hu_change_${timePeriod}`]);
-		if (!Number.isFinite(v) && timePeriod === '00_20') {
-			const hu0 = Number(tract.total_hu_2000);
-			const hu1 = Number(tract.total_hu_2020);
-			if (Number.isFinite(hu0) && Number.isFinite(hu1)) v = hu1 - hu0;
-		}
+		const v = censusHuPctChangeForPeriod(tract, timePeriod);
 		return Number.isFinite(v) ? v : null;
 	}
 	return getXValue(gisjoin, xBase, devAgg);

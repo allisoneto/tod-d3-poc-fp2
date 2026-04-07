@@ -5,6 +5,7 @@
 
 import {
 	aggregateTractTodMetrics,
+	censusHuPctChangeForPeriod,
 	classifyDevTodUnits,
 	classifyTractDevelopment,
 	developmentAffordableUnitsCapped,
@@ -290,7 +291,7 @@ export function uniqueCounties(tractData) {
  * -------
  * Array<object>
  *     Rows use **canonical** keys (no period suffix): ``median_income_change_pct``,
- *     ``census_hu_change``, etc., for the selected window.
+ *     ``census_hu_change`` (net units), ``census_hu_pct_change`` (% of baseline stock), etc.
  */
 export function buildNhgisLikeRows(tractList, devClassByGj, timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod) {
 	const tp = timePeriod;
@@ -303,6 +304,8 @@ export function buildNhgisLikeRows(tractList, devClassByGj, timePeriod = DEFAULT
 		avg_travel_time_change: t[`avg_travel_time_change_${tp}`],
 		/** Net census housing-unit change for ``timePeriod`` (units, not %). */
 		census_hu_change: censusHuChangeForPeriod(t, tp),
+		/** Census % change in housing stock vs period start (decennial). */
+		census_hu_pct_change: censusHuPctChangeForPeriod(t, tp),
 		pop_2020: Number(t.pop_2020) || 0
 	}));
 }

@@ -28,7 +28,7 @@
 	} from '$lib/utils/mbtaColors.js';
 
 	/**
-	 * Tract-dashboard–style map: census net housing-unit change choropleth (period from panel), TOD-tier
+	 * Tract-dashboard–style map: census % housing-unit growth choropleth (period from panel), TOD-tier
 	 * outlines, optional MassBuilds developments and MBTA overlays.
 	 *
 	 * Parameters
@@ -38,7 +38,7 @@
 	 * tractList : Array<object>
 	 *     Filtered census tract rows (same universe as ``nhgisRows``).
 	 * nhgisRows : Array<object>
-	 *     Rows from ``buildNhgisLikeRows`` including ``gisjoin``, ``devClass``, ``census_hu_change``.
+	 *     Rows from ``buildNhgisLikeRows`` including ``gisjoin``, ``devClass``, ``census_hu_pct_change``.
 	 * metricsDevelopments : Array<object> | null | undefined
 	 *     Optional MassBuilds rows for TOD / stock tooltips — use the same window as ``buildTractDevClassMap``
 	 *     (e.g. 1990–2026 on the main POC). When omitted, uses ``buildFilteredData`` (panel period only).
@@ -96,7 +96,7 @@
 		{
 			kicker: 'Step 1',
 			title: 'Start with the choropleth',
-			body: 'Focus first on tract color alone. Blue tracts added more housing units over the period; red tracts grew less or lost units.'
+			body: 'Focus first on tract color alone. Blue tracts show stronger percent growth in housing stock; red tracts grew more slowly or lost units relative to their baseline count.'
 		},
 		{
 			kicker: 'Step 2',
@@ -128,7 +128,7 @@
 	 * Parameters
 	 * ----------
 	 * row : object | undefined
-	 *     Row with ``census_hu_change`` and optional ``devClass``.
+	 *     Row with ``census_hu_pct_change`` and optional ``devClass``.
 	 *
 	 * Returns
 	 * -------
@@ -137,7 +137,7 @@
 	 */
 	function tractTierRankFromRow(row) {
 		if (!row) return 0;
-		const v = Number(row.census_hu_change);
+		const v = Number(row.census_hu_pct_change);
 		if (!Number.isFinite(v)) return 0;
 		const dc = row.devClass;
 		if (dc === 'tod_dominated') return 3;
@@ -487,7 +487,7 @@
 
 		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 		const values = (nhgisRows ?? [])
-			.map((r) => Number(r.census_hu_change))
+			.map((r) => Number(r.census_hu_pct_change))
 			.filter(Number.isFinite);
 		const maxAbs = Math.max(1, d3.max(values, (d) => Math.abs(d)) || 1);
 		const color = d3
@@ -502,7 +502,7 @@
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				const v = row ? Number(row.census_hu_change) : NaN;
+				const v = row ? Number(row.census_hu_pct_change) : NaN;
 				const baseFill = Number.isFinite(v) ? color(v) : '#e7e0d5';
 				return tintFill(baseFill, row);
 			})
@@ -536,8 +536,8 @@
 			const n = Number(v);
 			if (!Number.isFinite(n)) return '';
 			const ax = Math.abs(n);
-			if (ax >= 1000 || (ax > 0 && ax < 0.01)) return d3.format('.2~s')(n);
-			return d3.format('.1f')(n);
+			if (ax >= 1000 || (ax > 0 && ax < 0.01)) return `${d3.format('.2~s')(n)}%`;
+			return `${d3.format('.1f')(n)}%`;
 		};
 
 		const legendG = legGroup.append('g').attr('class', 'map-legend-inner');
@@ -593,7 +593,7 @@
 			.attr('fill', 'var(--text-muted)')
 			.attr('font-size', '7.5px')
 			.attr('font-weight', 600)
-			.text(`Net housing units (${periodDisplayLabel(panelState.timePeriod)})`);
+			.text(`% housing growth (${periodDisplayLabel(panelState.timePeriod)})`);
 
 		containerEl.__pocChoroMaxAbs = maxAbs;
 		containerEl.__pocRowByGj = rowByGj;
@@ -767,7 +767,7 @@
 		const county = t?.county;
 		const tractPlace = county && String(county) !== 'County Name' ? String(county) : String(id);
 
-		const huNet = row ? Number(row.census_hu_change) : NaN;
+		const huPct = row ? Number(row.census_hu_pct_change) : NaN;
 		const pl = periodDisplayLabel(panelState.timePeriod);
 
 		const tier =
@@ -788,8 +788,8 @@
 						: 'neutral';
 		const primaryRows = [
 			{
-				label: `Census net housing units (${pl})`,
-				value: Number.isFinite(huNet) ? fmtInt(huNet) : '—'
+				label: `Census % housing growth (${pl})`,
+				value: Number.isFinite(huPct) ? `${fmt1(huPct)}%` : '—'
 			}
 		];
 		const secondaryRows = [];
@@ -1040,7 +1040,9 @@
 <div class="poc-nhgis-map">
 	<div class="poc-scrolly">
 		<div class="poc-scrolly-map">
-			<div class="poc-legend-row">
+			<div class="map-wrap">
+				<div class="map-left-column">
+					<div class="poc-legend-row">
 				<fieldset class="poc-transit-field">
 					<legend class="poc-transit-legend">MBTA Overlays</legend>
 					<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
@@ -1077,13 +1079,13 @@
 								<strong>Tract fill</strong>
 								<span class="poc-key-tract-fill-body">
 									<span class="poc-key-tract-fill-line">
-										Census net housing change ({periodDisplayLabel(panelState.timePeriod)}). Full scale on map colorbar.
+										Census % housing growth ({periodDisplayLabel(panelState.timePeriod)}), vs housing stock at period start. Full scale on map colorbar.
 									</span>
 									<span
 										class="poc-key-tract-bar"
 										style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
 										role="img"
-										aria-label="Housing change scale: more negative toward red, more positive toward blue"
+										aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
 									></span>
 								</span>
 							</p>
@@ -1153,8 +1155,12 @@
 				</div>
 			</div>
 
-			<div class="map-wrap">
-				<div class="map-main" onmouseleave={handleOverlayLeave}>
+				<div
+					class="map-main"
+					role="region"
+					aria-label="Interactive census tract map"
+					onmouseleave={handleOverlayLeave}
+				>
 					<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
 					<button class="poc-map-reset" type="button" onclick={recenterMap}>Recenter map</button>
 					<div class="map-root" bind:this={containerEl}></div>
@@ -1206,6 +1212,7 @@
 						</div>
 					{/if}
 				</div>
+				</div>
 
 				<aside class="poc-stepper-side" aria-label="Map explanation steps">
 					<div class="poc-stepper-head">
@@ -1213,7 +1220,7 @@
 						<p class="poc-stepper-inline-hint">Scroll down the page and the map will progressively add layers.</p>
 					</div>
 					<div class="poc-stepper-inline-rail" aria-label="Map steps">
-						{#each stepContent as step, i}
+						{#each stepContent as step, i (i)}
 							<section
 								use:stepRef={i}
 								class="poc-stepper-card"
@@ -1274,6 +1281,7 @@
 		gap: 14px;
 		align-content: start;
 		padding-top: 12px;
+		min-width: 0;
 	}
 
 	.poc-stepper-head {
@@ -1308,6 +1316,8 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 16vh;
+		/* Extra runway after step 3 so the page does not jump to the next section immediately */
+		padding-bottom: 32vh;
 	}
 
 	.poc-stepper-card {
@@ -1385,7 +1395,7 @@
 
 	.poc-stepper-card-body {
 		margin: 0;
-		max-width: 32ch;
+		max-width: 22.4ch; /* ~30% narrower than 32ch — more room for the map column */
 		font-size: 0.9rem;
 		line-height: 1.6;
 		color: var(--text-muted);
@@ -1422,6 +1432,11 @@
 	@media (max-width: 900px) {
 		.map-wrap {
 			grid-template-columns: 1fr;
+		}
+
+		.map-left-column {
+			position: relative;
+			top: auto;
 		}
 
 		.map-main {
@@ -1752,18 +1767,29 @@
 
 	.map-wrap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+		/* Narrative column ~30% narrower than the prior 260–320px band → more width for the map */
+		grid-template-columns: minmax(0, 1fr) minmax(182px, 224px);
 		gap: 28px;
 		width: 100%;
 		background: transparent;
-		align-items: stretch;
+		align-items: start;
+	}
+
+	/* Legend + MBTA overlays + map move as one sticky stack so they stay visible while steps scroll */
+	.map-left-column {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 0;
+		position: sticky;
+		top: 18px;
+		align-self: start;
+		z-index: 2;
 	}
 
 	.map-main {
-		position: sticky;
-		top: 18px;
+		position: relative;
 		min-width: 0;
-		align-self: start;
 	}
 
 	.poc-map-reset {

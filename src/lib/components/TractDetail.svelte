@@ -307,7 +307,7 @@
 	 */
 	function formatXAxisValue(xKey, v) {
 		if (v == null || !Number.isFinite(Number(v))) return '—';
-		if (xKey === 'census_hu_change') return fmtInt(v);
+		if (xKey === 'census_hu_change') return `${d3.format('.2f')(v)}%`;
 		if (
 			xKey === 'pct_stock_increase' ||
 			xKey === 'tod_pct_stock_increase' ||
@@ -677,7 +677,7 @@
 						<section class="axis-inspection">
 							<h4 class="subhead">X-axis variables (tract)</h4>
 							<p class="axis-note">
-								Census net HU change uses decennial housing stock; MassBuilds metrics use filtered
+								Census % HU change uses decennial housing stock at period start as the baseline; MassBuilds metrics use filtered
 								developments (same as scatter).
 							</p>
 							<table class="axis-metrics">

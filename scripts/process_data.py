@@ -1257,7 +1257,7 @@ def build_variable_meta():
     x_vars = [
         {
             "key": "census_hu_change",
-            "label": "Net HU change (decennial census)",
+            "label": "Census % HU change (decennial)",
             "source": "census",
             "sourceLabel": "Census (decennial)",
         },
@@ -1380,7 +1380,7 @@ def main():
     merged["centlon"] = merged["gisjoin"].map(lambda g: geoid_map.get(g, {}).get("centlon"))
     merged["area_sq_mi"] = merged["gisjoin"].map(lambda g: geoid_map.get(g, {}).get("area_sq_mi"))
 
-    # Census net housing unit change by period (decennial counts; scatter X-axis, distinct from MassBuilds)
+    # Census net housing unit change by period (decennial counts). App derives % growth vs period-start stock for maps/scatter X.
     for s, e, tag in [
         (1990, 2000, "90_00"),
         (2000, 2010, "00_10"),

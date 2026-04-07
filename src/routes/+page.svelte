@@ -119,12 +119,12 @@
 			],
 			people: {
 				Allison: [
-					'Work on the data visualization interaction part of the presentation',
-					'Collaboratively and individually make changes to demos'
+					'Finalize visuals showing demographic changes',
+					'Make adjustments to narrative around demographic changes'
 				],
 				Krishna: [
 					'Work on the data visualization interpretation part of the presentation',
-					'Collaboratively and individually make changes to demos'
+					'Refine interactive elements and features'
 				],
 				Hanna: [
 					'Work on the introduction, motivation, and sources part of the presentation',
@@ -730,9 +730,10 @@
 			Transit-oriented development is widely viewed as a robust and highly beneficial planning strategy: it can support housing growth,
 			reduce car dependence, and create higher-density neighborhoods with closer access to jobs and services. 
 			However, debate remains about <strong>whether the benefits of TOD are being shared with lower-income residents</strong>, and <strong>whether this development contributes
-			to gentrification and displacement</strong>.
-			To answer this question, we analyze the correlations between TOD and demographic changes across Massachusetts.
-			The patterns below are descriptive associations, not causal proof, but they do strongly suggest that TOD should be paired
+			to gentrification and displacement</strong>. To answer this question, we analyze the correlations between TOD and demographic changes across Massachusetts.
+		</p>
+		<p class="subtitle">
+			Although the patterns below are descriptive associations, not causal proof, they do strongly suggest that TOD should be paired
 			with stronger affordable-housing requirements in order to achieve inclusive growth.
 		</p>
 		<p class="hero-plan-note">
@@ -752,7 +753,7 @@
 	     PART 1 — MUNICIPAL DASHBOARD
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="dashboard">
-		<section class="controls-bar card">
+		<!-- <section class="controls-bar card">
 			<div class="controls-header">
 				<div>
 					<h2>Municipal filters</h2>
@@ -856,19 +857,17 @@
 					</div>
 				</div>
 			</details>
-		</section>
+		</section> -->
 
+		<!-- ── Summary stats ─────────────────────────── -->
 		<div class="content">
-			<!-- ── Summary stats ─────────────────────────── -->
-			<section class="summary card">
+			<!-- <section class="summary card">
 				<h2>Summary of Selected Data</h2>
 				<p class="chart-note">
 					From <strong>{yearStart}</strong> through <strong>{yearEnd}</strong>, the visible municipalities
 					average <strong>{summary.avgIncome.toFixed(1)}%</strong> of households under $125k.
 					<strong>{summary.todDominantCount}</strong> of the {summary.selectionCount} selected-or-visible
 					municipalities are currently TOD-dominant by unit count.
-					<!-- , and the weighted affordable share is
-					<strong>{fmtPct1(summary.avgAffordable || 0)}</strong>. -->
 				</p>
 				<div class="summary-grid">
 					<div class="summary-stat"><div class="k">Municipalities shown</div><div class="v">{fmtInt(summary.muniCount)}</div></div>
@@ -885,22 +884,7 @@
 						{/each}
 					{/if}
 				</div>
-<!-- 
-				<div class="finding-list">
-					<div class="finding-item">
-						<div class="finding-kicker">Step 1</div>
-						<p>TOD-dominant municipalities tend to be lower-income municipalities, so the equity question matters most in the places seeing the most TOD.</p>
-					</div>
-					<div class="finding-item">
-						<div class="finding-kicker">Step 2</div>
-						<p>Recent production is not evenly distributed: a disproportionate share of new units is landing in places that already appear more vulnerable to gentrification pressures.</p>
-					</div>
-					<div class="finding-item">
-						<div class="finding-kicker">Step 3</div>
-						<p>The tract analysis below asks whether affordability changes that story by moderating the income and education shifts associated with TOD.</p>
-					</div>
-				</div> -->
-			</section>
+			</section> -->
 
 			<section class="story card">
 				<h2>What is the status of TOD in Massachusetts?</h2>
@@ -941,22 +925,18 @@
 							trends show that affordability is not currently keeping pace with total production.
 						</p>
 					</div>
-					<div class="story-chart-panel__chart">
+					<!-- <div class="story-chart-panel__chart">
 						<h3>Most new housing is still market-rate</h3>
 						<p class="chart-note">
 							The affordable share of new development has decreased significantly in recent years,
 							which likely indicates that lower-income residents are benefitting much less from this new development.
 						</p>
 						<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordMix}></div>
-					</div>
+					</div> -->
 				</div>
-				<details class="supplemental">
+				<!-- <details class="supplemental">
 					<summary>Development and affordability over time</summary>
 					<div class="small-grid supplemental-grid">
-						<!-- <section class="chart-card card">
-							<h3>TOD vs non-TOD mix by year</h3>
-							<div class="chart-wrap small-chart" bind:this={elComposition}></div>
-						</section> -->
 						<section class="chart-card card">
 							<h3>When production rises, affordability often lags</h3>
 							<p class="chart-note">
@@ -965,7 +945,7 @@
 							<div class="chart-wrap small-chart" bind:this={elTimeline}></div>
 						</section>
 					</div>
-				</details>
+				</details> -->
 			</section>
 
 			<!-- ── Higher-vulnerability areas (single card: narrative + chart) ─────────── -->
@@ -979,12 +959,12 @@
 							This suggests that equitable implementation matters most in the places already under the most pressure.
 						</p>
 					</div>
-					<div class="story-chart-panel__chart">
+					<!-- <div class="story-chart-panel__chart">
 						<h3>New development is often concentrated in higher-vulnerability municipalities</h3>
 						<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
-					</div>
+					</div> -->
 				</div>
-				<section class="story card story-card--embedded">
+				<!-- <section class="story card story-card--embedded">
 					<h3>What zoning flexibility means here</h3>
 					<p>
 						When this dashboard refers to <strong>zoning flexibility</strong>, it means how easily local land-use rules allow
@@ -995,7 +975,7 @@
 						It is not the same thing as development itself, but it helps explain why some municipalities are structurally better positioned
 						to absorb growth than others.
 					</p>
-				</section>
+				</section> -->
 				<details class="supplemental">
 					<summary>Open supplemental charts: income scatter, concentration ranking, and municipal map</summary>
 					<section class="chart-card card supplemental-card">
@@ -1028,7 +1008,7 @@
 
 
 			<!-- ── 5. Displacement explanation ──────────── -->
-			<section class="story card">
+			<!-- <section class="story card">
 				<h2>What metrics are useful for analyzing the impact of TOD?</h2>
 				<p>
 					This dashboard uses several <strong>proxy indicators</strong> that are often associated with
@@ -1044,7 +1024,7 @@
 					warning signals that can help identify where neighborhood change may be happening
 					alongside new development and transit access.
 				</p>
-			</section>
+			</section> -->
 
 		</div>
 	</section>
@@ -1056,7 +1036,7 @@
 		<section class="story card full-width">
 			<h2>How can we use demographic data to measure the effects of TOD?</h2>
 			<p>
-				This section asks whether TOD-dominated tracts show different socioeconomic change than comparable
+				This dashboard will analyze how TOD-dominated tracts show different socioeconomic changes with respect to comparable
 				non-TOD or minimal-development tracts, and whether higher affordable-housing shares appear to moderate that pattern.
 				These are not direct measures of displacement; they are tract-level comparisons using demographic proxies.
 			</p>
@@ -1088,15 +1068,6 @@
 					</ul>
 				</li>
 			</ul>
-			<p>
-				<strong>Caveats:</strong> These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
-				broader urban form, pre-existing neighborhood trends, or regional labor-market dynamics rather than TOD alone.
-			</p>
-			<p>
-				Because these demographic shifts are measured using census tracts from the decennial census,
-				municipality filters and year-to-year playback are not applied here.
-				This tract analysis uses a fixed TOD distance threshold of <strong>{threshold.toFixed(2)} miles</strong>.
-			</p>
 		</section>
 
 		{#if tractLoading}
@@ -1114,7 +1085,7 @@
 			<section class="chart-card card full-width">
 				<h3>Census tract categorizations and geographic development patterns (2000–2020 window)</h3>
 				<p class="chart-note">
-					Census tracts are colored by <strong>net change in housing units (2000–2020)</strong> and outlined according to
+					Census tracts are colored by <strong>percent change in housing units (2000–2020)</strong>, relative to 2000 stock, and outlined according to
 					their development categorizations (minimal development TOD-dominated vs non-TOD-dominated).
 					Use the overlays to show MBTA lines and stops, as well as development projects from the 
 					<a href="https://www.massbuilds.com/map" target="_blank" rel="noopener noreferrer">MassBuilds dataset</a>.
@@ -1134,7 +1105,33 @@
 				</div>
 			</section>
 
-			<div class="story-chart-row story-chart-row--tract full-width">
+			<!-- Explanation of demographic metrics used moved here for FP2 proof of concept -->
+
+			<section class="story card">
+				<h2>What metrics are useful for analyzing the impact of TOD?</h2>
+				<p>
+					The completed version of this dashboard will use several <strong>proxy indicators</strong> that are often associated with
+					gentrification pressure, including:
+				</p>
+				<ul class="story-list">
+					<li>Sharp increases in median income, often used as a <strong>risk indicator for rising housing costs</strong></li>
+					<li>Rapid increases in the percentage of residents with bachelor's degrees or higher</li>
+					<li>Shift from owner-occupied housing to high-turnover rental units [analysis of this metric will be added soon]</li>
+				</ul>
+				
+				<p>
+					<strong>Caveats:</strong> These comparisons are descriptive and should not be read as causal estimates. Some differences may reflect
+					broader urban form, pre-existing neighborhood trends, or regional labor-market dynamics rather than TOD alone. However, they can be interpreted as
+                    warning signals that help identify where neighborhood change may be happening alongside new development and transit access.
+				</p>
+
+				<p>
+					The full dashboard will include an analysis of median income and education changes compared between different tract categories,
+					between different levels of development intensity, and between different levels of affordability.
+				</p>
+			</section>
+
+			<!-- <div class="story-chart-row story-chart-row--tract full-width">
 				<section class="story card story-chart-text">
 					<h2>Income analysis</h2>
 					<p>
@@ -1226,14 +1223,9 @@
 						on average, though the comparison is still descriptive rather than causal.
 					</p>
 				{/if}
-				<!-- <p>
-					The benefit of reduced transportation costs is negated by the sharp rise in rent when
-					affordability protections are absent. When affordable units are included, the displacement
-					pressure is reduced.
-				</p> -->
-			</section>
+			</section> -->
 
-			<section class="summary card full-width">
+			<!-- <section class="summary card full-width">
 				<h2>Bottom line</h2>
 				<p class="chart-note">
 					The tract-level evidence is organized around one takeaway:
@@ -1308,9 +1300,6 @@
 				<p>
 					TOD is still a valuable planning strategy, but the patterns in census demographic data suggest that it should be paired
 					with a larger share of affordable housing in order to share neighborhood benefits more broadly. 
-					<!-- This narrative highlights that <strong>inclusionary
-					zoning</strong>, <strong>rent stabilization</strong>, and <strong>subsidized transit passes</strong>
-					are key to preventing housing exclusivity. -->
 				</p>
 				<p>
 					These findings should be interpreted cautiously: they show correlations in demographic and development patterns,
@@ -1320,7 +1309,7 @@
 				<p>
 					As Massachusetts continues to encourage transit-oriented development, it is important to ensure that <strong>affordability</strong> is a core part of its policy framework.
 				</p>
-			</section>
+			</section> -->
 
 			<section class="story card full-width plan-section" id="final-project-plan">
 				<h2>Final Project Plan</h2>
@@ -1370,7 +1359,7 @@
 
 	</div>
 
-	{#if muniLoaded && !tractLoading && !tractError}
+	<!-- {#if muniLoaded && !tractLoading && !tractError}
 		<div class="explore-after-narrow">
 			{#if exploreSectionComponent}
 				<svelte:component this={exploreSectionComponent} />
@@ -1391,7 +1380,7 @@
 				</section>
 			{/if}
 		</div>
-	{/if}
+	{/if} -->
 </div>
 
 <style>
@@ -1904,12 +1893,10 @@
 	.small-chart { min-height: 320px; }
 	.chart-tall { min-height: 520px; }
 
-	/* Tract overview map: 20% narrower so wheel/trackpad scroll hits page margins, not map zoom */
+	/* Tract overview map: full width of card; map uses wheel capture so zoom stays on the map */
 	.chart-wrap--poc-map {
-		width: 80%;
+		width: 100%;
 		max-width: 100%;
-		margin-left: auto;
-		margin-right: auto;
 	}
 
 	/* Cohort comparison chart: responsive height, scroll if needed */
