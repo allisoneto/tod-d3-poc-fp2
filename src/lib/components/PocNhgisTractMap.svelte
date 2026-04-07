@@ -62,6 +62,7 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
+	let growthFilterMin = $state(0);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -104,6 +105,12 @@
 
 	function isSpotlightMatch(row, spotlight) {
 		return !!spotlight && row?.devClass === spotlight;
+	}
+
+	function passesGrowthFilter(row) {
+		const v = Number(row?.census_hu_pct_change);
+		if (!Number.isFinite(v)) return false;
+		return v >= growthFilterMin;
 	}
 
 	function tintFill(baseFill, row) {
@@ -569,6 +576,7 @@
 			})
 			.attr('opacity', (d) => {
 				const row = rowByGj.get(d.properties?.gisjoin);
+				if (row && !passesGrowthFilter(row)) return 0.12;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -808,6 +816,7 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (row && !passesGrowthFilter(row)) return 0.12;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -1035,7 +1044,7 @@
 	const spotlightSummary = $derived.by(() => {
 		const spotlight = activeSpotlight;
 		if (!spotlight) return null;
-		const rows = (nhgisRows ?? []).filter((row) => row?.devClass === spotlight);
+		const rows = (nhgisRows ?? []).filter((row) => row?.devClass === spotlight && passesGrowthFilter(row));
 		if (!rows.length) {
 			return {
 				label: cohortLabel(spotlight),
@@ -1084,7 +1093,7 @@
 		if (!tract && !row) return null;
 		const metric = tractTodMetricsMap?.get(gisjoin) ?? null;
 		const devClass = row?.devClass ?? null;
-		const cohortRows = (nhgisRows ?? []).filter((r) => r?.devClass === devClass);
+		const cohortRows = (nhgisRows ?? []).filter((r) => r?.devClass === devClass && passesGrowthFilter(r));
 		const cohortHu = cohortRows
 			.map((r) => Number(r.census_hu_pct_change))
 			.filter(Number.isFinite);
@@ -1108,7 +1117,7 @@
 		/** @type {Array<'tod_dominated' | 'nontod_dominated' | 'minimal'>} */
 		const order = ['tod_dominated', 'nontod_dominated', 'minimal'];
 		const rows = order.map((devClass) => {
-			const cohortRows = (nhgisRows ?? []).filter((row) => row?.devClass === devClass);
+			const cohortRows = (nhgisRows ?? []).filter((row) => row?.devClass === devClass && passesGrowthFilter(row));
 			const huVals = cohortRows
 				.map((row) => Number(row.census_hu_pct_change))
 				.filter(Number.isFinite);
@@ -1150,6 +1159,10 @@
 		}
 		return { label: 'Avg. housing growth', suffix: '%', formatter: d3.format('.1f') };
 	});
+
+	const filteredTractCount = $derived.by(() =>
+		(nhgisRows ?? []).filter((row) => passesGrowthFilter(row)).length
+	);
 
 	$effect(() => {
 		void structuralKey;
@@ -1339,6 +1352,36 @@
 			</div>
 
 			<div class="poc-control-stack">
+				<div class="poc-filter card-key" role="group" aria-label="Housing growth filter">
+					<div class="poc-filter__head">
+						<div>
+							<p class="poc-detail__kicker">Dynamic filter</p>
+							<p class="poc-detail__title">Only emphasize tracts above a housing growth floor</p>
+						</div>
+						<p class="poc-filter__count">{filteredTractCount} tracts shown</p>
+					</div>
+					<div class="poc-filter__slider">
+						<label class="poc-filter__label" for="growth-floor">
+							Minimum census housing growth: <strong>{d3.format('.0f')(growthFilterMin)}%</strong>
+						</label>
+						<input
+							id="growth-floor"
+							type="range"
+							min="-5"
+							max="30"
+							step="1"
+							bind:value={growthFilterMin}
+						/>
+					</div>
+					<div class="poc-filter__chips">
+						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 0} onclick={() => (growthFilterMin = 0)}>0%</button>
+						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 10} onclick={() => (growthFilterMin = 10)}>10%</button>
+						<button type="button" class="poc-filter__chip" class:poc-filter__chip--active={growthFilterMin === 20} onclick={() => (growthFilterMin = 20)}>20%</button>
+					</div>
+					<p class="poc-filter__note">
+						The map, spotlight summaries, and linked chart all update together as you change this threshold.
+					</p>
+				</div>
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
 					<div class="poc-spotlight__head">
@@ -1843,6 +1886,10 @@
 			align-items: start;
 		}
 
+		.poc-filter {
+			grid-column: 1 / -1;
+		}
+
 		.poc-detail {
 			grid-column: 1 / -1;
 		}
@@ -1895,6 +1942,70 @@
 		display: grid;
 		gap: 8px;
 		align-content: start;
+	}
+
+	.poc-filter {
+		display: grid;
+		gap: 10px;
+	}
+
+	.poc-filter__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 12px;
+	}
+
+	.poc-filter__count {
+		margin: 0;
+		font-size: 0.73rem;
+		font-weight: 700;
+		color: var(--text-muted);
+		white-space: nowrap;
+	}
+
+	.poc-filter__slider {
+		display: grid;
+		gap: 6px;
+	}
+
+	.poc-filter__label {
+		font-size: 0.76rem;
+		line-height: 1.4;
+		color: var(--text);
+	}
+
+	.poc-filter__slider input[type='range'] {
+		width: 100%;
+		accent-color: var(--accent);
+	}
+
+	.poc-filter__chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.poc-filter__chip {
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--bg-card);
+		color: var(--text);
+		padding: 0.28rem 0.58rem;
+		font-size: 0.68rem;
+		font-weight: 700;
+	}
+
+	.poc-filter__chip--active {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
+	}
+
+	.poc-filter__note {
+		margin: 0;
+		font-size: 0.72rem;
+		line-height: 1.45;
+		color: var(--text-muted);
 	}
 
 	.poc-spotlight__head {
@@ -2289,6 +2400,10 @@
 	@media (max-width: 639px) {
 		.poc-control-stack {
 			grid-template-columns: 1fr;
+		}
+
+		.poc-filter__head {
+			flex-direction: column;
 		}
 
 		.poc-compare__row {
