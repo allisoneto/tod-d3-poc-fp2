@@ -1557,12 +1557,11 @@
 							</button>
 						{/each}
 					</div>
+					</div>
 				</div>
-			</div>
-			</div>
 
-				<div
-					class="map-main"
+					<div
+						class="map-main"
 					role="region"
 					aria-label="Interactive census tract map"
 					onmouseleave={handleOverlayLeave}
@@ -1616,10 +1615,11 @@
 								</div>
 							{/if}
 						</div>
-					{/if}
+						{/if}
 					</div>
+				</div>
 
-					<aside class="poc-stepper-side" aria-label="Map explanation steps">
+						<aside class="poc-stepper-side" aria-label="Map explanation steps">
 					<div class="poc-stepper-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
 						<p class="poc-stepper-inline-hint">Scroll down the page and the map will progressively add layers.</p>
