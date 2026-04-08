@@ -250,28 +250,64 @@
 			title: 'Transit-rich places',
 			body: guidedMode
 				? 'These areas are well-served by transit.'
-				: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.'
+				: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.',
+			legend: guidedMode
+				? 'At this step, focus on the MBTA network itself. You are locating access before asking where growth happened.'
+				: '',
+			why: guidedMode
+				? 'For the gentrification argument, this establishes the geography of opportunity: where people could plausibly live with stronger transit access.'
+				: '',
+			prompt: guidedMode
+				? 'Look first at Boston, Cambridge, Quincy, and Revere. These are useful anchor areas for the rest of the walkthrough.'
+				: ''
 		},
 		{
 			kicker: 'Step 2',
 			title: guidedMode ? 'Housing growth does not simply follow transit' : 'Growth is not only “on the line”',
 			body: guidedMode
 				? 'However, housing growth is not concentrated only in these areas.'
-				: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.'
+				: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.',
+			legend: guidedMode
+				? 'Now read the tract fill: blue means stronger housing growth, red means weaker or negative growth, and tan marks limited or unreliable growth data.'
+				: '',
+			why: guidedMode
+				? 'This is the first point where the core argument appears. If transit access and housing growth were aligned, the strongest blue areas would cluster mainly in transit-rich places.'
+				: '',
+			prompt: guidedMode
+				? 'Compare a blue tract near strong transit with a blue tract farther from strong transit. The difference matters more than any single tract.'
+				: ''
 		},
 		{
 			kicker: guidedMode ? 'Step 3' : 'Step 3',
 			title: 'A measurable mismatch',
 			body: guidedMode
 				? 'These highlighted areas reveal where transit access and housing growth do not align.'
-				: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.'
+				: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.',
+			legend: guidedMode
+				? 'Purple outlines are the key layer. They isolate tracts where access and growth pull apart instead of moving together.'
+				: '',
+			why: guidedMode
+				? 'This is the central takeaway of the whole story. The map is no longer just showing where transit exists or where growth exists; it is showing where those two patterns fail to match.'
+				: '',
+			prompt: guidedMode
+				? 'Click one highlighted tract and compare it to a nearby non-highlighted tract. The summary cards will help you see how unusual the mismatch tract is.'
+				: ''
 		},
 		{
 			kicker: 'Step 4',
 			title: guidedMode ? 'Income sharpens the mismatch' : 'Bring projects back in',
 			body: guidedMode
 				? 'This misalignment affects where lower-income households (<$125k) can access housing near transit.'
-				: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.'
+				: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.',
+			legend: guidedMode
+				? 'At this step, tracts above the $125k median-income threshold fade back so the lower-income pattern is easier to see.'
+				: '',
+			why: guidedMode
+				? 'This is what ties the spatial mismatch to the gentrification argument. If lower-income tracts are part of the mismatch, the issue is not only planning efficiency; it is also who gets transit access as housing changes.'
+				: '',
+			prompt: guidedMode
+				? 'Click one lower-income highlighted tract and one non-highlighted tract. Use the summary cards to compare growth, TOD share, and housing stock increase.'
+				: ''
 		}
 	];
 
@@ -2320,6 +2356,15 @@
 									</div>
 								</div>
 								<p class="poc-stepper-card-body">{step.body}</p>
+								{#if guidedMode && step.legend}
+									<p class="poc-stepper-card-note"><strong>How to read it:</strong> {step.legend}</p>
+								{/if}
+								{#if guidedMode && step.why}
+									<p class="poc-stepper-card-note"><strong>Why it matters:</strong> {step.why}</p>
+								{/if}
+								{#if guidedMode && step.prompt}
+									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
+								{/if}
 							</section>
 						{/each}
 					</div>
@@ -2508,6 +2553,18 @@
 		font-size: 0.9rem;
 		line-height: 1.6;
 		color: var(--text-muted);
+	}
+
+	.poc-stepper-card-note {
+		margin: 0;
+		max-width: 24ch;
+		font-size: 0.8rem;
+		line-height: 1.55;
+		color: var(--text-muted);
+	}
+
+	.poc-stepper-card-note strong {
+		color: var(--text);
 	}
 
 	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */
