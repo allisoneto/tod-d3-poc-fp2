@@ -287,12 +287,12 @@
 		</div>
 	{:else}
 	<section class="story card">
-		<h2>What to look for before you enter the map</h2>
+		<h2>How the TOD pattern starts to break apart</h2>
 		<p class="chart-note">
-			Before moving into the interactive map, we want to make the main pattern visible in a simpler form. The visualizations
-			below are not meant to replace the map. Instead, they establish the relationships we want the reader to carry into the
-			scrollytelling section: housing growth is uneven, transit access does not automatically attract that growth, and the
-			pattern matters more when lower-income households are already part of the places under pressure.
+			Before we move to the tract map, it helps to make the TOD pattern visible in simpler regional views. These charts are not
+			meant to replace the map. They establish the core relationships the rest of the story builds on: housing growth is uneven,
+			transit access does not automatically attract that growth, and the mismatch matters more when lower-income households are
+			already part of the places under pressure.
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
