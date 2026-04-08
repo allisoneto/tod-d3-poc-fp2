@@ -1722,27 +1722,27 @@
 				</p>
 			</div>
 			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Design decisions">
-				<p class="poc-methods__title">Why It Looks Like This</p>
+				<p class="poc-methods__title">Why We Designed It This Way</p>
 				<ul class="poc-methods__list poc-methods__list--encoding">
 					<li>
 						<span class="poc-methods__label">One steady map scale:</span>
-						The choropleth stays the same from start to finish, so every later layer can be read against the same base map.
+						We kept the choropleth scale fixed from start to finish so the reader always has the same baseline in view. That way, when outlines, mismatch layers, and project dots appear, they add context instead of changing the meaning of the fill colors.
 					</li>
 					<li>
 						<span class="poc-methods__label">Outlines instead of more fill:</span>
-						The tract groups sit on top as outlines, so they add context without covering up the growth colors underneath.
+						We used outlines for the tract groups because the fill is already carrying the main growth signal. If we had used another full set of fill colors, the map would have become much harder to read and the central comparison would have gotten muddy.
 					</li>
 					<li>
 						<span class="poc-methods__label">One step at a time:</span>
-						The walkthrough adds one layer at a time, so it is easier to see what each piece adds before the map gets busier.
+						The walkthrough builds one layer at a time so each step answers a slightly different question. This slows the reader down in a useful way and makes it easier to see what the cohort outlines, mismatch marks, and project dots each contribute.
 					</li>
 					<li>
 						<span class="poc-methods__label">The main highlights stand out:</span>
-						Mismatch outlines and project dots use different marks so the key comparisons stand out without replacing the base map.
+						Mismatch areas and project dots use different mark types so they can stand out without taking over the whole map. This lets the story shift attention when needed while still keeping the base geography and tract-level growth visible.
 					</li>
 					<li>
 						<span class="poc-methods__label">Extra detail stays off the map:</span>
-						Income, tract details, and comparisons sit in side panels and tooltips so the map stays easy to read.
+						Income, selected-tract details, and comparisons live in side panels and tooltips rather than being encoded directly on the map. That keeps the main view readable while still giving the reader a path to more detail when they want it.
 					</li>
 				</ul>
 			</div>
@@ -2635,11 +2635,11 @@
 	}
 
 	.poc-methods__list--encoding {
-		margin-top: 6px;
+		margin-top: 8px;
 	}
 
 	.poc-methods__list--encoding li {
-		margin-bottom: 8px;
+		margin-bottom: 10px;
 	}
 
 	.poc-methods--assumptions {
