@@ -2487,7 +2487,7 @@
 	.poc-control-stack {
 		display: grid;
 		gap: 8px;
-		margin-bottom: 18px;
+		margin-bottom: 10px;
 	}
 
 	.poc-side-cards {
@@ -2535,7 +2535,7 @@
 		}
 
 		.poc-control-stack {
-			margin-bottom: 14px;
+			margin-bottom: 8px;
 		}
 
 		.map-left-column {
