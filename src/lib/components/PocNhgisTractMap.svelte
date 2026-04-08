@@ -62,7 +62,6 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
-	let growthFilterMin = $state(0);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -98,7 +97,7 @@
 			return 'These tracts saw significant development, but less of it is concentrated near transit.';
 		}
 		if (devClass === 'minimal') {
-			return 'These tracts had relatively little filtered housing growth in the selected period.';
+			return 'These tracts had relatively little housing growth in the selected period.';
 		}
 		return '';
 	}
@@ -109,8 +108,7 @@
 
 	function passesGrowthFilter(row) {
 		const v = Number(row?.census_hu_pct_change);
-		if (!Number.isFinite(v)) return false;
-		return v >= growthFilterMin;
+		return Number.isFinite(v);
 	}
 
 	function tintFill(baseFill, row) {
@@ -576,7 +574,6 @@
 			})
 			.attr('opacity', (d) => {
 				const row = rowByGj.get(d.properties?.gisjoin);
-				if (row && !passesGrowthFilter(row)) return 0.12;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -816,7 +813,6 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
-				if (row && !passesGrowthFilter(row)) return 0.12;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -1158,13 +1154,13 @@
 				},
 				{
 					key: 'all',
-					label: 'All filtered tracts',
+					label: 'All analyzed tracts',
 					value: metricValue(allRows),
 					count: allRows.length
 				}
 			];
 			title = 'Compare your map selection';
-			copy = 'The bars update from the tracts you click on the map and compare them to the matching cohort and full filtered set.';
+			copy = 'The bars update from the tracts you click on the map and compare them to the matching cohort and full analyzed set.';
 		} else {
 			/** @type {Array<'tod_dominated' | 'nontod_dominated' | 'minimal'>} */
 			const order = ['tod_dominated', 'nontod_dominated', 'minimal'];
@@ -1202,10 +1198,6 @@
 		}
 		return { label: 'Avg. housing growth', suffix: '%', formatter: d3.format('.1f') };
 	});
-
-	const filteredTractCount = $derived.by(() =>
-		(nhgisRows ?? []).filter((row) => passesGrowthFilter(row)).length
-	);
 
 	$effect(() => {
 		void structuralKey;
@@ -1301,11 +1293,6 @@
 						Classification uses
 						<strong> {d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase as the significant-development floor and
 						<strong> {d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> TOD share as the TOD-dominated cutoff.
-					</li>
-					<li>
-						<span class="poc-methods__label">Filter assumption:</span>
-						The growth slider does not redefine tracts; it only emphasizes tracts with census housing growth at or above
-						<strong> {d3.format('.0f')(growthFilterMin)}%</strong>.
 					</li>
 					<li>
 						<span class="poc-methods__label">Aggregation assumption:</span>
@@ -1438,32 +1425,6 @@
 			</div>
 
 			<div class="poc-control-stack">
-				<div class="poc-filter card-key" role="group" aria-label="Housing growth filter">
-					<div class="poc-filter__head">
-						<div>
-							<p class="poc-detail__kicker">Dynamic filter</p>
-							<p class="poc-detail__title">Only emphasize tracts above a housing growth floor</p>
-						</div>
-						<p class="poc-filter__count">{filteredTractCount} tracts shown</p>
-					</div>
-					<div class="poc-filter__slider">
-						<label class="poc-filter__label" for="growth-floor">
-							Minimum census housing growth: <strong>{d3.format('.0f')(growthFilterMin)}%</strong>
-						</label>
-						<input
-							id="growth-floor"
-							type="range"
-							min="-5"
-							max="30"
-							step="1"
-							bind:value={growthFilterMin}
-						/>
-					</div>
-					<p class="poc-filter__note">
-						The map, spotlight summaries, and linked chart all update together as you change this threshold.
-					</p>
-				</div>
-
 				<div class="poc-side-cards">
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
@@ -1978,10 +1939,6 @@
 			align-items: start;
 		}
 
-		.poc-filter {
-			grid-column: 1 / -1;
-		}
-
 		.poc-side-cards {
 			grid-column: 1;
 		}
@@ -2041,11 +1998,6 @@
 		min-height: 100%;
 	}
 
-	.poc-filter {
-		display: grid;
-		gap: 10px;
-	}
-
 	.poc-methods {
 		display: grid;
 		gap: 6px;
@@ -2091,44 +2043,6 @@
 	.poc-methods__label {
 		font-weight: 700;
 		color: var(--text);
-	}
-
-	.poc-filter__head {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 12px;
-	}
-
-	.poc-filter__count {
-		margin: 0;
-		font-size: 0.73rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		white-space: nowrap;
-	}
-
-	.poc-filter__slider {
-		display: grid;
-		gap: 6px;
-	}
-
-	.poc-filter__label {
-		font-size: 0.76rem;
-		line-height: 1.4;
-		color: var(--text);
-	}
-
-	.poc-filter__slider input[type='range'] {
-		width: 100%;
-		accent-color: var(--accent);
-	}
-
-	.poc-filter__note {
-		margin: 0;
-		font-size: 0.72rem;
-		line-height: 1.45;
-		color: var(--text-muted);
 	}
 
 	.poc-spotlight__head {
@@ -2564,10 +2478,6 @@
 
 		.poc-side-cards {
 			grid-column: auto;
-		}
-
-		.poc-filter__head {
-			flex-direction: column;
 		}
 
 		.poc-detail__topline {
