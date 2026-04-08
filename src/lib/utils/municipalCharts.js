@@ -180,6 +180,31 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 		.range([0, innerW]);
 	const y = d3.scaleLinear().domain([0, yMax]).nice().range([innerH, 0]).clamp(true);
 	const r = d3.scaleSqrt().domain([0, rMax]).range([5, 22]).clamp(true);
+	const sizeLegendVals = [0.2, 0.55, 1].map((p) => Math.max(1, Math.round(rMax * p)));
+
+	const sizeLegend = root
+		.append('div')
+		.attr('class', 'chart-note')
+		.style('display', 'flex')
+		.style('align-items', 'flex-end')
+		.style('gap', '14px')
+		.style('flex-wrap', 'wrap')
+		.style('margin-bottom', '10px');
+
+	sizeLegend.append('span').style('font-weight', '600').text('Affordable units added:');
+	const sizeItems = sizeLegend.append('div').style('display', 'flex').style('gap', '16px').style('align-items', 'flex-end');
+	for (const v of sizeLegendVals) {
+		const item = sizeItems.append('div').style('display', 'grid').style('justify-items', 'center').style('gap', '4px');
+		item
+			.append('span')
+			.style('display', 'inline-block')
+			.style('width', `${Math.max(8, r(v) * 2)}px`)
+			.style('height', `${Math.max(8, r(v) * 2)}px`)
+			.style('border-radius', '999px')
+			.style('background', '#9fb6d8')
+			.style('border', '2px solid #5e6573');
+		item.append('span').text(d3.format(',.0f')(v));
+	}
 
 	root
 		.append('div')

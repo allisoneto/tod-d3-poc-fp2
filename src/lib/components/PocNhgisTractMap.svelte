@@ -137,7 +137,7 @@
 	}
 
 	function showDevelopmentDots() {
-		if (guidedMode) return revealStage >= 7;
+		if (guidedMode) return revealStage >= 7 && revealStage <= 8;
 		return revealStage === 3;
 	}
 
