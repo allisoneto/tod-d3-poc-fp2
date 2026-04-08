@@ -2342,7 +2342,7 @@
 		display: grid;
 		gap: 14px;
 		align-content: start;
-		padding-top: 12px;
+		padding-top: 4px;
 		min-width: 0;
 		position: relative;
 		z-index: 1;
@@ -2383,9 +2383,9 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 16vh;
-		padding-top: 132px;
+		padding-top: 92px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: 32vh;
+		padding-bottom: calc(32vh + 40px);
 		isolation: isolate;
 	}
 
