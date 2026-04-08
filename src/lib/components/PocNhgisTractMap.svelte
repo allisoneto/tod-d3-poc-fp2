@@ -286,6 +286,23 @@
 			.call(zoomBehaviorRef.transform, d3.zoomIdentity);
 	}
 
+	function zoomBy(factor) {
+		if (!svgRef || !zoomBehaviorRef) return;
+		const node = svgRef.node();
+		if (!node) return;
+		const current = d3.zoomTransform(node).k;
+		const next = Math.max(1, Math.min(28, current * factor));
+		svgRef.transition().duration(250).call(zoomBehaviorRef.scaleTo, next);
+	}
+
+	function zoomInMap() {
+		zoomBy(1.25);
+	}
+
+	function zoomOutMap() {
+		zoomBy(0.8);
+	}
+
 	function zoomToTract(gisjoin) {
 		if (!gisjoin || !svgRef || !zoomBehaviorRef || !projectionRef) return;
 		const feature = (tractGeo?.features ?? []).find((f) => f.properties?.gisjoin === gisjoin);
@@ -1674,8 +1691,14 @@
 							{/each}
 						</ul>
 					</div>
-					<button class="poc-map-reset" type="button" onclick={recenterMap}>Recenter map</button>
-					<div class="map-root" bind:this={containerEl}></div>
+					<div class="map-widget">
+						<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
+							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
+							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
+							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
+						</div>
+						<div class="map-root" bind:this={containerEl}></div>
+					</div>
 					{#if tooltip.visible}
 						<div
 							class="map-tooltip"
@@ -1990,7 +2013,7 @@
 			top: auto;
 		}
 
-		.poc-map-reset {
+		.map-widget__controls {
 			top: 8px;
 			right: 8px;
 		}
@@ -2803,28 +2826,46 @@
 		color: var(--text-muted);
 	}
 
-	.poc-map-reset {
+	.map-widget {
+		position: relative;
+	}
+
+	.map-widget__controls {
 		position: absolute;
 		top: 10px;
 		right: 10px;
 		z-index: 6;
-		padding: 0.42rem 0.7rem;
+		display: inline-flex;
+		gap: 6px;
+	}
+
+	.poc-map-control {
+		position: relative;
+		top: auto;
+		right: auto;
+		padding: 0.36rem 0.58rem;
 		border: 1px solid color-mix(in srgb, var(--border) 88%, white 12%);
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--bg-card) 92%, white 8%);
 		color: var(--text);
-		font-size: 0.78rem;
+		font-size: 0.8rem;
 		font-weight: 700;
 		line-height: 1;
 		box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 		backdrop-filter: blur(6px);
+		min-width: 30px;
 	}
 
-	.poc-map-reset:hover {
+	.poc-map-control--wide {
+		padding-inline: 0.72rem;
+		min-width: auto;
+	}
+
+	.poc-map-control:hover {
 		background: color-mix(in srgb, var(--bg-card) 82%, white 18%);
 	}
 
-	.poc-map-reset:focus-visible {
+	.poc-map-control:focus-visible {
 		outline: 2px solid color-mix(in srgb, var(--accent) 60%, white 40%);
 		outline-offset: 2px;
 	}
