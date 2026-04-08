@@ -1605,3 +1605,176 @@ export function computeBinnedMomentsForRows(rows, bins) {
 		return { yMean, ySE, count: n, totalPop };
 	});
 }
+
+/**
+ * Build a compact comparison metric bundle for one tract.
+ *
+ * Parameters
+ * ----------
+ * gisjoin : string
+ * tractMap : Map<string, object>
+ * nhgisRowByGj : Map<string, object>
+ * tractTodMetricsMap : Map<string, object> | null
+ * devAggMap : Map<string, object> | null
+ * timePeriod : string
+ *
+ * Returns
+ * -------
+ * {{
+ *   gisjoin: string,
+ *   label: string,
+ *   cohort: string | null,
+ *   huGrowthPct: number | null,
+ *   stockIncreasePct: number | null,
+ *   todSharePct: number | null,
+ *   affordableSharePct: number | null,
+ *   incomeChangePct: number | null
+ * } | null}
+ */
+export function buildTractComparisonMetrics(
+	gisjoin,
+	tractMap,
+	nhgisRowByGj,
+	tractTodMetricsMap,
+	devAggMap,
+	timePeriod
+) {
+	if (!gisjoin) return null;
+	const tract = tractMap.get(gisjoin);
+	const row = nhgisRowByGj.get(gisjoin);
+	if (!tract && !row) return null;
+	const tod = tractTodMetricsMap?.get(gisjoin) ?? null;
+	const agg = devAggMap?.get(gisjoin) ?? null;
+	const county = tract?.county && String(tract.county) !== 'County Name' ? String(tract.county) : null;
+	return {
+		gisjoin,
+		label: county ? `Tract in ${county}` : `Tract ${gisjoin}`,
+		cohort: row?.devClass ?? null,
+		huGrowthPct: Number.isFinite(Number(row?.census_hu_pct_change))
+			? Number(row.census_hu_pct_change)
+			: null,
+		stockIncreasePct: Number.isFinite(Number(tod?.pctStockIncrease))
+			? Number(tod.pctStockIncrease)
+			: null,
+		todSharePct: Number.isFinite(Number(tod?.todFraction))
+			? Number(tod.todFraction) * 100
+			: null,
+		affordableSharePct: Number.isFinite(Number(agg?.affordable_share))
+			? Number(agg.affordable_share) * 100
+			: null,
+		incomeChangePct: Number.isFinite(Number(tract?.[`median_income_change_pct_${timePeriod}`]))
+			? Number(tract[`median_income_change_pct_${timePeriod}`])
+			: null
+	};
+}
+
+/**
+ * Find semantically related tracts for linked highlighting.
+ *
+ * Modes:
+ * - ``cohort``: same development class as anchor.
+ * - ``municipality``: same county label as anchor (best available locality grouping).
+ * - ``similar_profile``: nearest tracts in normalized metric space.
+ *
+ * Parameters
+ * ----------
+ * anchorGisjoin : string | null
+ * tractList : Array<object>
+ * nhgisRows : Array<object>
+ * tractTodMetricsMap : Map<string, object> | null
+ * mode : 'cohort' | 'municipality' | 'similar_profile'
+ * topK : number
+ * timePeriod : string
+ *
+ * Returns
+ * -------
+ * Set<string>
+ */
+export function findRelatedTracts(
+	anchorGisjoin,
+	tractList,
+	nhgisRows,
+	tractTodMetricsMap,
+	mode,
+	topK,
+	timePeriod
+) {
+	const out = new Set();
+	if (!anchorGisjoin) return out;
+	const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
+	const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+	const anchorTract = tractByGj.get(anchorGisjoin);
+	const anchorRow = rowByGj.get(anchorGisjoin);
+	if (!anchorTract && !anchorRow) return out;
+
+	if (mode === 'cohort') {
+		const cls = anchorRow?.devClass;
+		if (!cls) return out;
+		for (const r of nhgisRows ?? []) {
+			if (r.gisjoin !== anchorGisjoin && r.devClass === cls) out.add(r.gisjoin);
+		}
+		return out;
+	}
+
+	if (mode === 'municipality') {
+		const county =
+			anchorTract?.county && String(anchorTract.county) !== 'County Name'
+				? String(anchorTract.county)
+				: null;
+		if (!county) return out;
+		for (const t of tractList ?? []) {
+			if (t.gisjoin !== anchorGisjoin && String(t.county) === county) out.add(t.gisjoin);
+		}
+		return out;
+	}
+
+	const k = Math.max(1, Number(topK) || 4);
+	const metricRows = [];
+	for (const t of tractList ?? []) {
+		const gj = t.gisjoin;
+		if (!gj) continue;
+		const r = rowByGj.get(gj);
+		const m = tractTodMetricsMap?.get(gj);
+		const v = {
+			gisjoin: gj,
+			huGrowthPct: Number.isFinite(Number(r?.census_hu_pct_change)) ? Number(r.census_hu_pct_change) : NaN,
+			stockIncreasePct: Number.isFinite(Number(m?.pctStockIncrease)) ? Number(m.pctStockIncrease) : NaN,
+			todSharePct: Number.isFinite(Number(m?.todFraction)) ? Number(m.todFraction) * 100 : NaN,
+			incomeChangePct: Number.isFinite(Number(t[`median_income_change_pct_${timePeriod}`]))
+				? Number(t[`median_income_change_pct_${timePeriod}`])
+				: NaN
+		};
+		metricRows.push(v);
+	}
+	const anchor = metricRows.find((d) => d.gisjoin === anchorGisjoin);
+	if (!anchor) return out;
+	const keys = ['huGrowthPct', 'stockIncreasePct', 'todSharePct', 'incomeChangePct'];
+	const stats = new Map();
+	for (const key of keys) {
+		const vals = metricRows.map((d) => d[key]).filter(Number.isFinite);
+		const mu = d3.mean(vals);
+		const sd = Math.sqrt(d3.variance(vals) || 0);
+		stats.set(key, { mu, sd: sd > 0 ? sd : 1 });
+	}
+	const scored = [];
+	for (const row of metricRows) {
+		if (row.gisjoin === anchorGisjoin) continue;
+		let dist2 = 0;
+		let n = 0;
+		for (const key of keys) {
+			const a = anchor[key];
+			const b = row[key];
+			if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+			const { mu, sd } = stats.get(key);
+			const za = (a - mu) / sd;
+			const zb = (b - mu) / sd;
+			dist2 += (za - zb) ** 2;
+			n += 1;
+		}
+		if (n === 0) continue;
+		scored.push({ gisjoin: row.gisjoin, score: Math.sqrt(dist2 / n) });
+	}
+	scored.sort((a, b) => a.score - b.score);
+	for (const s of scored.slice(0, k)) out.add(s.gisjoin);
+	return out;
+}

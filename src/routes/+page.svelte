@@ -1040,7 +1040,7 @@
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="tract-section">
 		<section class="story card full-width">
-			<h2>How can we use demographic data to measure the effects of TOD?</h2>
+			<h2>Where are TOD patterns most associated with neighborhood change?</h2>
 			<p>
 				This dashboard analyzes how TOD-dominated tracts are associated with different socioeconomic change patterns relative to comparable
 				non-TOD or minimal-development tracts, and whether higher affordable-housing shares are associated with moderated shifts.
@@ -1089,7 +1089,7 @@
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>Census tract categorizations and geographic development patterns (2000–2020 window)</h3>
+				<h3>TOD and housing growth do not align uniformly across tracts (2000–2020)</h3>
 				<p class="chart-note">
 					Census tracts are colored by <strong>percent change in housing units (2000–2020)</strong>, relative to 2000 stock, and outlined according to
 					their development categorizations (minimal development TOD-dominated vs non-TOD-dominated).
@@ -1114,7 +1114,7 @@
 			<!-- Explanation of demographic metrics used moved here for FP2 proof of concept -->
 
 			<section class="story card">
-				<h2>What metrics are useful for analyzing the impact of TOD?</h2>
+				<h2>Why these demographic proxies are used in this prototype</h2>
 				<p>
 					The completed version of this dashboard will use several <strong>proxy indicators</strong> that are often associated with
 					gentrification pressure, including:
@@ -1402,6 +1402,28 @@
 				<section class="plan-contingency">
 					<h3>If things go wrong</h3>
 					<p>{projectPlanContingency}</p>
+				</section>
+
+				<section class="plan-contingency">
+					<h3>Development process, team split, and opportunities to improve</h3>
+					<p>
+						This proof-of-concept required approximately <strong>54 people-hours</strong> across the team. Work was split between
+						visualization implementation and narrative/design framing so that interaction and interpretation could be developed in parallel.
+					</p>
+					<ul class="story-list plan-list">
+						<li><strong>Krishna (about 20 hours):</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
+						<li><strong>Allison (about 20 hours):</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
+						<li><strong>Hannah (about 7 hours):</strong> narrative structure, framing revisions, and design-decision articulation.</li>
+						<li><strong>Supriya (about 7 hours):</strong> narrative structure, framing revisions, and design-decision articulation.</li>
+					</ul>
+					<p>
+						The most time-intensive work was integration: keeping map encodings, interaction logic, legends, and narrative text aligned while preserving non-causal claims.
+						The next most time-intensive area was iterative layout polish, especially balancing explanatory panels with map readability.
+					</p>
+					<p>
+						For future milestones, we plan to improve process quality by locking a tighter weekly integration cadence, defining “done” criteria for each interaction earlier,
+						and running shorter but more frequent review checkpoints so narrative text and visual behavior remain synchronized throughout development.
+					</p>
 				</section>
 			</section>
 		{/if}

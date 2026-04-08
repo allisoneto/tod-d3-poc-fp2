@@ -10,10 +10,12 @@
 	import {
 		aggregateDevsByTract,
 		aggregateTractTodMetrics,
+		buildTractComparisonMetrics,
 		buildFilteredData,
 		developmentAffordableUnitsCapped,
 		developmentMultifamilyShare,
 		developmentMbtaProximity,
+		findRelatedTracts,
 		isDevelopmentTransitAccessible,
 		transitDistanceMiToMetres,
 		transitModeUiLabel
@@ -62,6 +64,7 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
+	let notableMetric = $state(/** @type {'mismatch' | 'high_growth_tod'} */ ('mismatch'));
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -141,6 +144,27 @@
 			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
 		}
 	];
+
+	const mapCallouts = $derived.by(() => {
+		const notableCount = notableTracts?.size ?? 0;
+		if (revealStage === 0) {
+			return [
+				'Interpret the fill first: stronger blue indicates higher housing growth in the selected period.',
+				'Compare nearby tracts before interacting to establish a visual baseline.'
+			];
+		}
+		if (revealStage === 1) {
+			return [
+				'Outline colors add cohort meaning on top of growth: TOD-dominated, non-TOD-dominated, and minimal-development.',
+				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.'
+			];
+		}
+		return [
+			'Project dots add development-level detail without replacing tract context.',
+			`${notableCount} tracts currently match the active notable-case rule; toggle \"Show only notable cases\" to isolate them.`,
+			'Shift-click two tracts to pin an A/B comparison and inspect contrasts across key metrics.'
+		];
+	});
 
 	function stepRef(node, index) {
 		stepEls[index] = node;
@@ -786,6 +810,8 @@
 		if (!containerEl) return;
 		const hoveredId = panelState.hoveredTract;
 		const selectedSet = panelState.selectedTracts;
+		const compareSet = new Set(panelState.comparisonPair ?? []);
+		const relatedSet = relatedTracts ?? new Set();
 		const rowByGj = containerEl.__pocRowByGj;
 		const spotlight = activeSpotlight;
 		d3.select(containerEl)
@@ -793,6 +819,8 @@
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
+				if (compareSet.has(id)) return '#7c3aed';
+				if (relatedSet.has(id)) return '#0f766e';
 				if (selectedSet.has(id)) return 'var(--cat-a, #6366f1)';
 				const row = rowByGj?.get(id);
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
@@ -803,16 +831,25 @@
 				const row = rowByGj?.get(id);
 				const dc = row?.devClass;
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
+				if (compareSet.has(id)) return dc === 'minimal' ? 2.2 : 3.8;
+				if (relatedSet.has(id)) return dc === 'minimal' ? 1.9 : 3.1;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
 				if (revealStage < 1) return 0.45;
 				if (!dc) return 0.5;
 				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
+				if (notableTracts.has(id)) return dc === 'minimal' ? 1.8 : 3;
 				return dc === 'minimal' ? 1.15 : 2.4;
 			})
 			.attr('opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (compareSet.has(id) || relatedSet.has(id)) return 1;
+				if (panelState.showOnlyNotableCases && !notableTracts.has(id)) return 0.15;
+				const cls = row?.devClass;
+				if (cls === 'tod_dominated' && !panelState.showTodClass) return 0.08;
+				if (cls === 'nontod_dominated' && !panelState.showNonTodClass) return 0.08;
+				if (cls === 'minimal' && !panelState.showMinimalClass) return 0.08;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -932,7 +969,10 @@
 	function handleTractClick(event, d) {
 		event.stopPropagation();
 		const id = d.properties?.gisjoin;
-		if (id) panelState.toggleTract(id);
+		if (id) {
+			panelState.toggleTract(id);
+			if (event.shiftKey) panelState.toggleComparisonTract(id);
+		}
 	}
 
 	function handleStopEnter(event, d) {
@@ -1036,6 +1076,51 @@
 	);
 
 	const activeSpotlight = $derived(hoveredSpotlight ?? pinnedSpotlight);
+	const tractMapByGj = $derived.by(() => new Map((tractList ?? []).map((t) => [t.gisjoin, t])));
+	const nhgisRowByGj = $derived.by(() => new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r])));
+	const comparisonPair = $derived(panelState.comparisonPair ?? []);
+
+	const relatedTracts = $derived.by(() =>
+		findRelatedTracts(
+			panelState.hoveredTract ?? panelState.lastInteractedGisjoin ?? null,
+			tractList ?? [],
+			nhgisRows ?? [],
+			tractTodMetricsMap,
+			panelState.relatedMode ?? 'similar_profile',
+			panelState.relatedTopK ?? 4,
+			panelState.timePeriod
+		)
+	);
+
+	const relatedReasonText = $derived.by(() => {
+		const mode = panelState.relatedMode ?? 'similar_profile';
+		if (mode === 'cohort') return 'Related tracts are highlighted because they are in the same development cohort.';
+		if (mode === 'municipality') return 'Related tracts are highlighted because they are in the same county grouping.';
+		return 'Related tracts are highlighted because they have similar TOD, growth, and demographic profiles.';
+	});
+
+	const notableTracts = $derived.by(() => {
+		const rows = nhgisRows ?? [];
+		if (!rows.length) return new Set();
+		const vals = rows
+			.map((r) => Number(r.census_hu_pct_change))
+			.filter(Number.isFinite);
+		const growthMedian = vals.length ? d3.quantile(vals.sort(d3.ascending), 0.5) : 0;
+		const out = new Set();
+		for (const row of rows) {
+			const m = tractTodMetricsMap?.get(row.gisjoin);
+			if (!m) continue;
+			const todShare = Number(m.todFraction) * 100;
+			const huGrowth = Number(row.census_hu_pct_change);
+			if (!Number.isFinite(todShare) || !Number.isFinite(huGrowth)) continue;
+			if (notableMetric === 'high_growth_tod') {
+				if (todShare >= 70 && huGrowth >= growthMedian) out.add(row.gisjoin);
+			} else {
+				if (todShare >= 70 && huGrowth < growthMedian) out.add(row.gisjoin);
+			}
+		}
+		return out;
+	});
 
 	const spotlightSummary = $derived.by(() => {
 		const spotlight = activeSpotlight;
@@ -1107,6 +1192,22 @@
 			stockIncrease: metric && Number.isFinite(Number(metric.pctStockIncrease)) ? Number(metric.pctStockIncrease) : null,
 			newUnits: metric && Number.isFinite(Number(metric.totalNewUnits)) ? Number(metric.totalNewUnits) : null
 		};
+	});
+
+	const comparisonPairDetails = $derived.by(() => {
+		if (!comparisonPair?.length) return [];
+		return comparisonPair
+			.map((gj) =>
+				buildTractComparisonMetrics(
+					gj,
+					tractMapByGj,
+					nhgisRowByGj,
+					tractTodMetricsMap,
+					devAggMap,
+					panelState.timePeriod
+				)
+			)
+			.filter(Boolean);
 	});
 
 	const selectionComparison = $derived.by(() => {
@@ -1372,6 +1473,9 @@
 									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
+									<li><span class="poc-k-ring poc-k-ring--related"></span> Related tracts</li>
+									<li><span class="poc-k-ring poc-k-ring--pair"></span> Pair-comparison tracts (A/B)</li>
+									<li><span class="poc-k-ring poc-k-ring--notable"></span> Notable cases</li>
 								</ul>
 							{/if}
 						</div>
@@ -1425,6 +1529,44 @@
 			</div>
 
 			<div class="poc-control-stack">
+				<div class="poc-filter card-key" role="group" aria-label="Analytic controls">
+					<div class="poc-filter__head">
+						<div>
+							<p class="poc-detail__kicker">Analytic controls</p>
+							<p class="poc-detail__title">Choose how related and notable tracts are defined</p>
+						</div>
+					</div>
+					<div class="poc-filter__controls">
+						<label class="poc-filter__mini">
+							<span>Relatedness mode</span>
+							<select bind:value={panelState.relatedMode} aria-label="Related tract mode">
+								<option value="similar_profile">Similar profile</option>
+								<option value="cohort">Same cohort</option>
+								<option value="municipality">Same county grouping</option>
+							</select>
+						</label>
+						<label class="poc-filter__mini">
+							<span>Related tracts shown: {panelState.relatedTopK}</span>
+							<input type="range" min="2" max="8" step="1" bind:value={panelState.relatedTopK} />
+						</label>
+						<label class="poc-filter__mini">
+							<span>Notable-case mode</span>
+							<select bind:value={notableMetric} aria-label="Notable case mode">
+								<option value="mismatch">High TOD share + lower growth</option>
+								<option value="high_growth_tod">High TOD share + higher growth</option>
+							</select>
+						</label>
+						<label class="poc-filter__check">
+							<input type="checkbox" bind:checked={panelState.showOnlyNotableCases} />
+							<span>Show only notable cases</span>
+						</label>
+					</div>
+					<div class="poc-filter__class-toggles" role="group" aria-label="Cohort visibility toggles">
+						<label><input type="checkbox" bind:checked={panelState.showTodClass} /> TOD-dominated</label>
+						<label><input type="checkbox" bind:checked={panelState.showNonTodClass} /> Non-TOD-dominated</label>
+						<label><input type="checkbox" bind:checked={panelState.showMinimalClass} /> Minimal</label>
+					</div>
+				</div>
 				<div class="poc-side-cards">
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
@@ -1514,6 +1656,7 @@
 							</div>
 						</div>
 					{/if}
+					<p class="poc-spotlight__summary-copy">{relatedReasonText}</p>
 				</div>
 
 					{#if selectedTractDetail}
@@ -1638,6 +1781,37 @@
 						{/each}
 					</div>
 				</div>
+				<div class="poc-compare card-key" role="region" aria-label="Pair comparison panel">
+					<div class="poc-compare__head">
+						<div>
+							<p class="poc-detail__kicker">Side-by-side comparison</p>
+							<p class="poc-detail__title">Compare A vs B tracts</p>
+						</div>
+						<button type="button" class="poc-compare__tab" onclick={() => panelState.clearComparisonPair()}>
+							Reset pair
+						</button>
+					</div>
+					<p class="poc-detail__summary">Shift-click any two tracts to pin a direct comparison.</p>
+					{#if comparisonPairDetails.length === 2}
+						<div class="poc-pair-grid">
+							{#each comparisonPairDetails as t, i (t.gisjoin)}
+								<div class="poc-pair-card">
+									<p class="poc-pair-card__kicker">{i === 0 ? 'A' : 'B'} · {t.cohort ? cohortLabel(t.cohort) : 'Unclassified'}</p>
+									<p class="poc-pair-card__title">{t.label}</p>
+									<div class="poc-pair-card__rows">
+										<div><span>Housing growth</span><strong>{t.huGrowthPct == null ? '—' : `${d3.format('.1f')(t.huGrowthPct)}%`}</strong></div>
+										<div><span>TOD share</span><strong>{t.todSharePct == null ? '—' : `${d3.format('.1f')(t.todSharePct)}%`}</strong></div>
+										<div><span>Stock increase</span><strong>{t.stockIncreasePct == null ? '—' : `${d3.format('.1f')(t.stockIncreasePct)}%`}</strong></div>
+										<div><span>Affordable share</span><strong>{t.affordableSharePct == null ? '—' : `${d3.format('.1f')(t.affordableSharePct)}%`}</strong></div>
+										<div><span>Income change</span><strong>{t.incomeChangePct == null ? '—' : `${d3.format('.1f')(t.incomeChangePct)}%`}</strong></div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{:else}
+						<p class="poc-detail__summary">Current pair: {comparisonPairDetails.length}/2 selected.</p>
+					{/if}
+				</div>
 				</div>
 
 					<div
@@ -1647,6 +1821,14 @@
 					onmouseleave={handleOverlayLeave}
 				>
 					<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
+					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
+						<p class="poc-detail__kicker">What to notice</p>
+						<ul class="poc-map-callouts__list">
+							{#each mapCallouts as c, i (i)}
+								<li>{c}</li>
+							{/each}
+						</ul>
+					</div>
 					<button class="poc-map-reset" type="button" onclick={recenterMap}>Recenter map</button>
 					<div class="map-root" bind:this={containerEl}></div>
 					{#if tooltip.visible}
@@ -2388,6 +2570,92 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	.poc-filter {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-filter__controls {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-filter__mini {
+		display: grid;
+		gap: 4px;
+		font-size: 0.72rem;
+		color: var(--text-muted);
+	}
+
+	.poc-filter__check {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.72rem;
+		color: var(--text);
+	}
+
+	.poc-filter__class-toggles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		font-size: 0.72rem;
+		color: var(--text);
+	}
+
+	.poc-filter__class-toggles label {
+		display: inline-flex;
+		gap: 5px;
+		align-items: center;
+	}
+
+	.poc-pair-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px;
+	}
+
+	.poc-pair-card {
+		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+		border-radius: 10px;
+		padding: 8px;
+		background: color-mix(in srgb, var(--bg-card) 96%, white 4%);
+	}
+
+	.poc-pair-card__kicker {
+		margin: 0 0 4px;
+		font-size: 0.64rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-muted);
+	}
+
+	.poc-pair-card__title {
+		margin: 0 0 8px;
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-pair-card__rows {
+		display: grid;
+		gap: 6px;
+	}
+
+	.poc-pair-card__rows > div {
+		display: flex;
+		justify-content: space-between;
+		gap: 8px;
+		font-size: 0.7rem;
+		color: var(--text-muted);
+	}
+
+	.poc-pair-card__rows strong {
+		color: var(--text);
+		font-weight: 700;
+	}
+
 	.poc-transit-legend {
 		padding: 0 2px;
 		font-size: 0.58rem;
@@ -2492,6 +2760,10 @@
 		.poc-compare__row {
 			grid-template-columns: 1fr;
 			gap: 4px;
+		}
+
+		.poc-pair-grid {
+			grid-template-columns: 1fr;
 		}
 
 		.poc-spotlight__buttons {
@@ -2716,6 +2988,18 @@
 		border-color: #94a3b8;
 	}
 
+	.poc-k-ring--related {
+		border-color: #0f766e;
+	}
+
+	.poc-k-ring--pair {
+		border-color: #7c3aed;
+	}
+
+	.poc-k-ring--notable {
+		border-color: #f59e0b;
+	}
+
 	/* Dev outline swatches: grey fill so stroke semantics stay visible (map dots stay orange–green by MF). */
 	.poc-k-ring--dev-access,
 	.poc-k-ring--dev-noaccess {
@@ -2755,6 +3039,22 @@
 	.map-main {
 		position: relative;
 		min-width: 0;
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-map-callouts {
+		padding: 8px 10px;
+	}
+
+	.poc-map-callouts__list {
+		margin: 0;
+		padding-left: 1.05rem;
+		display: grid;
+		gap: 0.32rem;
+		font-size: 0.76rem;
+		line-height: 1.45;
+		color: var(--text-muted);
 	}
 
 	.poc-map-reset {

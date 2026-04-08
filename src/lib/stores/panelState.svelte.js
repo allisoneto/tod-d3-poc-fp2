@@ -78,6 +78,18 @@ export function createPanelState(id) {
 		hoveredTract = $state(null);
 		/** GISJOIN of the tract most recently toggled (map/scatter click); used for “latest tract” sidebar focus. */
 		lastInteractedGisjoin = $state(/** @type {string | null} */ (null));
+		/** Up to 2 tracts for explicit side-by-side comparison. */
+		comparisonPair = $state(/** @type {string[]} */ ([]));
+		/** Related-tract highlighting mode (semantic, not decorative). */
+		relatedMode = $state(/** @type {'cohort' | 'municipality' | 'similar_profile'} */ ('similar_profile'));
+		/** Number of related tracts to surface in similar-profile mode. */
+		relatedTopK = $state(4);
+		/** Show only notable mismatch cases in the map emphasis layer. */
+		showOnlyNotableCases = $state(false);
+		/** Tract cohort visibility toggles for map filtering while preserving context. */
+		showTodClass = $state(true);
+		showNonTodClass = $state(true);
+		showMinimalClass = $state(true);
 
 		toggleTract(gisjoin) {
 			const next = new Set(this.selectedTracts);
@@ -124,6 +136,32 @@ export function createPanelState(id) {
 		 */
 		setHovered(gisjoin) {
 			this.hoveredTract = gisjoin;
+		}
+
+		/**
+		 * Toggle a tract inside the side-by-side comparison pair.
+		 * Keeps at most two tracts; if adding a third, drops the older slot.
+		 *
+		 * Parameters
+		 * ----------
+		 * gisjoin : string
+		 */
+		toggleComparisonTract(gisjoin) {
+			const next = [...this.comparisonPair];
+			const idx = next.indexOf(gisjoin);
+			if (idx >= 0) {
+				next.splice(idx, 1);
+			} else if (next.length < 2) {
+				next.push(gisjoin);
+			} else {
+				next.shift();
+				next.push(gisjoin);
+			}
+			this.comparisonPair = next;
+		}
+
+		clearComparisonPair() {
+			this.comparisonPair = [];
 		}
 	}
 
