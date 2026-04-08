@@ -565,6 +565,39 @@
 		});
 	}
 
+	function guidedRegionFeaturesForStage(stage) {
+		if (!guidedMode) return [];
+		if (stage === 4) {
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.30 && lat <= 42.43 && lon >= -71.17 && lon <= -70.98;
+			});
+		}
+		if (stage === 5) {
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.20 && lat <= 42.47 && lon >= -71.10 && lon <= -70.90;
+			});
+		}
+		if (stage === 6 || stage === 8) {
+			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				const row = rowsByGj.get(t.gisjoin);
+				const growth = Number(row?.census_hu_pct_change);
+				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.2 && lat >= 42.1 && lat <= 42.55 && growth >= (stage === 8 ? 10 : 15);
+			});
+		}
+		return [];
+	}
+
+	function guidedRegionIdsForStage(stage) {
+		return new Set(guidedRegionFeaturesForStage(stage).map((f) => f.properties?.gisjoin).filter(Boolean));
+	}
+
 	function stopRadius(stop) {
 		const m = stop.modes ?? [];
 		if (m.includes('rail') || m.includes('commuter_rail')) return 3;
@@ -782,6 +815,7 @@
 			.on('mousemove', handleMouseMove)
 			.on('mouseleave', handleOverlayLeave);
 
+		zoomLayer.append('g').attr('class', 'focus-region-layer');
 		zoomLayer.append('g').attr('class', 'dev-dots-layer');
 		zoomLayer.append('g').attr('class', 'insight-layer');
 
@@ -841,6 +875,7 @@
 			.scaleLinear()
 			.domain([-maxAbs, 0, maxAbs])
 			.range([MBTA_RED, MBTA_MAP_NEUTRAL, MBTA_BLUE]);
+		const guidedFocusIds = guidedRegionIdsForStage(revealStage);
 
 		d3.select(containerEl)
 			.selectAll('path.tract-poly')
@@ -912,6 +947,9 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
+				if (guidedMode && guidedFocusIds.size > 0) {
+					return guidedFocusIds.has(id) ? 1 : 0.28;
+				}
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
 				if (revealStage === 0) return 1;
 				if (!mismatchLayerOn) return 1;
@@ -1099,6 +1137,49 @@
 			.attr('opacity', 1)
 			.selection()
 			.style('pointer-events', 'auto');
+	}
+
+	function updateFocusRegion() {
+		if (!containerEl || !projectionRef) return;
+		const layer = d3.select(containerEl).select('.focus-region-layer');
+		const t = d3.transition().duration(250);
+		const focusFeatures = guidedRegionFeaturesForStage(revealStage);
+		if (!guidedMode || focusFeatures.length === 0) {
+			layer.selectAll('g.focus-region').transition(t).attr('opacity', 0).remove();
+			return;
+		}
+		const groups = layer
+			.selectAll('g.focus-region')
+			.data(focusFeatures, (d) => d.properties?.gisjoin)
+			.join(
+				(enter) => {
+					const g = enter.append('g').attr('class', 'focus-region').attr('opacity', 0);
+					g.append('path').attr('class', 'focus-region__halo');
+					g.append('path').attr('class', 'focus-region__outline');
+					return g;
+				},
+				(update) => update,
+				(exit) => exit.transition(t).attr('opacity', 0).remove()
+			);
+		const path = d3.geoPath(projectionRef);
+		groups
+			.select('path.focus-region__halo')
+			.attr('d', path)
+			.attr('fill', 'none')
+			.attr('stroke', 'rgba(255, 253, 248, 0.98)')
+			.attr('stroke-width', 4)
+			.attr('stroke-linejoin', 'round')
+			.attr('vector-effect', 'non-scaling-stroke');
+		groups
+			.select('path.focus-region__outline')
+			.attr('d', path)
+			.attr('fill', 'none')
+			.attr('stroke', guidedMode && revealStage >= 7 ? MBTA_ORANGE : MBTA_GREEN)
+			.attr('stroke-width', 2.2)
+			.attr('stroke-linejoin', 'round')
+			.attr('stroke-dasharray', revealStage >= 7 ? '7 5' : 'none')
+			.attr('vector-effect', 'non-scaling-stroke');
+		groups.transition(t).attr('opacity', 1);
 	}
 
 	function updateInsightMarkers() {
@@ -1782,6 +1863,7 @@
 		void panelState.selectedTracts.size;
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
+		updateFocusRegion();
 		updateDevelopments();
 		updateInsightMarkers();
 		updateSelection();
