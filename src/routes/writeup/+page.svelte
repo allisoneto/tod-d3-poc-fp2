@@ -245,6 +245,12 @@
 			graphics themselves, but keeping the encodings, labels, interactions, and explanation aligned as the prototype evolved.
 		</p>
 		<p>
+			In total, this proof of concept represents roughly <strong>80-90 person-hours</strong> of work across the team. That
+			includes preprocessing and checking the data inputs, developing the tract model and interaction logic, iterating on the
+			scrollytelling layout, debugging deployment and rendering issues, revising the narrative text, and documenting the final
+			design decisions and project plan.
+		</p>
+		<p>
 			A large share of the work went into integration and revision. We tightened the map story, simplified which layers appear at
 			each step, reworked the sticky scrollytelling layout several times, improved tooltip behavior, and adjusted how the
 			controls, charts, and walkthrough share screen space. We also separated the long-form explanation from the interactive
