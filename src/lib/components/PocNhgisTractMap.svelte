@@ -89,8 +89,11 @@
 	const MISMATCH_STROKE_OPACITY = 0.88;
 	const MISMATCH_W_HA = 2;
 	const MISMATCH_W_HG = 1.45;
-	/** Non–mismatch tracts when the mismatch layer is on: stronger recession than 0.5 so purple reads as foreground. */
-	const NON_MISMATCH_DIM = 0.36;
+	/**
+	 * Non–mismatch tracts when the mismatch layer is on (revealStage ≥2).
+	 * ~0.22 opacity ≈ 78% dimming vs full—well beyond a 50% visual drop-off so mismatch outlines pop.
+	 */
+	const NON_MISMATCH_DIM = 0.22;
 	const FILL_DESAT = '#a8a29e';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
@@ -712,7 +715,7 @@
 				let fill = tintFill(baseFill, row);
 				if (revealStage >= 2 && visibleMismatchIds.size) {
 					if (!visibleMismatchIds.has(id)) {
-						fill = d3.interpolateRgb(fill, FILL_DESAT)(0.44);
+						fill = d3.interpolateRgb(fill, FILL_DESAT)(0.55);
 					} else if (hoveredMismatchCluster) {
 						const mk = mismatchKind(id);
 						if (mk && mk !== hoveredMismatchCluster) {
@@ -754,7 +757,7 @@
 				if (revealStage >= 2 && visibleMismatchIds.size) {
 					const row = rowByGj.get(id);
 					const dc = row?.devClass;
-					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.72;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.55;
 				}
 				return 1;
 			})
@@ -764,17 +767,17 @@
 				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
 				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
-				if (focusLowIncomeTracts && li !== true) return 0.22;
+				if (focusLowIncomeTracts && li !== true) return 0.18;
 				if (revealStage === 0) return 1;
 				if (!visibleMismatchIds.size) return 1;
 				const vis = visibleMismatchIds.has(id);
 				const mk = mismatchKind(id);
 				if (hoveredMismatchCluster) {
-					if (!vis) return 0.38;
+					if (!vis) return NON_MISMATCH_DIM;
 					if (mk === hoveredMismatchCluster) return 1;
-					return 0.55;
+					return 0.42;
 				}
-				if (focusMismatchOnly) return vis ? 1 : 0.12;
+				if (focusMismatchOnly) return vis ? 1 : 0.1;
 				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 
@@ -1099,7 +1102,7 @@
 				if (revealStage >= 2 && visibleMismatchIds.size) {
 					const row = rowByGj?.get(id);
 					const dc = row?.devClass;
-					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.72;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.55;
 				}
 				return 1;
 			})
@@ -1109,17 +1112,17 @@
 				if (id === hoveredId || selectedSet.has(id)) return 1;
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
 				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
-				if (focusLowIncomeTracts && li !== true) return 0.22;
+				if (focusLowIncomeTracts && li !== true) return 0.18;
 				if (revealStage === 0) return 1;
 				if (!visibleMismatchIds.size) return 1;
 				const vis = visibleMismatchIds.has(id);
 				const mk = mismatchKind(id);
 				if (hoveredMismatchCluster) {
-					if (!vis) return 0.38;
+					if (!vis) return NON_MISMATCH_DIM;
 					if (mk === hoveredMismatchCluster) return 1;
-					return 0.55;
+					return 0.42;
 				}
-				if (focusMismatchOnly) return vis ? 1 : 0.12;
+				if (focusMismatchOnly) return vis ? 1 : 0.1;
 				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 	}
