@@ -89,6 +89,17 @@ export function linearRegression(points) {
 	return { slope, intercept };
 }
 
+function buildNiceSizeLegendValues(maxValue) {
+	if (!Number.isFinite(maxValue) || maxValue <= 0) return [100, 500, 1000];
+	const rough = [0.25, 0.6, 1].map((p) => maxValue * p);
+	return rough.map((value) => {
+		if (value <= 100) return Math.max(10, Math.round(value / 10) * 10);
+		if (value <= 500) return Math.max(50, Math.round(value / 50) * 50);
+		if (value <= 2000) return Math.max(100, Math.round(value / 100) * 100);
+		return Math.max(500, Math.round(value / 500) * 500);
+	});
+}
+
 /* ── Summary updater ─────────────────────────────────── */
 
 /**
@@ -149,7 +160,6 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 		{ type: 'outline', color: 'var(--warning)', fill: '#ffffff', label: 'Non-TOD-dominant municipality' },
 		{ type: 'outline', color: '#b7b0a3', fill: '#ffffff', label: 'No units yet in current window' }
 	]);
-	dominantLegend.append('span').attr('class', 'legend-item').text('Point size = affordable units added');
 	addRampLegend(root, 'Lower affordable share', 'Higher affordable share', incomePalette);
 
 	const width = root.node().clientWidth || 800;
@@ -180,19 +190,20 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 		.range([0, innerW]);
 	const y = d3.scaleLinear().domain([0, yMax]).nice().range([innerH, 0]).clamp(true);
 	const r = d3.scaleSqrt().domain([0, rMax]).range([5, 22]).clamp(true);
-	const sizeLegendVals = [0.2, 0.55, 1].map((p) => Math.max(1, Math.round(rMax * p)));
+	const sizeLegendVals = [...new Set(buildNiceSizeLegendValues(rMax))];
 
 	const sizeLegend = root
 		.append('div')
 		.attr('class', 'chart-note')
 		.style('display', 'flex')
-		.style('align-items', 'flex-end')
-		.style('gap', '14px')
+		.style('align-items', 'center')
+		.style('gap', '16px')
 		.style('flex-wrap', 'wrap')
+		.style('margin-top', '4px')
 		.style('margin-bottom', '10px');
 
-	sizeLegend.append('span').style('font-weight', '600').text('Affordable units added:');
-	const sizeItems = sizeLegend.append('div').style('display', 'flex').style('gap', '16px').style('align-items', 'flex-end');
+	sizeLegend.append('span').style('font-weight', '600').text('Point size = affordable units added');
+	const sizeItems = sizeLegend.append('div').style('display', 'flex').style('gap', '18px').style('align-items', 'flex-end');
 	for (const v of sizeLegendVals) {
 		const item = sizeItems.append('div').style('display', 'grid').style('justify-items', 'center').style('gap', '4px');
 		item
