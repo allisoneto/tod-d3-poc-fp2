@@ -1279,6 +1279,16 @@
 <div class="poc-nhgis-map">
 	<div class="poc-scrolly">
 		<div class="poc-scrolly-map">
+			<div class="poc-methods poc-methods--lead card-key" role="note" aria-label="TOD definitions">
+				<p class="poc-methods__title">Definitions</p>
+				<p class="poc-methods__text">
+					<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop; other projects are treated as <strong>non-TOD developments</strong>.
+					<strong>TOD-dominated tracts</strong> are tracts with at least <strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units in TOD developments and at least <strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase.
+					<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
+					<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
+				</p>
+			</div>
+
 			<div class="map-wrap">
 				<div class="map-left-column">
 					<div class="poc-legend-row">
@@ -1418,22 +1428,6 @@
 					</div>
 					<p class="poc-filter__note">
 						The map, spotlight summaries, and linked chart all update together as you change this threshold.
-					</p>
-				</div>
-
-				<div class="poc-methods card-key" role="note" aria-label="TOD definitions">
-					<p class="poc-detail__kicker">Definitions</p>
-					<p class="poc-methods__text">
-						<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop
-						{#if (panelState.minDevMultifamilyRatioPct ?? 0) > 0}
-							and with at least <strong>{panelState.minDevMultifamilyRatioPct}% multifamily units</strong>
-						{/if}
-						; other projects are treated as <strong>non-TOD developments</strong>.
-						<strong>TOD-dominated tracts</strong> are tracts with at least
-						<strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units in TOD developments and at least
-						<strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase.
-						<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
-						<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
 					</p>
 				</div>
 
@@ -1955,10 +1949,6 @@
 			grid-column: 1 / -1;
 		}
 
-		.poc-methods {
-			grid-column: 1 / -1;
-		}
-
 		.poc-side-cards {
 			grid-column: 1;
 		}
@@ -2028,10 +2018,23 @@
 		gap: 6px;
 	}
 
+	.poc-methods--lead {
+		margin-bottom: 8px;
+		padding: 12px 14px;
+	}
+
+	.poc-methods__title {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 800;
+		letter-spacing: 0.02em;
+		color: var(--accent);
+	}
+
 	.poc-methods__text {
 		margin: 0;
-		font-size: 0.72rem;
-		line-height: 1.5;
+		font-size: 0.9rem;
+		line-height: 1.6;
 		color: var(--text-muted);
 	}
 
