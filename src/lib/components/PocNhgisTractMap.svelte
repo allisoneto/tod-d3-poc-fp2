@@ -310,7 +310,7 @@
 				body: 'Before zooming into specific places, the map now switches from mismatch to tract grouping across the full region. Green outlines mark tracts where significant development has been more TOD-dominated, while orange outlines mark tracts where growth has leaned more non-TOD.',
 				legend: 'The choropleth still shows housing growth underneath. The outlines add a second question: was that growth concentrated near transit, or did it happen more outside the TOD threshold?',
 				why: 'This matters because it turns the regional mismatch argument into a tract classification the reader can follow through the rest of the story. It becomes easier to see whether growth happened, and whether it happened in a more transit-oriented way.',
-				prompt: 'Use this as the bridge between the mismatch claim and the place-based examples that come next.'
+				prompt: 'Use this as the bridge between the mismatch claim and the place-based examples that come next. Hover over tracts for tooltip details if you want to inspect a specific case more closely.'
 			},
 			{
 				kicker: 'Step 6',
@@ -342,7 +342,7 @@
 				body: 'Project dots now connect the tract pattern back to actual housing developments. The point here is to move from tract-level averages to concrete projects and ask where new housing is being added on the ground.',
 				legend: 'These dots do not replace the tract pattern underneath. They let the reader see whether project activity accumulates in the same places that already looked important at the tract scale.',
 				why: 'This matters because the mismatch is not only a tract-level abstraction. It also appears in where individual developments are actually being built.',
-				prompt: 'The examples below show a few notable TOD and non-TOD projects so the project layer reads as evidence rather than just another set of symbols.'
+				prompt: 'The examples below show a few notable TOD and non-TOD projects so the project layer reads as evidence rather than just another set of symbols. Hover over dots and tracts for tooltips with more detail.'
 			},
 			{
 				kicker: 'Step 10',

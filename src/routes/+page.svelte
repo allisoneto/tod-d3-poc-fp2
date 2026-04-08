@@ -402,7 +402,8 @@
 					As you move through the walkthrough, the map progresses from transit access, to housing growth, to mismatch, and then
 					to lower-income context. Blue tract fill indicates stronger housing growth, red indicates weaker or negative growth,
 					and purple outlines identify the tracts where transit access and growth no longer move together in the expected way.
-					The full exploration interface comes afterward, once that argument has been established more clearly.
+					The full exploration interface comes afterward, once that argument has been established more clearly. You can also
+					hover over tracts and development dots throughout the map to see tooltips with more detail.
 				</p>
 				<div class="chart-wrap chart-tall chart-wrap--poc-map">
 					<PocNhgisTractMap
