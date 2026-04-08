@@ -892,7 +892,7 @@
 				primaryRows.push({ label: 'TOD share of new dev units', value: `${fmt1(m.todFraction * 100)}%` });
 			}
 			if (m?.pctStockIncrease != null && Number.isFinite(m.pctStockIncrease)) {
-				primaryRows.push({ label: 'Stock increase', value: `${fmt1(m.pctStockIncrease)}%` });
+				primaryRows.push({ label: 'Housing stock increase', value: `${fmt1(m.pctStockIncrease)}%` });
 			}
 
 			const agg = devAggMap?.get(id);
@@ -1580,7 +1580,7 @@
 									</span>
 								</div>
 								<div>
-									<span class="poc-detail__stat-label">Stock increase</span>
+									<span class="poc-detail__stat-label">Housing stock increase</span>
 									<span class="poc-detail__stat-value">
 										{selectedTractDetail.stockIncrease == null ? '—' : `${d3.format('.1f')(selectedTractDetail.stockIncrease)}%`}
 									</span>
@@ -1629,7 +1629,7 @@
 								class:poc-compare__tab--active={comparisonMetric === 'stock_increase'}
 								onclick={() => (comparisonMetric = 'stock_increase')}
 							>
-								Stock
+								Stock increase
 							</button>
 						</div>
 					</div>
