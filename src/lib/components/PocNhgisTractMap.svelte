@@ -1932,14 +1932,15 @@
 
 	const guidedMismatchExamples = $derived.by(() => {
 		if (!guidedMode) return [];
+		const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 		const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
-		const candidates = (nhgisRows ?? [])
-			.map((row) => {
-				const id = row?.gisjoin;
-				if (!id) return null;
-				const mismatch = mismatchFlagsByGj.get(id);
-				if (!mismatch?.isHighAccessLowGrowth && !mismatch?.isHighGrowthLowAccess) return null;
+		return (tractGeo?.features ?? [])
+			.map((f) => {
+				const id = f?.properties?.gisjoin;
+				if (!id || !effectiveMismatchIds.has(id)) return null;
+				const row = rowsByGj.get(id);
 				const tract = tractByGj.get(id);
+				const mismatch = mismatchFlagsByGj.get(id);
 				const growth = Number(row?.census_hu_pct_change);
 				const stops = Number(tract?.transit_stops);
 				if (!Number.isFinite(growth) || !Number.isFinite(stops)) return null;
@@ -1947,6 +1948,12 @@
 					tract?.county && String(tract.county) !== 'County Name'
 						? String(tract.county)
 						: null;
+				const incomeRaw =
+					row?.median_household_income ??
+					mismatch?.medianHouseholdIncome ??
+					tract?.median_income_2020 ??
+					null;
+				const income = Number(incomeRaw);
 				const isHaLg = Boolean(mismatch?.isHighAccessLowGrowth);
 				return {
 					id,
@@ -1954,11 +1961,12 @@
 					label: county ? `Tract in ${county}` : `Tract ${id}`,
 					kind: isHaLg ? 'High access, low growth' : 'High growth, low access',
 					note: isHaLg
-						? 'Transit access is strong here, but housing growth has remained relatively weak.'
-						: 'Housing growth is stronger here even though transit access is comparatively limited.',
+						? 'This red marker highlights a tract with strong transit access but relatively weak housing growth.'
+						: 'This red marker highlights a tract where housing growth has been stronger despite weaker transit access.',
 					growth,
 					stops,
-					score: isHaLg ? stops * 10 - growth * 2 : growth * 2.5 - stops * 8,
+					income: Number.isFinite(income) ? income : null,
+					score: isHaLg ? stops - growth : growth - stops,
 					kindRank: isHaLg ? 0 : 1
 				};
 			})
@@ -1966,17 +1974,8 @@
 			.sort((a, b) => {
 				if (a.kindRank !== b.kindRank) return a.kindRank - b.kindRank;
 				return b.score - a.score;
-			});
-		const picked = [];
-		const seen = new Set();
-		for (const item of candidates) {
-			const key = item.county ?? item.id;
-			if (seen.has(key)) continue;
-			seen.add(key);
-			picked.push(item);
-			if (picked.length === 3) break;
-		}
-		return picked;
+			})
+			.slice(0, 4);
 	});
 
 	const guidedDevelopmentExamples = $derived.by(() => {
@@ -2812,13 +2811,9 @@
 								{/if}
 								{#if guidedMode && i === 3 && guidedMismatchExamples.length}
 									<div class="poc-stepper-examples" aria-label="Mismatch examples highlighted on the map">
-										<p class="poc-stepper-examples-title">Keep scrolling: the next steps unpack tracts like these</p>
+										<p class="poc-stepper-examples-title">These cards correspond to the red mismatch markers already on the map</p>
 										{#each guidedMismatchExamples as example (example.id)}
-											<button
-												type="button"
-												class="poc-stepper-example"
-												onclick={() => inspectGuidedExample(example.id)}
-											>
+											<div class="poc-stepper-example">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{example.label}</span>
 													<span class="poc-stepper-example__cta">{example.kind}</span>
@@ -2827,8 +2822,20 @@
 												<div class="poc-stepper-example__metrics">
 													<span><strong>Growth:</strong> {d3.format('.1f')(example.growth)}%</span>
 													<span><strong>Transit access:</strong> {example.stops === 0 ? '0 stops' : `${d3.format(',.0f')(example.stops)} stops`}</span>
+													{#if example.income != null}
+														<span><strong>Median income:</strong> {d3.format('$,.0f')(example.income)}</span>
+													{/if}
 												</div>
-											</button>
+												<div class="poc-stepper-example__actions">
+													<button
+														type="button"
+														class="poc-stepper-example__button"
+														onclick={() => inspectGuidedExample(example.id)}
+													>
+														Show on map
+													</button>
+												</div>
+											</div>
 										{/each}
 									</div>
 								{/if}
@@ -3157,6 +3164,35 @@
 		font-size: 0.72rem;
 		line-height: 1.45;
 		color: var(--text-muted);
+	}
+
+	.poc-stepper-example__actions {
+		display: flex;
+		justify-content: flex-start;
+		margin-top: 0.1rem;
+	}
+
+	.poc-stepper-example__button {
+		padding: 0.42rem 0.7rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+		border-radius: 999px;
+		background: color-mix(in srgb, white 76%, var(--accent) 24%);
+		color: var(--accent-strong);
+		font-size: 0.74rem;
+		font-weight: 700;
+		line-height: 1;
+		cursor: pointer;
+		transition:
+			background 120ms ease,
+			border-color 120ms ease,
+			transform 120ms ease;
+	}
+
+	.poc-stepper-example__button:hover,
+	.poc-stepper-example__button:focus-visible {
+		background: color-mix(in srgb, white 60%, var(--accent) 40%);
+		border-color: color-mix(in srgb, var(--accent) 56%, var(--border));
+		transform: translateY(-1px);
 	}
 
 	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */
