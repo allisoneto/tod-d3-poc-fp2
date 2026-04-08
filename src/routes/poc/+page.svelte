@@ -34,6 +34,7 @@
 	import { drawMainPocTractCharts } from '$lib/utils/mainPocTractCharts.js';
 	import { createPanelState } from '$lib/stores/panelState.svelte.js';
 	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
+	import IncomeDistributionCharts from '$lib/components/IncomeDistributionCharts.svelte';
 	import {
 		filterTractsByTract,
 		buildCohortDevelopmentSplit,
@@ -466,6 +467,16 @@
 		eduPanelState = makeTodScatterPanelState('bachelors_pct_change');
 	});
 
+	/** Map hover/selection → TOD intensity scatters (light “connect” interaction). */
+	$effect(() => {
+		void pocMapPanel.hoveredTract;
+		const h = pocMapPanel.hoveredTract;
+		incomePanelState.hoveredTract = h;
+		eduPanelState.hoveredTract = h;
+		incomePanelState = incomePanelState;
+		eduPanelState = eduPanelState;
+	});
+
 	/* ── Tract chart element refs ─────────────────────── */
 	let elTractEdu = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elTakeaway = $state(/** @type {HTMLElement | undefined} */ (undefined));
@@ -832,11 +843,12 @@
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>Tract categorizations and housing change overview (tract, 2000–2020 window)</h3>
+				<h3>Transit access and housing growth are not aligned across Greater Boston</h3>
 				<p class="chart-note">
-					Tracts are colored by <strong>census percent change in housing units (2000–2020)</strong>, relative to 2000 stock, and outlined by
-					MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development). Use the overlays for
-					MBTA lines, stops, and MassBuilds projects (same encoding as the
+					This misalignment affects where lower-income households (median household income &lt; $125k) can access housing near
+					transit. Tracts are colored by <strong>census percent change in housing units (2000–2020)</strong>, relative to 2000
+					stock, and outlined by MassBuilds cohort (TOD-dominated vs non-TOD-dominated vs minimal development). Use the overlays
+					for MBTA lines, stops, and MassBuilds projects (same encoding as the
 					<a href="{base}/tract">tract map</a>).
 				</p>
 				<div class="chart-wrap chart-tall chart-wrap--poc-map">
@@ -846,6 +858,7 @@
 						nhgisRows={nhgisLikeRows}
 						metricsDevelopments={tractWindowDevs}
 					/>
+					<IncomeDistributionCharts tractList={tractListFiltered} nhgisRows={nhgisLikeRows} panelState={pocMapPanel} />
 				</div>
 			</section>
 

@@ -14,6 +14,7 @@ import {
 	filterTractsByTract,
 	transitDistanceMiToMetres
 } from './derived.js';
+import { medianHouseholdIncomeAtPeriodEnd, tractIsLowIncome } from './incomeTract.js';
 
 /**
  * Default tract-universe panel matching ``createPanelState`` (tract dashboard).
@@ -295,19 +296,26 @@ export function uniqueCounties(tractData) {
  */
 export function buildNhgisLikeRows(tractList, devClassByGj, timePeriod = DEFAULT_MAIN_POC_UNIVERSE.timePeriod) {
 	const tp = timePeriod;
-	return tractList.map((t) => ({
-		gisjoin: t.gisjoin,
-		is_tod: !!t.is_tod,
-		devClass: devClassByGj?.get(t.gisjoin) ?? null,
-		median_income_change_pct: t[`median_income_change_pct_${tp}`],
-		bachelors_pct_change: t[`bachelors_pct_change_${tp}`],
-		avg_travel_time_change: t[`avg_travel_time_change_${tp}`],
-		/** Net census housing-unit change for ``timePeriod`` (units, not %). */
-		census_hu_change: censusHuChangeForPeriod(t, tp),
-		/** Census % change in housing stock vs period start (decennial). */
-		census_hu_pct_change: censusHuPctChangeForPeriod(t, tp),
-		pop_2020: Number(t.pop_2020) || 0
-	}));
+	return tractList.map((t) => {
+		const mh = medianHouseholdIncomeAtPeriodEnd(t, tp);
+		return {
+			gisjoin: t.gisjoin,
+			is_tod: !!t.is_tod,
+			devClass: devClassByGj?.get(t.gisjoin) ?? null,
+			median_income_change_pct: t[`median_income_change_pct_${tp}`],
+			bachelors_pct_change: t[`bachelors_pct_change_${tp}`],
+			avg_travel_time_change: t[`avg_travel_time_change_${tp}`],
+			/** Net census housing-unit change for ``timePeriod`` (units, not %). */
+			census_hu_change: censusHuChangeForPeriod(t, tp),
+			/** Census % change in housing stock vs period start (decennial). */
+			census_hu_pct_change: censusHuPctChangeForPeriod(t, tp),
+			pop_2020: Number(t.pop_2020) || 0,
+			/** Median household income at period end year (same field as tract JSON). */
+			median_household_income: mh,
+			/** True when median household income is below the “lower-income” threshold (see ``incomeTract.js``). */
+			is_low_income: tractIsLowIncome(t, tp)
+		};
+	});
 }
 
 /**

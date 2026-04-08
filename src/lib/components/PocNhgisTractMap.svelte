@@ -19,6 +19,8 @@
 		transitModeUiLabel
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds, periodDisplayLabel } from '$lib/utils/periods.js';
+	import { LOW_INCOME_MEDIAN_THRESHOLD } from '$lib/utils/incomeTract.js';
+	import { computeTodMismatchClusters } from '$lib/utils/todMismatchClusters.js';
 	import {
 		MBTA_BLUE,
 		MBTA_GREEN,
@@ -62,9 +64,12 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
-	let insightMode = $state(
-		/** @type {'none' | 'all_mismatch' | 'high_access_low_growth' | 'high_growth_low_access'} */ ('none')
-	);
+	/** When true, dim everything except currently visible mismatch tracts. */
+	let focusMismatchOnly = $state(false);
+	/** Optional: emphasize tracts with median household income below the lower-income threshold. */
+	let focusLowIncomeTracts = $state(false);
+	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
+	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -76,8 +81,17 @@
 
 	/** Lighter grey for minimal-development tract outline (half stroke vs TOD tiers); legend ring matches. */
 	const MINIMAL_TRACT_STROKE = '#94a3b8';
-	const MISMATCH_STROKE = '#7B61FF';
-	const ALL_MISMATCH = 'all_mismatch';
+	/** High access + low growth — softer violet (thick edges read calmer than pure #7B61FF). */
+	const MISMATCH_STROKE_HA = '#8A78E0';
+	/** High growth + low access — lighter, dashed. */
+	const MISMATCH_STROKE_HG = '#C4B5F0';
+	/** Slightly transparent mismatch strokes so dense boundaries feel less “ink heavy”. */
+	const MISMATCH_STROKE_OPACITY = 0.88;
+	const MISMATCH_W_HA = 2;
+	const MISMATCH_W_HG = 1.45;
+	/** Non–mismatch tracts when the mismatch layer is on: stronger recession than 0.5 so purple reads as foreground. */
+	const NON_MISMATCH_DIM = 0.36;
+	const FILL_DESAT = '#a8a29e';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
@@ -131,92 +145,116 @@
 		return d3.interpolateRgb(baseFill, accent)(dc === 'minimal' ? 0.1 : 0.17);
 	}
 
-	function computeClusters() {
-		const byGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
-		const accessVals = tractList.map((t) => Number(t?.transit_stops)).filter(Number.isFinite);
-		const growthVals = (nhgisRows ?? []).map((r) => Number(r?.census_hu_pct_change)).filter(Number.isFinite);
-		if (!accessVals.length || !growthVals.length) {
-			return { highGrowthLowAccess: new Set(), highAccessLowGrowth: new Set(), flagsByGj: new Map() };
-		}
-		const sortedAccess = [...accessVals].sort(d3.ascending);
-		const sortedGrowth = [...growthVals].sort(d3.ascending);
-		const accessLow = d3.quantile(sortedAccess, 0.25) ?? 0;
-		const accessHigh = d3.quantile(sortedAccess, 0.75) ?? 0;
-		const growthLow = d3.quantile(sortedGrowth, 0.25) ?? 0;
-		const growthHigh = d3.quantile(sortedGrowth, 0.75) ?? 0;
-		const highGrowthLowAccess = new Set();
-		const highAccessLowGrowth = new Set();
-		const flagsByGj = new Map();
-		for (const t of tractList ?? []) {
-			const id = t?.gisjoin;
-			if (!id) continue;
-			const row = byGj.get(id);
-			if (!row) continue;
-			const access = Number(t?.transit_stops);
-			const growth = Number(row?.census_hu_pct_change);
-			if (!Number.isFinite(access) || !Number.isFinite(growth)) continue;
-			const isHighGrowthLowAccess = growth >= growthHigh && access <= accessLow;
-			const isHighAccessLowGrowth = access >= accessHigh && growth <= growthLow;
-			if (isHighGrowthLowAccess) highGrowthLowAccess.add(id);
-			if (isHighAccessLowGrowth) highAccessLowGrowth.add(id);
-			flagsByGj.set(id, { isHighGrowthLowAccess, isHighAccessLowGrowth });
-		}
-		return { highGrowthLowAccess, highAccessLowGrowth, flagsByGj };
-	}
-
-	function tractsByInsightMode(mode, clusters) {
-		if (!mode || mode === 'none') return new Set();
-		if (mode === ALL_MISMATCH)
-			return new Set([...(clusters?.highGrowthLowAccess ?? []), ...(clusters?.highAccessLowGrowth ?? [])]);
-		if (mode === HIGH_ACCESS_LOW_GROWTH) return new Set(clusters?.highAccessLowGrowth ?? []);
-		if (mode === HIGH_GROWTH_LOW_ACCESS) return new Set(clusters?.highGrowthLowAccess ?? []);
-		return new Set();
-	}
-
-	const mismatchClusters = $derived.by(() => computeClusters());
+	const mismatchClusters = $derived.by(() =>
+		computeTodMismatchClusters(tractList, nhgisRows, panelState.timePeriod)
+	);
 	const mismatchFlagsByGj = $derived.by(() => mismatchClusters.flagsByGj);
-	const insightSet = $derived.by(() => tractsByInsightMode(insightMode, mismatchClusters));
+
+	/** Which mismatch tracts are shown — scroll-driven progressive reveal (stages 2–3). */
+	const visibleMismatchIds = $derived.by(() => {
+		const s = new Set();
+		const c = mismatchClusters;
+		if (revealStage < 2) return s;
+		if (revealStage === 2) {
+			c.highAccessLowGrowth.forEach((id) => s.add(id));
+			return s;
+		}
+		c.highAccessLowGrowth.forEach((id) => s.add(id));
+		c.highGrowthLowAccess.forEach((id) => s.add(id));
+		return s;
+	});
+
+	/**
+	 * @param {string} id
+	 * @returns {'ha_lg' | 'hg_la' | null}
+	 */
+	function mismatchKind(id) {
+		const f = mismatchFlagsByGj.get(id);
+		if (!f) return null;
+		if (f.isHighAccessLowGrowth) return 'ha_lg';
+		if (f.isHighGrowthLowAccess) return 'hg_la';
+		return null;
+	}
+
+	const clusterAnnotationCentroids = $derived.by(() => {
+		if (!projectionRef) return { ha: null, hg: null };
+		const geomByGj = new Map((tractGeo?.features ?? []).map((f) => [f.properties?.gisjoin, f]));
+		const centroidMean = (idSet) => {
+			const pts = [];
+			for (const id of idSet) {
+				const feature = geomByGj.get(id);
+				if (!feature) continue;
+				const c = d3.geoPath(projectionRef).centroid(feature);
+				if (Number.isFinite(c[0]) && Number.isFinite(c[1])) pts.push(c);
+			}
+			if (!pts.length) return null;
+			return [d3.mean(pts, (p) => p[0]), d3.mean(pts, (p) => p[1])];
+		};
+		return {
+			ha: centroidMean(mismatchClusters.highAccessLowGrowth),
+			hg: centroidMean(mismatchClusters.highGrowthLowAccess)
+		};
+	});
+
+	/** Percent positions for anchored mismatch callouts (matches SVG viewBox scaling). */
+	const clusterAnnStyles = $derived.by(() => {
+		const { svgW, mapH: mh } = mapViewBox;
+		const toStyle = (xy) => {
+			if (!xy || !Number.isFinite(xy[0]) || !Number.isFinite(xy[1])) return '';
+			const lp = Math.min(90, Math.max(4, (xy[0] / svgW) * 100));
+			const tp = Math.min(86, Math.max(8, (xy[1] / mh) * 100));
+			return `left:${lp}%;top:${tp}%;`;
+		};
+		return { ha: toStyle(clusterAnnotationCentroids.ha), hg: toStyle(clusterAnnotationCentroids.hg) };
+	});
 
 	const stepContent = [
 		{
 			kicker: 'Step 1',
-			title: 'Start with the choropleth',
-			body: 'Focus first on tract color alone. Blue tracts show stronger percent growth in housing stock; red tracts grew more slowly or lost units relative to their baseline count.'
+			title: 'Transit-rich places',
+			body: 'These areas are well-served by transit and are often considered ideal for dense housing. Read tract color as housing growth before adding outlines.'
 		},
 		{
 			kicker: 'Step 2',
-			title: 'Add the tract categories',
-			body: 'Then add the outline colors and the slight interior tint: green for TOD-dominated, orange for non-TOD-dominated, and gray for minimal-development tracts.'
+			title: 'Growth is not only “on the line”',
+			body: 'However, housing development is not concentrated only in these areas. Green, orange, and gray outlines show TOD-dominated, non-TOD-dominated, and minimal-development tracts.'
 		},
 		{
 			kicker: 'Step 3',
-			title: 'Add the projects',
-			body: 'Finally, bring in the MassBuilds developments to see how individual projects cluster within those tract patterns.'
+			title: 'A measurable mismatch',
+			body: 'These highlighted tracts reveal a mismatch between transit access and housing growth (quartile-based). Solid purple begins with high access + low growth.'
+		},
+		{
+			kicker: 'Step 4',
+			title: 'Who can live near transit?',
+			body: 'In some high-access areas, limited development reduces opportunities for lower-income households (<$125k median) to live near transit. Dashed lavender adds high growth + low access; optional project dots layer on.'
 		}
 	];
 
 	const mapCallouts = $derived.by(() => {
 		if (revealStage === 0) {
 			return [
-				'Interpret the fill first: stronger blue indicates higher housing growth in the selected period.',
-				insightMode === 'none'
-					? 'Turn on mismatch tracts to highlight where access and growth diverge.'
-					: 'Purple outlines mark mismatch tracts: high growth + low access and high access + low growth.'
+				'Blue fill = stronger census housing growth in the selected period; red = weaker or negative growth.',
+				'Scroll to add tract-category outlines and then mismatch highlights—without changing the choropleth scale.'
 			];
 		}
 		if (revealStage === 1) {
 			return [
-				'Outline colors add cohort meaning on top of growth: TOD-dominated, non-TOD-dominated, and minimal-development.',
-				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.',
-				insightMode === 'none'
-					? 'Use mismatch tract filters to surface access-growth misalignment.'
-					: 'Mismatch outlines show where transit access and housing growth diverge.'
+				'Outlines encode MassBuilds-based cohorts; fill still shows census growth.',
+				'Next steps add access–growth “mismatch” tracts—use toggles to focus when the map gets busier.'
+			];
+		}
+		if (revealStage === 2) {
+			return [
+				'Solid violet tracts = high access + low growth. The map pushes everything else back (dimmer fill, lighter cohort outlines) so the mismatch layer stays in front.',
+				'If it still feels busy: turn on “Show mismatch areas only,” or hover any highlighted tract to spotlight its whole cluster.',
+				'Optional: “Show low-income tracts” fades tracts at/above the $125k median for equity exploration (no second choropleth).'
 			];
 		}
 		return [
-			'Project dots add development-level detail without replacing tract context.',
-			'Use click selection and cohort spotlight to compare local clusters against broader statewide patterns.',
-			'Open tooltips for tract-level detail while keeping the map as the main evidence view.'
+			'Dashed lavender = high growth + low access. Same hierarchy: background tracts fade; violet / lavender stay the focus.',
+			'Project dots (step 4) add site-level detail—tract fill and outlines still carry the regional story.',
+			'Income detail stays in tooltips and the charts below; hover or select a tract to link map → charts.'
 		];
 	});
 
@@ -279,6 +317,12 @@
 	let mapCanvasLeft = 0;
 	let mapW = 520;
 	const mapH = 480;
+	/** ViewBox dimensions for anchoring HTML callouts to projection coordinates. */
+	let mapViewBox = $state(/** @type {{ svgW: number; mapW: number; mapH: number }} */ ({
+		svgW: 520 + CHORO_LEGEND_COL_W,
+		mapW: 520,
+		mapH: 480
+	}));
 
 	let svgRef = $state(null);
 	let zoomBehaviorRef = $state(null);
@@ -636,6 +680,8 @@
 		svg.call(zoom).on('dblclick.zoom', null).style('touch-action', 'none');
 
 		svg.append('g').attr('class', 'map-legend-group');
+
+		mapViewBox = { svgW, mapW, mapH };
 	}
 
 	function updateChoropleth() {
@@ -662,35 +708,74 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				const v = row ? Number(row.census_hu_pct_change) : NaN;
-				const baseFill = Number.isFinite(v) ? color(v) : '#e7e0d5';
-				return tintFill(baseFill, row);
+				let baseFill = Number.isFinite(v) ? color(v) : '#e7e0d5';
+				let fill = tintFill(baseFill, row);
+				if (revealStage >= 2 && visibleMismatchIds.size) {
+					if (!visibleMismatchIds.has(id)) {
+						fill = d3.interpolateRgb(fill, FILL_DESAT)(0.44);
+					} else if (hoveredMismatchCluster) {
+						const mk = mismatchKind(id);
+						if (mk && mk !== hoveredMismatchCluster) {
+							fill = d3.interpolateRgb(fill, FILL_DESAT)(0.22);
+						}
+					}
+				}
+				return fill;
 			})
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				if (insightSet.has(id)) return MISMATCH_STROKE;
+				if (visibleMismatchIds.has(id)) {
+					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
+				}
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
 				return devClassStroke(row);
+			})
+			.attr('stroke-dasharray', (d) => {
+				const id = d.properties?.gisjoin;
+				if (!visibleMismatchIds.has(id)) return 'none';
+				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				const dc = row?.devClass;
-				if (insightSet.has(id)) return 2.8;
+				if (visibleMismatchIds.has(id)) {
+					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
+				}
 				if (revealStage < 1) return 0.45;
-				const inInsight = insightSet.has(id);
-				if (insightMode !== 'none' && inInsight) return 3.8;
 				if (!dc) return 0.5;
 				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
-				// Default pre-highlight so a key pattern is immediately visible without interaction.
 				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
 			})
+			.attr('stroke-opacity', (d) => {
+				const id = d.properties?.gisjoin;
+				if (visibleMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (revealStage >= 2 && visibleMismatchIds.size) {
+					const row = rowByGj.get(id);
+					const dc = row?.devClass;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.72;
+				}
+				return 1;
+			})
 			.attr('opacity', (d) => {
-				const row = rowByGj.get(d.properties?.gisjoin);
-				const inInsight = insightSet.has(d.properties?.gisjoin);
-				if (!spotlight) return 1;
-				if (insightMode !== 'none') return inInsight ? 1 : 0.14;
-				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
+				const id = d.properties?.gisjoin;
+				const row = rowByGj.get(id);
+				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
+				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
+				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
+				if (focusLowIncomeTracts && li !== true) return 0.22;
+				if (revealStage === 0) return 1;
+				if (!visibleMismatchIds.size) return 1;
+				const vis = visibleMismatchIds.has(id);
+				const mk = mismatchKind(id);
+				if (hoveredMismatchCluster) {
+					if (!vis) return 0.38;
+					if (mk === hoveredMismatchCluster) return 1;
+					return 0.55;
+				}
+				if (focusMismatchOnly) return vis ? 1 : 0.12;
+				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 
 		const svg = svgRef;
@@ -782,7 +867,7 @@
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		const t = d3.transition().duration(350);
 
-		if (revealStage < 2) {
+		if (revealStage < 3) {
 			devSizeLegendTicks = null;
 			devLayer
 				.selectAll('circle.dev-dot')
@@ -873,7 +958,7 @@
 		if (!containerEl || !svgRef || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.insight-layer');
 		const t = d3.transition().duration(250);
-		if (insightSet.size === 0) {
+		if (revealStage < 2 || visibleMismatchIds.size === 0) {
 			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
 			return;
 		}
@@ -882,7 +967,7 @@
 		const candidates = (tractGeo?.features ?? [])
 			.map((f) => {
 				const id = f?.properties?.gisjoin;
-				if (!id || !insightSet.has(id)) return null;
+				if (!id || !visibleMismatchIds.has(id)) return null;
 				const centroid = d3.geoPath(projectionRef).centroid(f);
 				const row = rowsByGj.get(id);
 				const tract = tractList.find((t) => t.gisjoin === id);
@@ -900,7 +985,7 @@
 			})
 			.filter(Boolean)
 			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-			.slice(0, insightMode === ALL_MISMATCH ? 5 : 4);
+			.slice(0, revealStage >= 3 ? 5 : 4);
 
 		const markers = layer
 			.selectAll('g.insight-marker')
@@ -980,40 +1065,71 @@
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
 				if (selectedSet.has(id)) return 'var(--cat-a, #6366f1)';
-				if (insightSet.has(id)) return MISMATCH_STROKE;
+				if (visibleMismatchIds.has(id)) {
+					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
+				}
 				const row = rowByGj?.get(id);
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
 				return devClassStroke(row);
+			})
+			.attr('stroke-dasharray', (d) => {
+				const id = d.properties?.gisjoin;
+				if (id === hoveredId || selectedSet.has(id)) return 'none';
+				if (!visibleMismatchIds.has(id)) return 'none';
+				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
 				const dc = row?.devClass;
-				const inInsight = insightSet.has(id);
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
-				if (inInsight) return 2.8;
+				if (visibleMismatchIds.has(id)) {
+					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
+				}
 				if (revealStage < 1) return 0.45;
-				if (insightMode !== 'none' && inInsight) return 3.8;
 				if (!dc) return 0.5;
 				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
 				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
 			})
+			.attr('stroke-opacity', (d) => {
+				const id = d.properties?.gisjoin;
+				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (visibleMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (revealStage >= 2 && visibleMismatchIds.size) {
+					const row = rowByGj?.get(id);
+					const dc = row?.devClass;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.72;
+				}
+				return 1;
+			})
 			.attr('opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
-				const inInsight = insightSet.has(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
-				if (inInsight) return 1;
-				if (insightMode !== 'none') return inInsight ? 1 : 0.14;
-				if (!spotlight) return 1;
-				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
+				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
+				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
+				if (focusLowIncomeTracts && li !== true) return 0.22;
+				if (revealStage === 0) return 1;
+				if (!visibleMismatchIds.size) return 1;
+				const vis = visibleMismatchIds.has(id);
+				const mk = mismatchKind(id);
+				if (hoveredMismatchCluster) {
+					if (!vis) return 0.38;
+					if (mk === hoveredMismatchCluster) return 1;
+					return 0.55;
+				}
+				if (focusMismatchOnly) return vis ? 1 : 0.12;
+				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 	}
 
 	function handleTractEnter(event, d) {
 		const id = d.properties?.gisjoin;
 		panelState.setHovered(id);
+		const mk = id ? mismatchKind(id) : null;
+		hoveredMismatchCluster =
+			mk && visibleMismatchIds.has(id) ? mk : null;
 		const el = containerEl;
 		if (!el) return;
 		const rowByGj = el.__pocRowByGj;
@@ -1030,6 +1146,12 @@
 		const pl = periodDisplayLabel(panelState.timePeriod);
 
 		const mismatchFlag = mismatchFlagsByGj.get(id);
+		const mismatchEyebrow =
+			mismatchFlag?.isHighAccessLowGrowth
+				? 'High access, low growth'
+				: mismatchFlag?.isHighGrowthLowAccess
+					? 'High growth, low access'
+					: null;
 		const tier =
 			row?.devClass === 'tod_dominated'
 				? 'TOD-dominated tract'
@@ -1052,6 +1174,25 @@
 				value: Number.isFinite(huPct) ? `${fmt1(huPct)}%` : '—'
 			}
 		];
+		const mhRow = row?.median_household_income ?? mismatchFlag?.medianHouseholdIncome;
+		if (Number.isFinite(Number(mhRow))) {
+			const mhNum = Number(mhRow);
+			primaryRows.push({
+				label: 'Median household income (period end)',
+				value: d3.format('$,.0f')(mhNum)
+			});
+			primaryRows.push({
+				label: 'Income group',
+				value: mhNum < LOW_INCOME_MEDIAN_THRESHOLD ? 'Lower income (<$125k)' : '≥ $125k median'
+			});
+		}
+		if (mismatchEyebrow && t) {
+			const stopsRaw = Number(t.transit_stops) || 0;
+			primaryRows.push({
+				label: 'Transit access (approx. MBTA stops in tract)',
+				value: fmtInt(stopsRaw)
+			});
+		}
 		const secondaryRows = [];
 
 		if (t) {
@@ -1091,7 +1232,9 @@
 			}
 
 			const stopsRaw = Number(t.transit_stops) || 0;
-			secondaryRows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
+			if (!mismatchEyebrow) {
+				secondaryRows.push({ label: 'MBTA stops (tract + buffer)', value: String(stopsRaw) });
+			}
 
 			const medInc = t[`median_income_change_pct_${tp}`];
 			if (medInc != null && Number.isFinite(medInc)) {
@@ -1101,24 +1244,28 @@
 			secondaryRows.push({ label: 'Tract data', value: 'No tract attributes loaded' });
 		}
 
+		if (mismatchFlag?.isLowIncomeHighAccessLowGrowth) {
+			secondaryRows.push({
+				label: 'Pattern note',
+				value: 'Lower-income tract where strong transit access has not paired with comparable housing growth.'
+			});
+		} else if (mismatchFlag?.isLowIncomeHighGrowthLowAccess) {
+			secondaryRows.push({
+				label: 'Pattern note',
+				value: 'Lower-income tract where growth has been relatively strong despite weaker transit access.'
+			});
+		}
+
 		tooltip = {
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
-			eyebrow: mismatchFlag?.isHighGrowthLowAccess || mismatchFlag?.isHighAccessLowGrowth ? 'Mismatch tract' : 'Census tract',
+			eyebrow: mismatchEyebrow ?? 'Census tract',
 			title: county && String(county) !== 'County Name' ? `Tract in ${tractPlace}` : `Tract: ${tractPlace}`,
 			badge: tier,
 			badgeTone,
 			primaryRows,
-			secondaryRows: [
-				...secondaryRows,
-				...(mismatchFlag?.isHighAccessLowGrowth
-					? [{ label: 'Mismatch type', value: 'High access + low growth' }]
-					: []),
-				...(mismatchFlag?.isHighGrowthLowAccess
-					? [{ label: 'Mismatch type', value: 'High growth + low access' }]
-					: [])
-			]
+			secondaryRows
 		};
 	}
 
@@ -1128,6 +1275,7 @@
 
 	function handleTractLeave() {
 		panelState.setHovered(null);
+		hoveredMismatchCluster = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -1226,6 +1374,7 @@
 
 	function handleOverlayLeave() {
 		panelState.setHovered(null);
+		hoveredMismatchCluster = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -1234,6 +1383,7 @@
 			d.type === HIGH_ACCESS_LOW_GROWTH
 				? 'High access + low growth'
 				: 'High growth + low access';
+		hoveredMismatchCluster = d.type === HIGH_ACCESS_LOW_GROWTH ? 'ha_lg' : 'hg_la';
 		tooltip = {
 			visible: true,
 			x: event.clientX,
@@ -1481,8 +1631,9 @@
 		void dataKey;
 		void revealStage;
 		void activeSpotlight;
-		void insightMode;
-		void insightSet;
+		void focusMismatchOnly;
+		void focusLowIncomeTracts;
+		void hoveredMismatchCluster;
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
@@ -1500,8 +1651,9 @@
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
-		void insightMode;
-		void insightSet;
+		void focusMismatchOnly;
+		void focusLowIncomeTracts;
+		void hoveredMismatchCluster;
 		if (!containerEl || !svgRef) return;
 		updateSelection();
 		updateInsightMarkers();
@@ -1549,6 +1701,31 @@
 					<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
 					<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
 				</p>
+			</div>
+			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Visual encoding and scrolly map">
+				<p class="poc-methods__title">How to read this map</p>
+				<ul class="poc-methods__list poc-methods__list--encoding">
+					<li>
+						<span class="poc-methods__label">Fill (choropleth):</span>
+						Census % change in housing units for the selected period (diverging red–neutral–blue). This is the primary encoding; it does not change across scroll steps.
+					</li>
+					<li>
+						<span class="poc-methods__label">Cohort outlines (steps 2–4):</span>
+						Teal / orange / slate rings show MassBuilds-derived tract classes (TOD-dominated, non-TOD-dominated, minimal development), with a light interior tint—not a second color scale for growth.
+					</li>
+					<li>
+						<span class="poc-methods__label">Mismatch overlays (steps 3–4):</span>
+						Violet and dashed lavender mark quartile-based “access vs growth” tension (transit stops vs census growth). Outlines only—so the story stays tied to the choropleth. Step 3 introduces one mismatch type; step 4 adds the second; step 4 can add optional project dots.
+					</li>
+					<li>
+						<span class="poc-methods__label">Scrolly structure:</span>
+						Each step adds at most one layer (fill → cohorts → first mismatch → both mismatches + dots) to limit cognitive load. Toggles (mismatch-only, low-income emphasis) are optional filters for when the field feels dense.
+					</li>
+					<li>
+						<span class="poc-methods__label">Income:</span>
+						Median income and “lower income” (&lt;$125k) appear in tooltips and supplementary charts—not as map fill—so the view stays legible.
+					</li>
+				</ul>
 			</div>
 			<div class="poc-methods poc-methods--assumptions card-key" role="note" aria-label="Assumptions used">
 				<p class="poc-methods__title">Assumptions Used</p>
@@ -1607,7 +1784,7 @@
 				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
 					<div
 						class="poc-map-key-compact"
-						class:poc-map-key-compact--split={revealStage >= 2}
+						class:poc-map-key-compact--split={revealStage >= 3}
 					>
 						<div class="poc-map-key-col poc-map-key-col--tract">
 							<p class="poc-key-one poc-key-tract-fill">
@@ -1642,11 +1819,23 @@
 									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
-									<li><span class="poc-k-ring poc-k-ring--mismatch"></span> Mismatch areas (high growth + low access OR high access + low growth)</li>
+								</ul>
+							{/if}
+							{#if revealStage >= 2}
+								<p class="poc-key-mismatch-sub">
+									Mismatch outlines (quartiles): transit access vs housing growth are not always aligned—see charts below for income context.
+								</p>
+								<ul class="poc-key-rings">
+									<li>
+										<span class="poc-k-ring poc-k-ring--mismatch-ha"></span> High access, low growth (solid purple)
+									</li>
+									<li>
+										<span class="poc-k-ring poc-k-ring--mismatch-hg"></span> High growth, low access (dashed lavender)
+									</li>
 								</ul>
 							{/if}
 						</div>
-						{#if revealStage >= 2}
+						{#if revealStage >= 3}
 							<div class="poc-map-key-col poc-map-key-col--dev">
 								<p class="poc-key-one poc-key-dev">
 									<strong>Developments</strong>
@@ -1910,55 +2099,26 @@
 					</div>
 				</div>
 
-				<div class="poc-insight card-key" role="group" aria-label="Mismatch tract filters">
-					<p class="poc-detail__kicker">Mismatch tracts</p>
-					<div class="poc-insight__buttons">
-						<button
-							type="button"
-							class="poc-compare__tab"
-							class:poc-compare__tab--active={insightMode === 'none'}
-							onclick={() => (insightMode = 'none')}
-						>
-							Off
-						</button>
-						<button
-							type="button"
-							class="poc-compare__tab"
-							class:poc-compare__tab--active={insightMode === 'all_mismatch'}
-							onclick={() => (insightMode = 'all_mismatch')}
-						>
-							All mismatch tracts
-						</button>
-						<button
-							type="button"
-							class="poc-compare__tab"
-							class:poc-compare__tab--active={insightMode === 'high_access_low_growth'}
-							onclick={() => (insightMode = 'high_access_low_growth')}
-						>
-							High access + low growth
-						</button>
-						<button
-							type="button"
-							class="poc-compare__tab"
-							class:poc-compare__tab--active={insightMode === 'high_growth_low_access'}
-							onclick={() => (insightMode = 'high_growth_low_access')}
-						>
-							High growth + low access
-						</button>
-					</div>
+				<div class="poc-insight card-key" role="group" aria-label="Mismatch focus">
+					<p class="poc-detail__kicker">Mismatch focus</p>
+					<label class="poc-focus-toggle">
+						<input type="checkbox" bind:checked={focusMismatchOnly} />
+						<span>Show mismatch areas only</span>
+					</label>
+					<label class="poc-focus-toggle">
+						<input type="checkbox" bind:checked={focusLowIncomeTracts} />
+						<span>Show lower-income tracts (&lt;$125k median)</span>
+					</label>
 					<p class="poc-detail__summary">
-						{#if insightMode === 'high_access_low_growth'}
-							Highlights tracts in the top quartile of transit access but bottom quartile of housing growth.
-						{:else if insightMode === 'high_growth_low_access'}
-							Highlights tracts in the top quartile of housing growth but bottom quartile of transit access.
-						{:else if insightMode === 'all_mismatch'}
-							Shows both mismatch types together: high access + low growth and high growth + low access.
-						{:else}
-							No mismatch outlines shown.
-						{/if}
+						When on, non-mismatch tracts fade so the access–growth patterns are easier to read. Scroll steps still
+						control which mismatch types are outlined.
 					</p>
 					<p class="poc-detail__summary">
-						Markers show notable mismatch examples. Click a marker to zoom to that tract.
+						The lower-income toggle dims tracts at or above the $125k median threshold—exploratory; it does not replace
+						the choropleth.
+					</p>
+					<p class="poc-detail__summary">
+						Markers flag notable examples within the visible mismatch set. Click a marker to zoom to that tract.
 					</p>
 				</div>
 
@@ -1998,7 +2158,7 @@
 					aria-label="Interactive census tract map"
 					onmouseleave={handleOverlayLeave}
 				>
-					<div class="poc-stage-chip">Map step {revealStage + 1} of 3</div>
+					<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
 					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
 						<p class="poc-detail__kicker">What to notice</p>
 						<ul class="poc-map-callouts__list">
@@ -2017,22 +2177,62 @@
 							<div class="poc-annotation" class:poc-annotation--visible={revealStage === 0}>
 								<div class="poc-annotation__line"></div>
 								<div class="poc-annotation__box">
-									<strong>Growth is uneven across nearby tracts</strong>
-									<span>Start by reading color contrast before using controls: adjacent tracts often differ sharply.</span>
+									<strong>Transit-rich corridors</strong>
+									<span
+										>These areas are well-served by transit and are often considered ideal for dense housing—read
+										fill first, then scroll.</span
+									>
 								</div>
 							</div>
 							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage === 1}>
 								<div class="poc-annotation__line"></div>
 								<div class="poc-annotation__box">
-									<strong>Category outlines add structure</strong>
-									<span>Green/orange/gray outlines separate TOD-dominant, non-TOD-dominant, and minimal-development tracts.</span>
+									<strong>Growth is not only “on the line”</strong>
+									<span
+										>Housing development is not concentrated only in the highest-access tracts; cohort outlines add
+										structure on top of the choropleth.</span
+									>
 								</div>
 							</div>
-							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage === 2}>
+							<div
+								class="poc-annotation"
+								class:poc-annotation--anchored={!!clusterAnnStyles.ha}
+								class:poc-annotation--right={!clusterAnnStyles.ha}
+								class:poc-annotation--visible={revealStage === 2}
+								style={clusterAnnStyles.ha || undefined}
+							>
 								<div class="poc-annotation__line"></div>
 								<div class="poc-annotation__box">
-									<strong>MassBuilds projects layer on</strong>
-									<span>Each dot is a project: dot size reflects unit count; fill shows multifamily share; white ring marks transit-accessible sites.</span>
+									<strong>Access without matching growth</strong>
+									<span
+										>These tracts have strong transit access but limited housing growth, which can restrict options
+										for lower-income households to live near service.</span
+									>
+								</div>
+							</div>
+							<div
+								class="poc-annotation poc-annotation--anchored"
+								class:poc-annotation--visible={revealStage === 3}
+								style={clusterAnnStyles.ha || undefined}
+							>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>High access, low growth</strong>
+									<span>Solid purple: the mismatch where strong MBTA access has not been matched by new units.</span>
+								</div>
+							</div>
+							<div
+								class="poc-annotation poc-annotation--anchored"
+								class:poc-annotation--visible={revealStage === 3}
+								style={clusterAnnStyles.hg || undefined}
+							>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>Growth away from strong access</strong>
+									<span
+										>Dashed lavender: housing growth concentrated where transit access is relatively weak—another
+										kind of access–growth tension.</span
+									>
 								</div>
 							</div>
 						</div>
@@ -2395,6 +2595,20 @@
 	.poc-methods--lead {
 		margin-bottom: 8px;
 		padding: 12px 14px;
+	}
+
+	.poc-methods--encoding {
+		margin-bottom: 8px;
+		padding: 12px 14px;
+		border-color: color-mix(in srgb, var(--border) 92%, var(--text-muted));
+	}
+
+	.poc-methods__list--encoding {
+		margin-top: 6px;
+	}
+
+	.poc-methods__list--encoding li {
+		margin-bottom: 8px;
 	}
 
 	.poc-methods--assumptions {
@@ -3166,9 +3380,38 @@
 		border-color: #94a3b8;
 	}
 
-	.poc-k-ring--mismatch {
-		border-color: #7b61ff;
-		border-width: 2.4px;
+	.poc-key-mismatch-sub {
+		margin: 0 0 0.35rem;
+		font-size: 0.68rem;
+		line-height: 1.35;
+		color: var(--text-muted);
+	}
+
+	.poc-k-ring--mismatch-ha {
+		border-color: #8a78e0;
+		border-width: 2px;
+	}
+
+	.poc-k-ring--mismatch-hg {
+		border-color: #c4b5f0;
+		border-width: 1.45px;
+		border-style: dashed;
+	}
+
+	.poc-focus-toggle {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.45rem;
+		font-size: 0.78rem;
+		line-height: 1.35;
+		color: var(--text);
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.poc-focus-toggle input {
+		margin-top: 0.2rem;
+		accent-color: var(--accent, #6366f1);
 	}
 
 
@@ -3262,6 +3505,12 @@
 	.poc-annotation--right {
 		top: 130px;
 		right: 72px;
+	}
+
+	.poc-annotation--anchored {
+		right: auto;
+		left: auto;
+		max-width: 200px;
 	}
 
 	.poc-annotation__line {
