@@ -2186,7 +2186,45 @@
 		return [tod, nonTod, affordability].filter(Boolean).slice(0, 3);
 	});
 
+	const manualImportantDevelopmentExamples = $derived.by(() => {
+		if (!guidedMode || !tractList?.length || !developments?.length) return [];
+		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
+		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const candidates = filteredDevs
+			.map((d) => {
+				const lon = Number(d.longitude ?? d.lon);
+				const lat = Number(d.latitude ?? d.lat);
+				const units = Number(d.hu) || 0;
+				if (!Number.isFinite(lon) || !Number.isFinite(lat) || units <= 0) return null;
+				const affordableUnits = developmentAffordableUnitsCapped(d);
+				const isTod = isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+				return {
+					...d,
+					units,
+					affordableUnits,
+					isTod,
+					categoryLabel: isTod ? 'TOD development' : 'Non-TOD development',
+					importanceNote: isTod
+						? 'Assembly Row is one of the clearest alignment cases in the region: dense housing delivered right on top of rapid transit, which is the TOD pattern planners often hope to reproduce.'
+						: 'This project helps show that meaningful housing growth can still happen outside the strongest transit geography, which matters for the mismatch argument.',
+					score: units + affordableUnits * 3 + (isTod ? 60 : 0)
+				};
+			})
+			.filter(Boolean);
+
+		const exactAssembly = candidates.find((d) => String(d.name || '').toLowerCase() === 'assembly row: block 2');
+		if (exactAssembly) return [exactAssembly];
+
+		const looseAssembly = candidates.find((d) =>
+			String(d.name || '').toLowerCase().includes('assembly row')
+		);
+		if (looseAssembly) return [looseAssembly];
+
+		return [];
+	});
+
 	const importantDevelopmentExamples = $derived.by(() => {
+		if (manualImportantDevelopmentExamples?.length) return manualImportantDevelopmentExamples;
 		if (guidedClusterDevelopmentExamples?.length) return guidedClusterDevelopmentExamples;
 		return guidedDevelopmentExamples ?? [];
 	});
