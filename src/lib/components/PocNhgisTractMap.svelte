@@ -1693,8 +1693,8 @@
 			},
 			{
 				root: null,
-				threshold: [0.2, 0.45, 0.7],
-				rootMargin: '0px 0px -35% 0px'
+				threshold: [0.1, 0.3, 0.55],
+				rootMargin: '0px 0px -15% 0px'
 			}
 		);
 		for (const el of stepEls) {
