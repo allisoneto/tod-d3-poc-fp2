@@ -2315,6 +2315,18 @@
 		background: #94a3b8;
 	}
 
+	.poc-compare__row[data-tone='tod_dominated'] .poc-compare__bar {
+		background: color-mix(in srgb, var(--accent) 82%, white 18%);
+	}
+
+	.poc-compare__row[data-tone='nontod_dominated'] .poc-compare__bar {
+		background: color-mix(in srgb, var(--warning) 78%, white 22%);
+	}
+
+	.poc-compare__row[data-tone='minimal'] .poc-compare__bar {
+		background: #94a3b8;
+	}
+
 	.poc-compare__value {
 		font-size: 0.75rem;
 		font-weight: 700;
