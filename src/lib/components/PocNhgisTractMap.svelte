@@ -1721,28 +1721,28 @@
 					<strong>Minimal development</strong> tracts stay below the stock-growth threshold.
 				</p>
 			</div>
-			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Visual encoding and scrolly map">
-				<p class="poc-methods__title">How to read the story</p>
+			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Design decisions">
+				<p class="poc-methods__title">Why It Is Designed This Way</p>
 				<ul class="poc-methods__list poc-methods__list--encoding">
 					<li>
-						<span class="poc-methods__label">Fill (choropleth):</span>
-						Fill shows census % change in housing units for the selected period on a red-to-blue scale. That scale stays fixed as the story builds.
+						<span class="poc-methods__label">One stable map scale:</span>
+						The choropleth stays fixed from start to finish so you can compare every later layer back to the same baseline.
 					</li>
 					<li>
-						<span class="poc-methods__label">Cohort outlines (steps 2–4):</span>
-						Teal, orange, and slate outlines show the MassBuilds tract groups. They add context, but they are not a second growth scale.
+						<span class="poc-methods__label">Outlines instead of more fill:</span>
+						The tract groups sit on top as outlines so they add context without competing with the growth colors underneath.
 					</li>
 					<li>
-						<span class="poc-methods__label">Mismatch overlays (steps 3–4):</span>
-						Purple outlines mark places where transit access and housing growth pull apart. They stay as outlines so the choropleth still does the main visual work.
+						<span class="poc-methods__label">A staged build:</span>
+						The walkthrough adds one layer at a time so it is easier to see what each design choice contributes before the map gets busier.
 					</li>
 					<li>
-						<span class="poc-methods__label">Scrolly flow:</span>
-						Each step adds one layer at a time, so the map builds gradually instead of dropping everything in at once. The controls above let you explore on your own too.
+						<span class="poc-methods__label">Highlights stay in the foreground:</span>
+						Mismatch outlines and project dots use distinct marks so the most important comparisons stand out without replacing the base map.
 					</li>
 					<li>
-						<span class="poc-methods__label">Income:</span>
-						Median income and the “lower income” flag (&lt;$125k) appear in tooltips and linked views, not as map fill, to keep the map readable.
+						<span class="poc-methods__label">Details live in the side views:</span>
+						Income, selected-tract information, and comparisons sit in linked panels and tooltips so the map can stay readable at a glance.
 					</li>
 				</ul>
 			</div>
