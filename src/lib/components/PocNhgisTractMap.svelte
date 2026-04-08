@@ -62,7 +62,9 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
-	let insightMode = $state(/** @type {'none' | 'high_access_low_growth' | 'high_growth_low_access'} */ ('none'));
+	let insightMode = $state(
+		/** @type {'none' | 'all_mismatch' | 'high_access_low_growth' | 'high_growth_low_access'} */ ('none')
+	);
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -75,6 +77,7 @@
 	/** Lighter grey for minimal-development tract outline (half stroke vs TOD tiers); legend ring matches. */
 	const MINIMAL_TRACT_STROKE = '#94a3b8';
 	const MISMATCH_STROKE = '#7B61FF';
+	const ALL_MISMATCH = 'all_mismatch';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
@@ -162,9 +165,9 @@
 	}
 
 	function tractsByInsightMode(mode, clusters) {
-		if (!mode || mode === 'none') {
+		if (!mode || mode === 'none') return new Set();
+		if (mode === ALL_MISMATCH)
 			return new Set([...(clusters?.highGrowthLowAccess ?? []), ...(clusters?.highAccessLowGrowth ?? [])]);
-		}
 		if (mode === HIGH_ACCESS_LOW_GROWTH) return new Set(clusters?.highAccessLowGrowth ?? []);
 		if (mode === HIGH_GROWTH_LOW_ACCESS) return new Set(clusters?.highGrowthLowAccess ?? []);
 		return new Set();
@@ -216,14 +219,18 @@
 		if (revealStage === 0) {
 			return [
 				'Interpret the fill first: stronger blue indicates higher housing growth in the selected period.',
-				'Purple outlines mark mismatch tracts: high growth + low access and high access + low growth.'
+				insightMode === 'none'
+					? 'Turn on mismatch tracts to highlight where access and growth diverge.'
+					: 'Purple outlines mark mismatch tracts: high growth + low access and high access + low growth.'
 			];
 		}
 		if (revealStage === 1) {
 			return [
 				'Outline colors add cohort meaning on top of growth: TOD-dominated, non-TOD-dominated, and minimal-development.',
 				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.',
-				'Mismatch outlines remain visible in every stage so access-growth misalignment is always legible.'
+				insightMode === 'none'
+					? 'Use mismatch tract filters to surface access-growth misalignment.'
+					: 'Mismatch outlines show where transit access and housing growth diverge.'
 			];
 		}
 		return [
@@ -874,11 +881,7 @@
 		if (!containerEl || !svgRef || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.insight-layer');
 		const t = d3.transition().duration(250);
-		const alwaysVisibleSet = new Set([
-			...mismatchClusters.highAccessLowGrowth,
-			...mismatchClusters.highGrowthLowAccess
-		]);
-		if (alwaysVisibleSet.size === 0) {
+		if (insightSet.size === 0) {
 			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
 			return;
 		}
@@ -887,7 +890,7 @@
 		const candidates = (tractGeo?.features ?? [])
 			.map((f) => {
 				const id = f?.properties?.gisjoin;
-				if (!id || !alwaysVisibleSet.has(id)) return null;
+				if (!id || !insightSet.has(id)) return null;
 				const centroid = d3.geoPath(projectionRef).centroid(f);
 				const row = rowsByGj.get(id);
 				const tract = tractList.find((t) => t.gisjoin === id);
@@ -905,7 +908,7 @@
 			})
 			.filter(Boolean)
 			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-			.slice(0, 8);
+			.slice(0, insightMode === ALL_MISMATCH ? 5 : 4);
 
 		const markers = layer
 			.selectAll('g.insight-marker')
@@ -1919,6 +1922,14 @@
 						<button
 							type="button"
 							class="poc-compare__tab"
+							class:poc-compare__tab--active={insightMode === 'all_mismatch'}
+							onclick={() => (insightMode = 'all_mismatch')}
+						>
+							All mismatch tracts
+						</button>
+						<button
+							type="button"
+							class="poc-compare__tab"
 							class:poc-compare__tab--active={insightMode === 'high_access_low_growth'}
 							onclick={() => (insightMode = 'high_access_low_growth')}
 						>
@@ -1938,8 +1949,10 @@
 							Highlights tracts in the top quartile of transit access but bottom quartile of housing growth.
 						{:else if insightMode === 'high_growth_low_access'}
 							Highlights tracts in the top quartile of housing growth but bottom quartile of transit access.
+						{:else if insightMode === 'all_mismatch'}
+							Shows both mismatch types together: high access + low growth and high growth + low access.
 						{:else}
-							Show one mismatch type at a time while purple outlines remain visible on the full map.
+							No mismatch outlines shown.
 						{/if}
 					</p>
 				</div>
@@ -2012,7 +2025,7 @@
 							</div>
 							<div
 								class="poc-annotation poc-annotation--bottom"
-								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highAccessLowGrowth}
+								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highAccessLowGrowth && (insightMode === 'all_mismatch' || insightMode === 'high_access_low_growth')}
 								style={mismatchAnnotationAnchors.highAccessLowGrowth
 									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[1] / 480) * 100))}%;`
 									: ''}
@@ -2025,7 +2038,7 @@
 							</div>
 							<div
 								class="poc-annotation poc-annotation--bottom-right"
-								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highGrowthLowAccess}
+								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highGrowthLowAccess && (insightMode === 'all_mismatch' || insightMode === 'high_growth_low_access')}
 								style={mismatchAnnotationAnchors.highGrowthLowAccess
 									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[1] / 480) * 100))}%;`
 									: ''}
