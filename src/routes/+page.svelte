@@ -602,37 +602,47 @@
 	<section class="story card">
 		<h2>What to look for before you enter the map</h2>
 		<p class="chart-note">
-			Before moving into the interactive visualization, we want to make the core pattern visible in a simpler form. The figures
-			below do not replace the map. They set up what the map is trying to show: housing growth is uneven, transit access does
-			not guarantee that growth, and the stakes are higher in places where lower-income households are already part of the
-			story.
+			Before moving into the interactive map, we want to make the main pattern visible in a simpler form. The visualizations
+			below are not meant to replace the map. Instead, they establish the relationships we want the reader to carry into the
+			scrollytelling section: housing growth is uneven, transit access does not automatically attract that growth, and the
+			pattern matters more when lower-income households are already part of the places under pressure.
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
 				<h3>TOD is growing, but it is not the whole growth story</h3>
 				<div class="chart-wrap small-chart" bind:this={elComposition}></div>
 				<figcaption>
-					This chart is meant to reset expectations before you ever reach the map. Even when TOD production grows, a large share of new housing is still being built outside the highest-access transit context. In other words, “more TOD than before” is not the same as “most growth is happening near transit.” That distinction matters because the central argument of this project is about misalignment, not about whether TOD exists at all.
+					This chart helps set expectations before the map begins. Even when TOD production increases, a large share of new
+					housing is still being built outside the highest-access transit context. In other words, “more TOD than before” is
+					not the same as “most growth is happening near transit.” That distinction matters because the central argument of
+					this project is about misalignment, not about whether TOD exists at all.
 				</figcaption>
 			</figure>
 			<figure class="guide-figure card">
 				<h3>Growth is concentrated in a small number of municipalities</h3>
 				<div class="chart-wrap small-chart" bind:this={elRanked}></div>
 				<figcaption>
-					This figure shows that new housing production is concentrated rather than evenly spread across the region. That matters for the map because it helps explain why transit access alone does not predict where growth will appear. If only a relatively small number of municipalities absorb most new units, then strong transit infrastructure elsewhere can still coexist with weak housing growth.
+					This figure shows that new housing production is concentrated rather than evenly spread across the region. That is
+					important context for the map, because it helps explain why transit access alone does not predict where growth will
+					appear. If a relatively small number of municipalities absorb most new units, then strong transit infrastructure in
+					other places can still coexist with weak housing growth.
 				</figcaption>
 			</figure>
 			<figure class="guide-figure card">
 				<h3>Lower-income municipalities already carry a lot of the pressure</h3>
 				<div class="chart-wrap small-chart" bind:this={elScatter}></div>
 				<figcaption>
-					This figure brings in the social stakes of the story. Many municipalities with larger shares of households below $125k are also absorbing substantial new development. That does not prove displacement on its own, but it does show why the spatial mismatch matters for a gentrification argument: when access, growth, and affordability do not line up, lower-income households are more likely to experience the consequences of that uneven geography.
+					This figure introduces the social stakes of the story. Many municipalities with larger shares of households below
+					$125k are also absorbing substantial new development. That does not prove displacement on its own, but it does show
+					why the spatial mismatch matters for a gentrification argument: when access, growth, and affordability do not line
+					up, lower-income households are more likely to experience the consequences of that uneven geography.
 				</figcaption>
 			</figure>
 		</div>
 		<p class="chart-note chart-note--after-figures">
-			Taken together, these views tell the audience what to watch for once the map begins to zoom in: not just where transit is,
-			but where access, growth, and lower-income vulnerability stop lining up neatly.
+			Taken together, these views show the reader what to watch for once the map begins to zoom in. The question is not simply
+			where transit is, or where growth is, but where those patterns stop lining up neatly, especially in places where lower-income
+			households may have the most to gain from living near strong transit access.
 		</p>
 	</section>
 	{/if}
@@ -644,13 +654,16 @@
 		<section class="story card full-width">
 			<h2>Guided walkthrough: where the mismatch appears</h2>
 			<p>
-				The map below is the guided part of the story. It introduces one concept at a time so the mismatch stays readable instead of disappearing inside a full dashboard.
+				The map below is the guided part of the story. It introduces one layer at a time so the reader can see how transit
+				access, housing growth, mismatch, and lower-income context build on one another. The point is not simply to identify
+				where transit is strongest, but to notice where expected growth does not follow and where that has broader social
+				consequences.
 			</p>
 			<ul class="story-list">
-				<li><strong>First:</strong> locate the strongest MBTA-served areas.</li>
-				<li><strong>Then:</strong> compare those areas to tract-level housing growth.</li>
-				<li><strong>Then:</strong> isolate the mismatch layer, which is the key analytical point.</li>
-				<li><strong>Finally:</strong> bring in lower-income context to show why the mismatch matters socially, not just spatially.</li>
+				<li><strong>First:</strong> establish the geography of strong MBTA access.</li>
+				<li><strong>Then:</strong> compare that geography to where housing growth has actually occurred.</li>
+				<li><strong>Then:</strong> isolate the mismatch layer, which is the core analytical claim.</li>
+				<li><strong>Finally:</strong> bring in lower-income context to show why the mismatch matters beyond a purely spatial planning question.</li>
 			</ul>
 		</section>
 
@@ -668,7 +681,10 @@
 			<section class="chart-card card full-width">
 				<h3>Transit access and new housing growth do not consistently align across Greater Boston tracts</h3>
 				<p class="chart-note">
-					Scroll through the four steps to move from transit access, to housing growth, to mismatch, to lower-income context. Blue tract fill means stronger housing growth; red means weaker or negative growth; purple outlines mark mismatch. The full control-heavy explorer comes after this guided section.
+					As you move through the walkthrough, the map progresses from transit access, to housing growth, to mismatch, and then
+					to lower-income context. Blue tract fill indicates stronger housing growth, red indicates weaker or negative growth,
+					and purple outlines identify the tracts where transit access and growth no longer move together in the expected way.
+					The full exploration interface comes afterward, once that argument has been established more clearly.
 				</p>
 				<div class="chart-wrap chart-tall chart-wrap--poc-map">
 					<PocNhgisTractMap
@@ -684,26 +700,27 @@
 			<section class="story card">
 				<h2>Three places to notice</h2>
 				<p class="chart-note">
-					Use these as anchors while you scroll. They are not the only places that matter, but they make the regional argument easier to see.
+					These are useful anchors while you scroll. They are not the only places that matter, but they make the regional
+					argument easier to interpret because they show different relationships between transit access and housing growth.
 				</p>
 				<div class="annotation-grid">
 					<div class="annotation-card">
 						<h3>Boston and Cambridge</h3>
 						<p>These municipalities anchor the strongest rapid-transit system in the region.</p>
-						<p>They matter because they show the “expected” case: dense transit access and meaningful housing growth in the same part of the map.</p>
-						<p>If you click tracts in this area during the guided map, compare them to weaker-growth tracts that also sit near strong transit. That contrast is what makes the mismatch legible.</p>
+						<p>They matter because they show the expected case most clearly: dense transit access and substantial housing growth in the same part of the map.</p>
+						<p>At the same time, not every tract here grows equally. That unevenness matters, because it reminds us that being near strong transit does not automatically produce the same development outcome everywhere.</p>
 					</div>
 					<div class="annotation-card">
 						<h3>Quincy and Revere</h3>
-						<p>These are useful edge cases because they sit in the broader transit system but do not mirror the same growth pattern everywhere.</p>
-						<p>They matter because the mismatch question is not only about the inner core; it appears across multiple kinds of municipalities and development contexts.</p>
-						<p>Clicking tracts here is useful because you can compare places that share transit access but not the same growth outcome.</p>
+						<p>These are useful comparison cases because they sit within the broader transit system but do not reproduce the same growth pattern everywhere.</p>
+						<p>They matter because the mismatch question is not only about the inner core. Nearby tracts can share transit context while still showing different housing outcomes.</p>
+						<p>That variation makes the planning problem more concrete: access alone does not tell us where growth will actually occur.</p>
 					</div>
 					<div class="annotation-card">
 						<h3>Outer-ring tracts west of Boston</h3>
-						<p>Some of the highlighted tracts farther from the strongest MBTA access still show meaningful growth.</p>
-						<p>They matter because growth can occur without equivalent transit access, which is the other half of the mismatch story.</p>
-						<p>Those tracts are important for the gentrification argument because they suggest that new housing growth is not consistently being steered toward the most transit-rich places, even though those are often framed as the most equitable places to add housing.</p>
+						<p>Some highlighted tracts farther from the strongest MBTA access still show meaningful growth.</p>
+						<p>They matter because they reveal the reverse side of the mismatch story: growth can occur without equivalent transit access.</p>
+						<p>That is important for the gentrification argument because it suggests new housing growth is not consistently being steered toward the most transit-rich places, even though those are often framed as the most equitable places to add housing.</p>
 					</div>
 				</div>
 			</section>
@@ -711,7 +728,9 @@
 			<section class="story card">
 				<h2>Why these demographic proxies appear here</h2>
 				<p>
-					Income and education are used here as <strong>warning-signal proxies</strong> for neighborhood change, not as stand-alone proof of displacement.
+					Income and education are used here as <strong>warning-signal proxies</strong> for neighborhood change, not as
+					stand-alone proof of displacement. They help us ask whether the places where transit access and housing growth pull
+					apart also show signs of social change that matter for a gentrification argument.
 				</p>
 				<ul class="story-list">
 					<li>Sharp increases in median income can signal rising housing costs or stronger market pressure.</li>
@@ -719,7 +738,10 @@
 					<li>Future versions will add more explicit tenure and ownership-change measures so the demographic story is not carried by income and education alone.</li>
 				</ul>
 				<p>
-					These comparisons are descriptive. They help identify where neighborhood change may be happening alongside development and transit access, but they do not by themselves prove a causal TOD effect. What they do offer is a way to connect the spatial mismatch on the map to a larger gentrification question: if growth and transit access are misaligned, who is more likely to lose out on the benefits of living near transit?
+					These comparisons are descriptive. They help identify where neighborhood change may be happening alongside
+					development and transit access, but they do not by themselves prove a causal TOD effect. What they do offer is a
+					way to connect the spatial mismatch on the map to a broader gentrification question: if growth and transit access
+					are misaligned, who is more likely to lose out on the benefits of living near transit?
 				</p>
 			</section>
 		{/if}

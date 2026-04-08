@@ -249,82 +249,82 @@
 			{
 				kicker: 'Step 1',
 				title: 'Transit-rich places',
-				body: 'These areas are well-served by transit and are often expected to support dense housing.',
-				legend: 'At this step, ignore growth and just locate the MBTA network. This is the regional geography of access.',
-				why: 'For the gentrification argument, this marks the places where transit-linked housing opportunity is most likely to matter.',
-				prompt: 'Start with Boston, Cambridge, Quincy, and Revere. These places anchor the rest of the walkthrough.'
+				body: 'This first view establishes the geography of strong MBTA access across Greater Boston. These are the areas that are most often expected to absorb denser housing because they offer the clearest connection to the transit network.',
+				legend: 'At this stage, the point is simply to see where transit access is concentrated before we compare it to where housing growth actually appears.',
+				why: 'For the broader gentrification argument, these are the places where transit-linked housing opportunity would matter most if growth were aligning cleanly with access.',
+				prompt: 'Notice how strongly the network centers on places like Boston, Cambridge, Quincy, and Revere, because those become the main reference points for the rest of the story.'
 			},
 			{
 				kicker: 'Step 2',
 				title: 'Housing growth is uneven',
-				body: 'Housing growth is uneven across the region and not limited to transit-rich areas.',
-				legend: 'Blue fill means stronger housing growth, red means weaker or negative growth, and tan marks limited or unreliable growth data.',
-				why: 'If transit access and growth were aligned, the strongest blue tracts would mostly sit in the most transit-rich parts of the region.',
-				prompt: 'Compare the blue tracts near the MBTA core to blue tracts outside that core.'
+				body: 'Now the map adds tract-level housing growth. Blue tracts show stronger growth, red tracts show weaker or negative growth, and tan tracts have limited or unreliable growth data. Notice that the strongest growth is not confined only to the most transit-rich parts of the region.',
+				legend: 'The key comparison here is between the geography of access you just saw and the geography of growth now appearing in the choropleth.',
+				why: 'If transit access and housing growth were tightly aligned, the strongest blue tracts would cluster mainly in the transit-rich core. Instead, the pattern is more uneven.',
+				prompt: 'Pay attention to where blue tracts appear outside the strongest MBTA geography, because those become important once the mismatch pattern is made explicit.'
 			},
 			{
 				kicker: 'Step 3',
 				title: 'Initial contrast',
-				body: 'Some high-growth areas lie far from strong transit access.',
-				legend: 'Stay with the fill here. The point is not only where transit exists, but where growth is happening anyway.',
-				why: 'This begins to show the reverse side of the mismatch story: growth is not consistently being pulled toward the strongest transit network.',
-				prompt: 'Look for blue tracts farther west and south of the core network.'
+				body: 'At this point, the contrast becomes easier to read. Some tracts with substantial housing growth lie outside the strongest transit context. That does not mean transit is absent, but it does mean growth is not being pulled consistently toward the most accessible places.',
+				legend: 'Stay with the choropleth here. The important signal is that the growth pattern itself already begins to challenge the idea that transit access and housing production are moving together.',
+				why: 'This is the first sign of the reverse mismatch pattern: some places grow substantially even though they do not sit in the strongest MBTA geography.',
+				prompt: 'The tract examples below show what that contrast looks like in practice.'
 			},
 			{
 				kicker: 'Step 4',
 				title: 'A measurable mismatch',
-				body: 'These highlighted tracts reveal a mismatch between transit access and housing growth.',
-				legend: 'Purple outlines isolate the tracts where access and growth pull apart instead of moving together.',
-				why: 'This is the main analytical claim of the map: the region contains both transit-rich, low-growth tracts and higher-growth, weaker-access tracts.',
-				prompt: 'Click one highlighted tract and compare it to a nearby non-highlighted tract.'
+				body: 'Here the map isolates the tracts where transit access and housing growth pull apart instead of moving together. Some highlighted tracts have strong access but relatively weak growth, while others show stronger growth despite weaker access.',
+				legend: 'The purple outlines do not replace the growth map underneath. They identify where the relationship between access and growth becomes analytically important.',
+				why: 'This is the main claim of the visualization: Greater Boston contains both transit-rich, low-growth tracts and higher-growth, weaker-access tracts.',
+				prompt: 'The example tracts below preview the kinds of mismatch cases that the next few steps unpack more carefully.'
 			},
 			{
 				kicker: 'Step 5',
 				title: 'Boston and Cambridge',
-				body: 'These areas show the expected pattern: strong transit access paired with housing growth.',
-				legend: 'The map zooms to the inner core, where the transit-growth link is strongest and easiest to see.',
-				why: 'This matters because it shows the expected case first before we move to more uneven regional patterns.',
-				prompt: 'But even here, not every transit-rich tract grows equally. Click a few neighboring tracts to compare them.'
+				body: 'This zoom moves into one of the clearest expected cases in the region. Boston and Cambridge contain dense transit access and substantial housing growth, so they help establish what alignment between access and growth can look like.',
+				legend: 'Even here, the pattern is not perfectly uniform. Neighboring transit-rich tracts can still differ in how much housing growth they show.',
+				why: 'That matters because it keeps the argument from becoming too simple. The story is not that the inner core always grows, but that even the most transit-rich places still vary internally.',
+				prompt: 'Use this as the reference case before the walkthrough moves to municipalities where the relationship looks less consistent.'
 			},
 			{
 				kicker: 'Step 6',
 				title: 'Quincy and Revere',
-				body: 'Transit access is present here, but housing growth is uneven.',
-				legend: 'This zoom keeps the same color logic, but moves to a part of the region where similar access does not produce the same outcome everywhere.',
-				why: 'This matters because the mismatch is not only a downtown story; nearby tracts with similar access can still diverge.',
-				prompt: 'Click nearby tracts with similar transit context and compare their growth values.'
+				body: 'This zoom shifts to municipalities that still sit within the broader transit system, but where the growth pattern is more uneven. In these places, access is present, yet nearby tracts do not all show the same housing outcome.',
+				legend: 'The same color logic still applies here. What changes is the degree of internal variation across tracts with somewhat similar transit context.',
+				why: 'This matters because it shows that the mismatch story is not only a downtown story. The uneven relationship between access and growth appears across multiple municipal contexts.',
+				prompt: 'Read this step as a reminder that transit access does not by itself explain where growth is concentrated.'
 			},
 			{
 				kicker: 'Step 7',
 				title: 'Outer-ring growth',
-				body: 'Some areas farther from strong transit still show substantial housing growth.',
-				legend: 'This zoom shifts attention to the reverse mismatch: growth appearing where transit access is weaker.',
-				why: 'Development is not consistently concentrated in the most transit-accessible places, which is central to the planning argument here.',
-				prompt: 'Compare these blue tracts to the earlier transit-rich areas and ask what kinds of access they do not have.'
+				body: 'This step turns to the outer-ring part of the story. Some tracts farther from the strongest transit network still show substantial housing growth, which makes the reverse mismatch especially visible.',
+				legend: 'The important point is not that these places have no transit at all, but that they are weaker-access growth cases relative to the strongest MBTA-served areas seen earlier.',
+				why: 'That matters for the planning argument because it suggests housing production is not consistently being concentrated in the places where transit access is strongest.',
+				prompt: 'As you read this step, compare these growth-heavy tracts mentally to the earlier transit-rich places and notice what kinds of access they do not share.'
 			},
 			{
 				kicker: 'Step 8',
 				title: 'Projects enter the picture',
-				body: 'New housing developments are not consistently located in high-access areas.',
-				legend: 'Project dots now appear. They connect the tract pattern back to actual development locations.',
-				why: 'This matters because the mismatch is not only a tract-level abstraction; it is also visible in where project activity accumulates.',
-				prompt: 'Look for clusters of project dots that sit outside the strongest transit context.'
+				body: 'Project dots now connect the tract pattern back to actual housing developments. The point here is to move from tract-level averages to concrete projects and ask where new housing is being added on the ground.',
+				legend: 'These dots do not replace the tract pattern underneath. They let the reader see whether project activity accumulates in the same places that already looked important at the tract scale.',
+				why: 'This matters because the mismatch is not only a tract-level abstraction. It also appears in where individual developments are actually being built.',
+				prompt: 'The examples below show a few notable TOD and non-TOD projects so the project layer reads as evidence rather than just another set of symbols.'
 			},
 			{
 				kicker: 'Step 9',
 				title: 'A development cluster',
-				body: 'Here, new development occurs in areas with weaker transit access.',
-				legend: 'The zoom focuses on one development-heavy area where project activity and transit access are not especially well matched.',
-				why: 'This makes the mismatch concrete by tying the story to actual housing production rather than only tract averages.',
-				prompt: 'Hover the project dots here and compare them to the tract growth pattern underneath.'
+				body: 'This zoom focuses on one development-heavy area where project activity and transit access are not especially well matched. It makes the broader mismatch argument concrete by showing a place where weaker-access growth is visible at the project level as well.',
+				legend: 'At this stage, the dots and the choropleth are meant to be read together. The project locations help explain how the tract-level growth pattern is being produced.',
+				why: 'This matters because it ties the story back to actual housing production rather than leaving the mismatch argument at the level of tract averages alone.',
+				prompt: 'The highlighted projects below help decode what kinds of developments make up this cluster and how much affordability they include.'
 			},
 			{
 				kicker: 'Step 10',
 				title: 'Lower-income access',
-				body: 'This mismatch affects where lower-income households (<$125k) can access housing near transit.',
-				legend: 'At this step, tracts above the $125k median-income threshold fade back so the lower-income pattern is easier to see.',
-				why: 'This is what connects the spatial mismatch to the broader gentrification argument: who gets access to transit-linked housing as the region grows.',
-				prompt: 'Click one lower-income highlighted tract and compare it to a non-highlighted tract to see how growth, TOD share, and stock increase differ.'
+				body: 'The final step adds lower-income context. Tracts above the $125k median-income threshold fade back so it becomes easier to see where this mismatch may matter most for households with fewer housing options near transit.',
+				legend: 'Income is not introduced as a second choropleth. It appears here as contextual emphasis so the map can stay focused on the relationship between access and growth.',
+				why: 'This is what links the spatial mismatch back to the broader gentrification argument: if growth and transit access are not lining up, lower-income households may have less access to the benefits of living near strong transit.',
+				prompt: 'Read this final step as the bridge from a planning mismatch to a distributional question about who is more likely to be affected by it.'
 			}
 		]
 		: [
