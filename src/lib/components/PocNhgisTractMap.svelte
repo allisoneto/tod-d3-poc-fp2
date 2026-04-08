@@ -71,6 +71,7 @@
 	let focusLowIncomeTracts = $state(false);
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
+	let guidedLowerIncomeOverlay = $state(/** @type {'cohort' | 'mismatch'} */ ('cohort'));
 	let pinnedTooltipStage = $state(/** @type {number | null} */ (null));
 	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 10 : focusLowIncomeTracts);
 
@@ -153,12 +154,12 @@
 	}
 
 	function showCohortOutlines() {
-		if (guidedMode) return revealStage >= 4 && revealStage <= 7;
+		if (guidedMode) return (revealStage >= 4 && revealStage <= 7) || (revealStage === 10 && guidedLowerIncomeOverlay === 'cohort');
 		return revealStage === 1 || revealStage === 3;
 	}
 
 	function showMismatchOutlines() {
-		if (guidedMode) return revealStage === 3;
+		if (guidedMode) return revealStage === 3 || (revealStage === 10 && guidedLowerIncomeOverlay === 'mismatch');
 		return revealStage === 2;
 	}
 
@@ -2954,6 +2955,36 @@
 										{/each}
 									</div>
 								{/if}
+								{#if guidedMode && i === 10}
+									<div class="poc-stepper-overlay-toggle" aria-label="Choose which outline layer to compare in the lower-income step">
+										<p class="poc-stepper-examples-title">Compare the lower-income view with either tract grouping or mismatch outlines</p>
+										<div class="poc-stepper-overlay-toggle__buttons" role="group" aria-label="Lower-income outline view">
+											<button
+												type="button"
+												class="poc-stepper-overlay-toggle__btn"
+												class:poc-stepper-overlay-toggle__btn--active={guidedLowerIncomeOverlay === 'cohort'}
+												onclick={() => (guidedLowerIncomeOverlay = 'cohort')}
+											>
+												TOD / non-TOD outlines
+											</button>
+											<button
+												type="button"
+												class="poc-stepper-overlay-toggle__btn"
+												class:poc-stepper-overlay-toggle__btn--active={guidedLowerIncomeOverlay === 'mismatch'}
+												onclick={() => (guidedLowerIncomeOverlay = 'mismatch')}
+											>
+												Mismatch outlines
+											</button>
+										</div>
+										<p class="poc-stepper-card-note">
+											{#if guidedLowerIncomeOverlay === 'cohort'}
+												<strong>What this shows:</strong> the orange and green outlines compare whether significant development in lower-income tracts has been more TOD-dominated or more non-TOD-dominated.
+											{:else}
+												<strong>What this shows:</strong> the purple mismatch outlines show where lower-income tracts sit inside the access-versus-growth disconnect, either as high-access/low-growth places or higher-growth/weaker-access places.
+											{/if}
+										</p>
+									</div>
+								{/if}
 								{#if guidedMode && step.prompt && i !== 2 && i !== 3 && i !== 8 && i !== 9}
 									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
 								{/if}
@@ -3163,6 +3194,54 @@
 		display: grid;
 		gap: 0.7rem;
 		margin-top: 0.8rem;
+	}
+
+	.poc-stepper-overlay-toggle {
+		display: grid;
+		gap: 0.7rem;
+		margin-top: 0.8rem;
+		padding: 0.78rem 0.84rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 4%, var(--bg-card));
+	}
+
+	.poc-stepper-overlay-toggle__buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.poc-stepper-overlay-toggle__btn {
+		border: 1px solid color-mix(in srgb, var(--border) 90%, var(--text-muted));
+		border-radius: 999px;
+		background: var(--bg-card);
+		color: var(--text);
+		padding: 0.42rem 0.72rem;
+		font-size: 0.7rem;
+		font-weight: 700;
+		line-height: 1.2;
+		cursor: pointer;
+		transition:
+			background 120ms ease,
+			border-color 120ms ease,
+			color 120ms ease,
+			transform 120ms ease;
+	}
+
+	.poc-stepper-overlay-toggle__btn:hover,
+	.poc-stepper-overlay-toggle__btn:focus-visible {
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+		background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+		outline: none;
+		transform: translateY(-1px);
+	}
+
+	.poc-stepper-overlay-toggle__btn--active {
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+		background: color-mix(in srgb, var(--accent) 13%, var(--bg-card));
+		color: color-mix(in srgb, var(--accent) 86%, black 14%);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 	}
 
 	.poc-stepper-examples-title {
