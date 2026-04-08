@@ -176,26 +176,6 @@
 	const mismatchClusters = $derived.by(() => computeClusters());
 	const mismatchFlagsByGj = $derived.by(() => mismatchClusters.flagsByGj);
 	const insightSet = $derived.by(() => tractsByInsightMode(insightMode, mismatchClusters));
-	const mismatchAnnotationAnchors = $derived.by(() => {
-		if (!projectionRef) return { highAccessLowGrowth: null, highGrowthLowAccess: null };
-		const geomByGj = new Map((tractGeo?.features ?? []).map((f) => [f.properties?.gisjoin, f]));
-		const centroidFor = (ids) => {
-			const points = [...ids]
-				.map((id) => {
-					const f = geomByGj.get(id);
-					if (!f) return null;
-					const c = d3.geoPath(projectionRef).centroid(f);
-					return Number.isFinite(c[0]) && Number.isFinite(c[1]) ? c : null;
-				})
-				.filter(Boolean);
-			if (!points.length) return null;
-			return [d3.mean(points, (p) => p[0]), d3.mean(points, (p) => p[1])];
-		};
-		return {
-			highAccessLowGrowth: centroidFor(mismatchClusters.highAccessLowGrowth),
-			highGrowthLowAccess: centroidFor(mismatchClusters.highGrowthLowAccess)
-		};
-	});
 
 	const stepContent = [
 		{
@@ -638,6 +618,18 @@
 						const d = d3.select(this).datum();
 						return (d?.strokeWBase ?? 0.3) * invK;
 					});
+				zoomLayer
+					.select('.insight-layer')
+					.selectAll('g.insight-marker')
+					.each(function (d) {
+						const g = d3.select(this);
+						g.select('circle.insight-marker__halo')
+							.attr('r', (d?.rHaloBase ?? 5.5) * invK)
+							.attr('stroke-width', 0.9 * invK);
+						g.select('circle.insight-marker__dot')
+							.attr('r', (d?.rDotBase ?? 2.2) * invK)
+							.attr('stroke-width', 0.8 * invK);
+					});
 			});
 		zoomBehaviorRef = zoom;
 
@@ -903,7 +895,7 @@
 					? (Number.isFinite(stops) ? stops : 0) - (Number.isFinite(growth) ? growth : 0)
 					: (Number.isFinite(growth) ? growth : 0) - (Number.isFinite(stops) ? stops : 0);
 				return Number.isFinite(centroid[0]) && Number.isFinite(centroid[1])
-					? { id, x: centroid[0], y: centroid[1], growth, stops, score, type }
+					? { id, x: centroid[0], y: centroid[1], growth, stops, score, type, rHaloBase: 5.5, rDotBase: 2.2 }
 					: null;
 			})
 			.filter(Boolean)
@@ -936,6 +928,16 @@
 			.transition(t)
 			.attr('transform', (d) => `translate(${d.x},${d.y})`)
 			.attr('opacity', 1);
+		const invK = 1 / d3.zoomTransform(svgRef.node()).k;
+		markers.each(function (d) {
+			const g = d3.select(this);
+			g.select('circle.insight-marker__halo')
+				.attr('r', (d?.rHaloBase ?? 5.5) * invK)
+				.attr('stroke-width', 0.9 * invK);
+			g.select('circle.insight-marker__dot')
+				.attr('r', (d?.rDotBase ?? 2.2) * invK)
+				.attr('stroke-width', 0.8 * invK);
+		});
 	}
 
 	function updateOverlays() {
@@ -1955,6 +1957,9 @@
 							No mismatch outlines shown.
 						{/if}
 					</p>
+					<p class="poc-detail__summary">
+						Markers show notable mismatch examples. Click a marker to zoom to that tract.
+					</p>
 				</div>
 
 				{#if comparisonPairDetails.length > 0}
@@ -2021,32 +2026,6 @@
 								<div class="poc-annotation__box">
 									<strong>Category outlines add structure</strong>
 									<span>Green/orange/gray outlines separate TOD-dominant, non-TOD-dominant, and minimal-development tracts.</span>
-								</div>
-							</div>
-							<div
-								class="poc-annotation poc-annotation--bottom"
-								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highAccessLowGrowth && (insightMode === 'all_mismatch' || insightMode === 'high_access_low_growth')}
-								style={mismatchAnnotationAnchors.highAccessLowGrowth
-									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[1] / 480) * 100))}%;`
-									: ''}
-							>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box poc-annotation__box--compact">
-									<strong>High access + low growth cluster</strong>
-									<span>Strong transit access, weaker housing growth.</span>
-								</div>
-							</div>
-							<div
-								class="poc-annotation poc-annotation--bottom-right"
-								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highGrowthLowAccess && (insightMode === 'all_mismatch' || insightMode === 'high_growth_low_access')}
-								style={mismatchAnnotationAnchors.highGrowthLowAccess
-									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[1] / 480) * 100))}%;`
-									: ''}
-							>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box poc-annotation__box--compact">
-									<strong>High growth + low access cluster</strong>
-									<span>Stronger housing growth, relatively limited transit access.</span>
 								</div>
 							</div>
 						</div>
@@ -3278,16 +3257,6 @@
 		right: 72px;
 	}
 
-	.poc-annotation--bottom {
-		bottom: 26px;
-		left: 22%;
-	}
-
-	.poc-annotation--bottom-right {
-		bottom: 26px;
-		left: 62%;
-	}
-
 	.poc-annotation__line {
 		width: 34px;
 		height: 2px;
@@ -3305,13 +3274,6 @@
 		box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
 	}
 
-	.poc-annotation__box--compact {
-		max-width: 188px;
-		padding: 5px 7px;
-		gap: 1px;
-		background: color-mix(in srgb, var(--bg-card) 95%, white 5%);
-	}
-
 	.poc-annotation__box strong {
 		font-size: 0.66rem;
 		line-height: 1.2;
@@ -3322,22 +3284,6 @@
 		font-size: 0.62rem;
 		line-height: 1.35;
 		color: var(--text-muted);
-	}
-
-	@media (max-width: 900px) {
-		.poc-annotation--bottom {
-			left: 16%;
-			bottom: 14px;
-		}
-
-		.poc-annotation--bottom-right {
-			left: 54%;
-			bottom: 14px;
-		}
-
-		.poc-annotation__box--compact {
-			max-width: 150px;
-		}
 	}
 
 	.map-widget__controls {
