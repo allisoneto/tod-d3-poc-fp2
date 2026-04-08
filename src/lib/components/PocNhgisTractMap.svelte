@@ -1288,6 +1288,35 @@
 					<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
 				</p>
 			</div>
+			<div class="poc-methods poc-methods--assumptions card-key" role="note" aria-label="Assumptions used">
+				<p class="poc-methods__title">Assumptions Used</p>
+				<ul class="poc-methods__list">
+					<li>
+						<span class="poc-methods__label">TOD access assumption:</span>
+						Distance to MBTA is approximated with a fixed cutoff of
+						<strong> {d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong>.
+					</li>
+					<li>
+						<span class="poc-methods__label">Tract grouping assumption:</span>
+						Classification uses
+						<strong> {d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase as the significant-development floor and
+						<strong> {d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> TOD share as the TOD-dominated cutoff.
+					</li>
+					<li>
+						<span class="poc-methods__label">Filter assumption:</span>
+						The growth slider does not redefine tracts; it only emphasizes tracts with census housing growth at or above
+						<strong> {d3.format('.0f')(growthFilterMin)}%</strong>.
+					</li>
+					<li>
+						<span class="poc-methods__label">Aggregation assumption:</span>
+						Displayed averages are simple tract-level means (each tract weighted equally), not weighted by tract population or unit counts.
+					</li>
+					<li>
+						<span class="poc-methods__label">Data quality assumption:</span>
+						Tan tracts are excluded from choropleth interpretation when % change is missing or unreliable.
+					</li>
+				</ul>
+			</div>
 
 			<div class="map-wrap">
 				<div class="map-left-column">
@@ -2027,6 +2056,13 @@
 		padding: 12px 14px;
 	}
 
+	.poc-methods--assumptions {
+		margin-bottom: 10px;
+		padding: 12px 14px;
+		border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+		background: color-mix(in srgb, var(--accent) 4%, var(--bg-card));
+	}
+
 	.poc-methods__title {
 		margin: 0;
 		font-size: 0.95rem;
@@ -2040,6 +2076,21 @@
 		font-size: 0.9rem;
 		line-height: 1.6;
 		color: var(--text-muted);
+	}
+
+	.poc-methods__list {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.35rem;
+		font-size: 0.82rem;
+		line-height: 1.45;
+		color: var(--text-muted);
+	}
+
+	.poc-methods__label {
+		font-weight: 700;
+		color: var(--text);
 	}
 
 	.poc-filter__head {
