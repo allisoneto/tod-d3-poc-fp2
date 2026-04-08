@@ -1421,6 +1421,8 @@
 					</p>
 				</div>
 
+				<div class="poc-side-cards">
+
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
 					<div class="poc-spotlight__head">
 						<p class="poc-spotlight__kicker">Cohort spotlight</p>
@@ -1575,9 +1577,10 @@
 								<span class="poc-detail__stat-label">Selected tracts</span>
 								<span class="poc-detail__stat-value">{selectedTractDetail.countSelected}</span>
 							</div>
+							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
+				</div>
 
 				<div class="poc-compare card-key" role="region" aria-label="Selected tract comparison chart">
 					<div class="poc-compare__head">
@@ -1899,6 +1902,12 @@
 		gap: 8px;
 	}
 
+	.poc-side-cards {
+		display: grid;
+		gap: 8px;
+		align-content: start;
+	}
+
 	@media (min-width: 640px) {
 		.poc-legend-row {
 			flex-direction: row;
@@ -1918,7 +1927,7 @@
 		}
 
 		.poc-control-stack {
-			grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+			grid-template-columns: minmax(320px, 1fr) minmax(340px, 1.08fr);
 			align-items: start;
 		}
 
@@ -1926,8 +1935,12 @@
 			grid-column: 1 / -1;
 		}
 
-		.poc-detail {
-			grid-column: 1 / -1;
+		.poc-side-cards {
+			grid-column: 1;
+		}
+
+		.poc-compare {
+			grid-column: 2;
 		}
 	}
 
@@ -1978,6 +1991,7 @@
 		display: grid;
 		gap: 8px;
 		align-content: start;
+		min-height: 100%;
 	}
 
 	.poc-filter {
@@ -2144,7 +2158,8 @@
 
 	.poc-detail {
 		display: grid;
-		gap: 8px;
+		gap: 6px;
+		align-content: start;
 	}
 
 	.poc-detail__head {
@@ -2218,8 +2233,8 @@
 
 	.poc-detail__stats {
 		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 6px 10px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px 10px;
 	}
 
 	.poc-detail__stat-label {
@@ -2243,6 +2258,7 @@
 		display: grid;
 		gap: 10px;
 		align-content: start;
+		height: 100%;
 	}
 
 	.poc-compare__head {
@@ -2428,6 +2444,10 @@
 	@media (max-width: 639px) {
 		.poc-control-stack {
 			grid-template-columns: 1fr;
+		}
+
+		.poc-side-cards {
+			grid-column: auto;
 		}
 
 		.poc-filter__head {
