@@ -97,6 +97,8 @@
 	/** When “Show mismatch areas only”: hide context almost entirely. */
 	const NON_MISMATCH_FOCUS_ONLY = 0.06;
 	const FILL_DESAT = '#a8a29e';
+	/** When “lower-income tracts” focus is on: hide choropleth for tracts at/above $125k median (not a dimmed blue). */
+	const LOW_INCOME_FOCUS_INACTIVE_FILL = '#e2e8f0';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
@@ -170,6 +172,34 @@
 	});
 
 	/**
+	 * Optional override: which mismatch outlines to draw (scroll-driven by default).
+	 * Use “All” / single-type modes to explore without waiting on scroll steps.
+	 */
+	let mismatchOutlineMode = $state(
+		/** @type {'follow_scroll' | 'off' | 'all' | 'ha_only' | 'hg_only'} */ ('follow_scroll')
+	);
+
+	const effectiveMismatchIds = $derived.by(() => {
+		const c = mismatchClusters;
+		if (mismatchOutlineMode === 'follow_scroll') return visibleMismatchIds;
+		if (mismatchOutlineMode === 'off') return new Set();
+		if (mismatchOutlineMode === 'all') {
+			const s = new Set();
+			c.highAccessLowGrowth.forEach((id) => s.add(id));
+			c.highGrowthLowAccess.forEach((id) => s.add(id));
+			return s;
+		}
+		if (mismatchOutlineMode === 'ha_only') return new Set(c.highAccessLowGrowth);
+		if (mismatchOutlineMode === 'hg_only') return new Set(c.highGrowthLowAccess);
+		return visibleMismatchIds;
+	});
+
+	/** When the mismatch outline layer should affect fill/stroke (respects scroll unless user overrides). */
+	const mismatchLayerOn = $derived(
+		effectiveMismatchIds.size > 0 && (mismatchOutlineMode !== 'follow_scroll' || revealStage >= 2)
+	);
+
+	/**
 	 * @param {string} id
 	 * @returns {'ha_lg' | 'hg_la' | null}
 	 */
@@ -180,38 +210,6 @@
 		if (f.isHighGrowthLowAccess) return 'hg_la';
 		return null;
 	}
-
-	const clusterAnnotationCentroids = $derived.by(() => {
-		if (!projectionRef) return { ha: null, hg: null };
-		const geomByGj = new Map((tractGeo?.features ?? []).map((f) => [f.properties?.gisjoin, f]));
-		const centroidMean = (idSet) => {
-			const pts = [];
-			for (const id of idSet) {
-				const feature = geomByGj.get(id);
-				if (!feature) continue;
-				const c = d3.geoPath(projectionRef).centroid(feature);
-				if (Number.isFinite(c[0]) && Number.isFinite(c[1])) pts.push(c);
-			}
-			if (!pts.length) return null;
-			return [d3.mean(pts, (p) => p[0]), d3.mean(pts, (p) => p[1])];
-		};
-		return {
-			ha: centroidMean(mismatchClusters.highAccessLowGrowth),
-			hg: centroidMean(mismatchClusters.highGrowthLowAccess)
-		};
-	});
-
-	/** Percent positions for anchored mismatch callouts (matches SVG viewBox scaling). */
-	const clusterAnnStyles = $derived.by(() => {
-		const { svgW, mapH: mh } = mapViewBox;
-		const toStyle = (xy) => {
-			if (!xy || !Number.isFinite(xy[0]) || !Number.isFinite(xy[1])) return '';
-			const lp = Math.min(90, Math.max(4, (xy[0] / svgW) * 100));
-			const tp = Math.min(86, Math.max(8, (xy[1] / mh) * 100));
-			return `left:${lp}%;top:${tp}%;`;
-		};
-		return { ha: toStyle(clusterAnnotationCentroids.ha), hg: toStyle(clusterAnnotationCentroids.hg) };
-	});
 
 	const stepContent = [
 		{
@@ -253,7 +251,7 @@
 			return [
 				'Solid violet tracts = high access + low growth. The map pushes everything else back (dimmer fill, lighter cohort outlines) so the mismatch layer stays in front.',
 				'If it still feels busy: turn on “Show mismatch areas only,” or hover any highlighted tract to spotlight its whole cluster.',
-				'Optional: “Show low-income tracts” fades tracts at/above the $125k median for equity exploration (no second choropleth).'
+				'Optional: “Show lower-income tracts” replaces growth color with neutral fill for tracts at/above the $125k median (no second choropleth).'
 			];
 		}
 		return [
@@ -712,11 +710,16 @@
 			.attr('fill', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
+				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
+				const isSelHover = id === panelState.hoveredTract || panelState.selectedTracts.has(id);
+				if (focusLowIncomeTracts && li !== true && !isSelHover) {
+					return LOW_INCOME_FOCUS_INACTIVE_FILL;
+				}
 				const v = row ? Number(row.census_hu_pct_change) : NaN;
 				let baseFill = Number.isFinite(v) ? color(v) : '#e7e0d5';
 				let fill = tintFill(baseFill, row);
-				if (revealStage >= 2 && visibleMismatchIds.size) {
-					if (!visibleMismatchIds.has(id)) {
+				if (mismatchLayerOn) {
+					if (!effectiveMismatchIds.has(id)) {
 						fill = d3.interpolateRgb(fill, FILL_DESAT)(0.65);
 					} else if (hoveredMismatchCluster) {
 						const mk = mismatchKind(id);
@@ -730,7 +733,7 @@
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				if (visibleMismatchIds.has(id)) {
+				if (effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
 				}
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
@@ -738,14 +741,14 @@
 			})
 			.attr('stroke-dasharray', (d) => {
 				const id = d.properties?.gisjoin;
-				if (!visibleMismatchIds.has(id)) return 'none';
+				if (!effectiveMismatchIds.has(id)) return 'none';
 				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				const dc = row?.devClass;
-				if (visibleMismatchIds.has(id)) {
+				if (effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
 				}
 				if (revealStage < 1) return 0.45;
@@ -755,8 +758,8 @@
 			})
 			.attr('stroke-opacity', (d) => {
 				const id = d.properties?.gisjoin;
-				if (visibleMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
-				if (revealStage >= 2 && visibleMismatchIds.size) {
+				if (effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (mismatchLayerOn) {
 					const row = rowByGj.get(id);
 					const dc = row?.devClass;
 					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.38;
@@ -768,11 +771,9 @@
 				const row = rowByGj.get(id);
 				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
-				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
-				if (focusLowIncomeTracts && li !== true) return 0.12;
 				if (revealStage === 0) return 1;
-				if (!visibleMismatchIds.size) return 1;
-				const vis = visibleMismatchIds.has(id);
+				if (!mismatchLayerOn) return 1;
+				const vis = effectiveMismatchIds.has(id);
 				const mk = mismatchKind(id);
 				if (hoveredMismatchCluster) {
 					if (!vis) return NON_MISMATCH_DIM;
@@ -963,7 +964,7 @@
 		if (!containerEl || !svgRef || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.insight-layer');
 		const t = d3.transition().duration(250);
-		if (revealStage < 2 || visibleMismatchIds.size === 0) {
+		if (!mismatchLayerOn || effectiveMismatchIds.size === 0) {
 			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
 			return;
 		}
@@ -972,7 +973,7 @@
 		const candidates = (tractGeo?.features ?? [])
 			.map((f) => {
 				const id = f?.properties?.gisjoin;
-				if (!id || !visibleMismatchIds.has(id)) return null;
+				if (!id || !effectiveMismatchIds.has(id)) return null;
 				const centroid = d3.geoPath(projectionRef).centroid(f);
 				const row = rowsByGj.get(id);
 				const tract = tractList.find((t) => t.gisjoin === id);
@@ -1070,7 +1071,7 @@
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
 				if (selectedSet.has(id)) return 'var(--cat-a, #6366f1)';
-				if (visibleMismatchIds.has(id)) {
+				if (effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
 				}
 				const row = rowByGj?.get(id);
@@ -1080,7 +1081,7 @@
 			.attr('stroke-dasharray', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId || selectedSet.has(id)) return 'none';
-				if (!visibleMismatchIds.has(id)) return 'none';
+				if (!effectiveMismatchIds.has(id)) return 'none';
 				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
@@ -1089,7 +1090,7 @@
 				const dc = row?.devClass;
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
-				if (visibleMismatchIds.has(id)) {
+				if (effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
 				}
 				if (revealStage < 1) return 0.45;
@@ -1100,8 +1101,8 @@
 			.attr('stroke-opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId || selectedSet.has(id)) return 1;
-				if (visibleMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
-				if (revealStage >= 2 && visibleMismatchIds.size) {
+				if (effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (mismatchLayerOn) {
 					const row = rowByGj?.get(id);
 					const dc = row?.devClass;
 					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.38;
@@ -1113,11 +1114,9 @@
 				const row = rowByGj?.get(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
-				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
-				if (focusLowIncomeTracts && li !== true) return 0.12;
 				if (revealStage === 0) return 1;
-				if (!visibleMismatchIds.size) return 1;
-				const vis = visibleMismatchIds.has(id);
+				if (!mismatchLayerOn) return 1;
+				const vis = effectiveMismatchIds.has(id);
 				const mk = mismatchKind(id);
 				if (hoveredMismatchCluster) {
 					if (!vis) return NON_MISMATCH_DIM;
@@ -1134,7 +1133,7 @@
 		panelState.setHovered(id);
 		const mk = id ? mismatchKind(id) : null;
 		hoveredMismatchCluster =
-			mk && visibleMismatchIds.has(id) ? mk : null;
+			mk && effectiveMismatchIds.has(id) ? mk : null;
 		const el = containerEl;
 		if (!el) return;
 		const rowByGj = el.__pocRowByGj;
@@ -1639,6 +1638,10 @@
 		void focusMismatchOnly;
 		void focusLowIncomeTracts;
 		void hoveredMismatchCluster;
+		void mismatchOutlineMode;
+		void panelState.hoveredTract;
+		void panelState.selectedTracts;
+		void panelState.selectedTracts.size;
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
@@ -1659,6 +1662,7 @@
 		void focusMismatchOnly;
 		void focusLowIncomeTracts;
 		void hoveredMismatchCluster;
+		void mismatchOutlineMode;
 		if (!containerEl || !svgRef) return;
 		updateSelection();
 		updateInsightMarkers();
@@ -2114,13 +2118,56 @@
 						<input type="checkbox" bind:checked={focusLowIncomeTracts} />
 						<span>Show lower-income tracts (&lt;$125k median)</span>
 					</label>
+					<p class="poc-detail__kicker" style="margin-top: 12px">Mismatch outlines</p>
+					<div class="poc-mismatch-mode" role="group" aria-label="Which mismatch categories to outline">
+						<button
+							type="button"
+							class="poc-mismatch-mode__btn"
+							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'follow_scroll'}
+							onclick={() => (mismatchOutlineMode = 'follow_scroll')}
+						>
+							Match scroll
+						</button>
+						<button
+							type="button"
+							class="poc-mismatch-mode__btn"
+							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'off'}
+							onclick={() => (mismatchOutlineMode = 'off')}
+						>
+							Off
+						</button>
+						<button
+							type="button"
+							class="poc-mismatch-mode__btn"
+							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'all'}
+							onclick={() => (mismatchOutlineMode = 'all')}
+						>
+							All mismatch
+						</button>
+						<button
+							type="button"
+							class="poc-mismatch-mode__btn"
+							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'ha_only'}
+							onclick={() => (mismatchOutlineMode = 'ha_only')}
+						>
+							High access, low growth
+						</button>
+						<button
+							type="button"
+							class="poc-mismatch-mode__btn"
+							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'hg_only'}
+							onclick={() => (mismatchOutlineMode = 'hg_only')}
+						>
+							High growth, low access
+						</button>
+					</div>
 					<p class="poc-detail__summary">
-						When on, non-mismatch tracts fade so the access–growth patterns are easier to read. Scroll steps still
-						control which mismatch types are outlined.
+						When on, non-mismatch tracts fade so the access–growth patterns are easier to read. Default follows
+						scroll steps; use the buttons above to explore one or both mismatch types anytime.
 					</p>
 					<p class="poc-detail__summary">
-						The lower-income toggle dims tracts at or above the $125k median threshold—exploratory; it does not replace
-						the choropleth.
+						The lower-income toggle drops growth color to a neutral fill for tracts at or above the $125k median—exploratory;
+						it does not replace the choropleth legend for those tracts.
 					</p>
 					<p class="poc-detail__summary">
 						Markers flag notable examples within the visible mismatch set. Click a marker to zoom to that tract.
@@ -2177,69 +2224,6 @@
 							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
 							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
 							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
-						</div>
-						<div class="poc-annotations" aria-hidden="true">
-							<div class="poc-annotation" class:poc-annotation--visible={revealStage === 0}>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
-									<strong>Transit-rich corridors</strong>
-									<span
-										>These areas are well-served by transit and are often considered ideal for dense housing—read
-										fill first, then scroll.</span
-									>
-								</div>
-							</div>
-							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage === 1}>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
-									<strong>Growth is not only “on the line”</strong>
-									<span
-										>Housing development is not concentrated only in the highest-access tracts; cohort outlines add
-										structure on top of the choropleth.</span
-									>
-								</div>
-							</div>
-							<div
-								class="poc-annotation"
-								class:poc-annotation--anchored={!!clusterAnnStyles.ha}
-								class:poc-annotation--right={!clusterAnnStyles.ha}
-								class:poc-annotation--visible={revealStage === 2}
-								style={clusterAnnStyles.ha || undefined}
-							>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
-									<strong>Access without matching growth</strong>
-									<span
-										>These tracts have strong transit access but limited housing growth, which can restrict options
-										for lower-income households to live near service.</span
-									>
-								</div>
-							</div>
-							<div
-								class="poc-annotation poc-annotation--anchored"
-								class:poc-annotation--visible={revealStage === 3}
-								style={clusterAnnStyles.ha || undefined}
-							>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
-									<strong>High access, low growth</strong>
-									<span>Solid purple: the mismatch where strong MBTA access has not been matched by new units.</span>
-								</div>
-							</div>
-							<div
-								class="poc-annotation poc-annotation--anchored"
-								class:poc-annotation--visible={revealStage === 3}
-								style={clusterAnnStyles.hg || undefined}
-							>
-								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
-									<strong>Growth away from strong access</strong>
-									<span
-										>Dashed lavender: housing growth concentrated where transit access is relatively weak—another
-										kind of access–growth tension.</span
-									>
-								</div>
-							</div>
 						</div>
 						<div class="map-root" bind:this={containerEl}></div>
 					</div>
@@ -3419,6 +3403,37 @@
 		accent-color: var(--accent, #6366f1);
 	}
 
+	.poc-mismatch-mode {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin: 0 0 8px;
+	}
+
+	.poc-mismatch-mode__btn {
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+		color: var(--text);
+		font-size: 0.68rem;
+		line-height: 1.25;
+		padding: 5px 8px;
+		border-radius: 6px;
+		cursor: pointer;
+		text-align: left;
+		transition:
+			background 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.poc-mismatch-mode__btn:hover {
+		border-color: color-mix(in srgb, var(--accent, #6366f1) 45%, var(--border));
+	}
+
+	.poc-mismatch-mode__btn--active {
+		border-color: var(--accent, #6366f1);
+		background: color-mix(in srgb, var(--accent, #6366f1) 12%, var(--bg-card));
+		font-weight: 600;
+	}
 
 	/* Dev outline swatches: grey fill so stroke semantics stay visible (map dots stay orange–green by MF). */
 	.poc-k-ring--dev-access,
@@ -3479,72 +3494,6 @@
 
 	.map-widget {
 		position: relative;
-	}
-
-	.poc-annotations {
-		position: absolute;
-		inset: 0;
-		pointer-events: none;
-		z-index: 5;
-	}
-
-	.poc-annotation {
-		position: absolute;
-		display: grid;
-		gap: 3px;
-		opacity: 0;
-		transform: translateY(4px);
-		transition: opacity 220ms ease, transform 220ms ease;
-	}
-
-	.poc-annotation--visible {
-		opacity: 1;
-		transform: translateY(0);
-	}
-
-	.poc-annotation:first-child {
-		top: 72px;
-		left: 24px;
-	}
-
-	.poc-annotation--right {
-		top: 130px;
-		right: 72px;
-	}
-
-	.poc-annotation--anchored {
-		right: auto;
-		left: auto;
-		max-width: 200px;
-	}
-
-	.poc-annotation__line {
-		width: 34px;
-		height: 2px;
-		background: color-mix(in srgb, var(--accent) 62%, white 38%);
-	}
-
-	.poc-annotation__box {
-		max-width: 220px;
-		display: grid;
-		gap: 2px;
-		padding: 6px 8px;
-		border-radius: 8px;
-		background: color-mix(in srgb, var(--bg-card) 92%, white 8%);
-		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
-		box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
-	}
-
-	.poc-annotation__box strong {
-		font-size: 0.66rem;
-		line-height: 1.2;
-		color: var(--text);
-	}
-
-	.poc-annotation__box span {
-		font-size: 0.62rem;
-		line-height: 1.35;
-		color: var(--text-muted);
 	}
 
 	.map-widget__controls {

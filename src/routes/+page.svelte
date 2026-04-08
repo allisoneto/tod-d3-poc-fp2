@@ -341,15 +341,15 @@
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
-		if (!muniData || !elScatter) return;
+		if (!muniData) return;
 		const cb = { onSelectionChange: () => { selected = new Set(selected); } };
-		renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
-		renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
-		renderMuniTimeline(elTimeline, projectRows, muniState);
-		renderMuniComposition(elComposition, projectRows, muniState);
-		renderMuniRankedGrowth(elRanked, visibleRows);
-		renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
-		renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
+		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
+		if (elChoro) renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
+		if (elTimeline) renderMuniTimeline(elTimeline, projectRows, muniState);
+		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
+		if (elRanked) renderMuniRankedGrowth(elRanked, visibleRows);
+		if (elAffordMix) renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
+		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
 	}
 
 	// Debounce draw during playback via rAF
@@ -360,6 +360,14 @@
 		void projectRows;
 		void muniActive;
 		void mapMetric;
+		void muniData;
+		void elScatter;
+		void elChoro;
+		void elTimeline;
+		void elComposition;
+		void elRanked;
+		void elAffordMix;
+		void elGrowthCapture;
 		cancelAnimationFrame(rafId);
 		rafId = requestAnimationFrame(() => draw());
 	});
@@ -1138,47 +1146,95 @@
 			<section class="story card">
 				<h2>Design decisions and visual encodings</h2>
 				<p>
-					Several design decisions structure how this narrative is communicated. The goal is to make a complex policy question readable without
-					oversimplifying it, and to let users inspect supporting evidence directly.
+					This section documents why the interface looks and behaves the way it does. The goal is to make a multi-layer policy question readable
+					without pretending it is simpler than it is—and to let readers inspect evidence directly. The same content is maintained as
+					<code>DESIGN_DECISIONS.md</code> at the repository root for version control and code review.
 				</p>
-				<h4>Narrative-driven structure with scrollytelling</h4>
+
+				<h3>1. Epistemic framing (what we do not claim)</h3>
 				<p>
-					The tract map uses a stepwise scrollytelling sequence that introduces information in layers: census housing-change context first,
-					then tract category outlines, then project-level overlays. This progression is intended to reduce cognitive load by separating
-					each of background context, interpretive categories, and project detail from each other. However, the map remains spatially fixed while the narrative
-					steps change, so users can compare encodings within a stable geographic frame rather than re-orienting to a new chart each time.
+					Everything here is <strong>descriptive and associational</strong>. We show development, transit access, affordability signals, and census change
+					in the same views so readers can form hypotheses about equity and planning. <strong>No chart is a causal estimate</strong> of TOD on
+					outcomes; copy uses language like “associated with” and “patterns suggest” on purpose.
 				</p>
+
+				<h3>2. Two scales: municipality and census tract</h3>
 				<p>
-					This approach supports the argument structure well, but it also has trade-offs. More intermediate steps could add interpretive context,
-					but could also increase interaction overhead and make the flow feel heavier. The current version prioritizes a shorter sequence for clarity.
+					<strong>Municipal views</strong> aggregate project data into comparable units—where growth is, how TOD-heavy it is, and how affordability mixes in.
+					<strong>Tract views</strong> combine census housing-stock change (the choropleth), MassBuilds-derived development cohorts (outlines), and optional
+					project dots. Municipal answers “where at the policy scale?”; tracts answer “where within the urban fabric, relative to transit?” Keeping both
+					grains avoids forcing one resolution to do everything.
 				</p>
-				<h4>Interactive filtering and layered exploration</h4>
+
+				<h3>3. Tract choropleth: housing growth as the base layer</h3>
 				<p>
-					Filtering and layering are central because TOD policy context is multi-dimensional. Users can selectively view transit lines/stops,
-					project overlays, cohort spotlights, and threshold-based emphasis without replacing the base geography. Zoom and tooltips provide
-					detail-on-demand so the default view stays legible while still supporting close inspection of specific tracts or projects.
+					Fill encodes <strong>census percent change in housing units</strong> for the selected period on a <strong>diverging</strong> scale centered at zero:
+					weaker or negative growth toward red, stronger growth toward blue. The scale re-normalizes to the maximum absolute change in the current tract
+					sample so the legend stays interpretable when filters change. We encode <em>change</em>, not levels, and we keep the same mapping as new layers appear
+					so the geographic story does not visually “jump” when outlines are added.
 				</p>
+
+				<h3>4. Development cohort outlines (MassBuilds-derived)</h3>
 				<p>
-					At this stage, interaction is intentionally bounded: the dashboard supports focused exploration while keeping key controls visible.
-					To reduce cognitive overhead, we intentionally kept the map interaction model simple (selection, spotlight, overlays, and tooltips) rather than adding more advanced control surfaces.
-					This keeps the default interpretation path clear for first-time viewers while still supporting targeted exploration.
+					After the base map is established, <strong>tract category outlines</strong> introduce TOD-dominated, non-TOD-dominated, and minimal-development
+					cohorts (green, orange, gray). These are interpretive overlays: <strong>fill still carries census growth</strong>; outlines carry where filtered new
+					development sits relative to transit. Cohorts depend on filters and thresholds—they are stable enough for narrative use but should be read as
+					model outputs, not a single statutory definition of TOD.
 				</p>
-				<h4>Accessibility, color choices, and normalization</h4>
+
+				<h3>5. Access–growth “mismatch” layer</h3>
 				<p>
-					The color system uses MBTA-referential hues (green, orange, red, blue) so transit-related encodings are semantically grounded in
-					local context. Neutral tones are used for baselines and limited-data states to avoid overstating uncertain values. Categories are not
-					encoded by color alone: outlines, labels, and interaction states provide additional cues for interpretation.
+					A separate layer highlights tracts where transit access and housing growth sit in tension under a <strong>quartile-based rule set</strong>.
+					<strong>High access, low growth</strong> uses a solid violet stroke (heavier weight); <strong>high growth, low access</strong> uses a dashed
+					lavender stroke. These are <strong>outline-only</strong> so we do not introduce a second choropleth that would compete with the growth fill.
 				</p>
+
+				<h3>6. Progressive disclosure and dual controls</h3>
 				<p>
-					Typography combines Helvetica-family headings with Inter body text to maintain hierarchy and readability at the dashboard scale.
-					Quantitative comparisons rely primarily on position on common axes (scatter and bars), with color and size as supporting channels.
-					Where needed, values are normalized (for example, percent housing change and share-based measures) to ensure that cross-tract comparisons are
-					more interpretable and less driven by absolute tract size alone.
+					<strong>Scroll-linked steps</strong> add layers in order: fill → cohort outlines → first mismatch type → both types → optional project dots.
+					That limits simultaneous novelty and tracks the written narrative. Separately, <strong>mismatch outline modes</strong> (match scroll, off, all
+					mismatch, or one type only) let readers override the scroll gate for teaching or exploration—for example, isolating one mismatch type or showing
+					both before the scroll step that introduces the second. Default remains <strong>match scroll</strong> so the guided path stays the baseline.
 				</p>
-				<h4>Overall and future improvements</h4>
+
+				<h3>7. Focus toggles: mismatch-only and lower-income emphasis</h3>
 				<p>
-					These choices are intended to improve accessibility and interpretability; they are design-informed rather than a claim of full formal
-					accessibility certification. Additional usability testing can further validate readability across broader audiences.
+					<strong>Show mismatch areas only</strong> pushes non-mismatch tracts to very low opacity so the mismatch layer stays legible when the map is busy.
+					<strong>Show lower-income tracts</strong> is tied to a median household income threshold (for example &lt;$125k). Tracts at or above that threshold
+					are not shown as “dimmed” blues—which was easy to confuse with weak growth on the diverging scale. Instead they receive a <strong>neutral fill</strong>
+					so they read as out of focus, not as a false light-blue growth bin. Hovered and selected tracts temporarily show full choropleth color again for
+					inspection. Neither toggle replaces a dedicated income map; they are emphasis layers on top of the growth story.
+				</p>
+
+				<h3>8. Sidebar-first narrative (no duplicate map callouts)</h3>
+				<p>
+					Floating on-map callout boxes once duplicated the <strong>Map walkthrough</strong> text in the sidebar. Those overlays were removed so a single
+					narrative channel carries step copy and the map stays visually calmer. <strong>Hover tooltips</strong> with tract-level metrics remain for
+					detail-on-demand.
+				</p>
+
+				<h3>9. Municipal supplemental charts and the draw lifecycle</h3>
+				<p>
+					Supplemental charts (for example TOD vs non-TOD mix by year, ranked municipalities) live in <code>&lt;details&gt;</code> blocks. Because container
+					nodes mount in different orders, the dashboard draw pipeline only requires loaded data as a gate—not a single chart’s DOM node. Each chart
+					renders only when its container ref exists, and the reactive effect subscribes to <strong>all</strong> chart refs so opening a section triggers a
+					redraw when its container appears. That avoids empty cards when one chart was ready and another was not yet bound.
+				</p>
+
+				<h3>10. Color, typography, and channels</h3>
+				<p>
+					The palette uses <strong>MBTA-referential hues</strong> (green, orange, red, blue) so transit-related semantics feel grounded in Greater Boston.
+					Categories are not carried by color alone: outline weight, dash pattern, and interaction state add redundant cues. Typography pairs
+					Helvetica-family headings with Inter for body text. Linked charts emphasize <strong>position on common axes</strong>; color and size are secondary
+					channels. Where it helps comparability, measures are normalized (percent change, shares) so patterns are less driven by raw tract size alone.
+				</p>
+
+				<h3>11. Trade-offs, limitations, and future work</h3>
+				<p>
+					These choices improve interpretability but are <strong>design-informed, not a claim of full WCAG certification</strong>. The mismatch definition is a
+					transparent heuristic; income emphasis uses a single threshold for exploration. Usability testing with a broader audience, stronger keyboard
+					coverage, and richer income analyses (for example full distributions) are natural next steps. Throughout, the limiting honesty is the same:
+					<strong>describe patterns carefully; do not over-claim causality.</strong>
 				</p>
 			</section>
 
