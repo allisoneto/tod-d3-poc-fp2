@@ -2244,6 +2244,7 @@
 			id: 'assembly-row-block-2',
 			label: 'Assembly Row: Block 2',
 			categoryLabel: 'Strong TOD example',
+			categoryTone: 'tod',
 			note:
 				'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
 			dev: {
@@ -2267,6 +2268,7 @@
 			id: 'amaya-suffolk-downs',
 			label: 'Amaya Suffolk Downs',
 			categoryLabel: 'Large-scale TOD example',
+			categoryTone: 'tod',
 			note:
 				'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
 			dev: {
@@ -2290,6 +2292,7 @@
 			id: 'allston-yards',
 			label: 'Allston Yards',
 			categoryLabel: 'Partial TOD example',
+			categoryTone: 'partial',
 			note:
 				'Boston. This Allston corridor example stands in for the Allston Yards pattern: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD cases.',
 			dev: {
@@ -2313,6 +2316,7 @@
 			id: 'weymouth-landing',
 			label: 'Weymouth Landing',
 			categoryLabel: 'Non-TOD contrast',
+			categoryTone: 'nontod',
 			note:
 				'Weymouth. Weymouth Landing helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter-rail or weaker transit access than on the strongest rapid-transit geography.',
 			dev: {
@@ -3200,7 +3204,7 @@
 											<div class="poc-stepper-example">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{item.label}</span>
-													<span class="poc-stepper-example__cta">{item.categoryLabel}</span>
+													<span class="poc-stepper-example__cta" class:poc-stepper-example__cta--tod={item.categoryTone === 'tod'} class:poc-stepper-example__cta--partial={item.categoryTone === 'partial'} class:poc-stepper-example__cta--nontod={item.categoryTone === 'nontod'}>{item.categoryLabel}</span>
 												</div>
 												<p class="poc-stepper-example__note">{item.note}</p>
 												<div class="poc-stepper-example__metrics">
@@ -3578,6 +3582,18 @@
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 		color: var(--accent);
+	}
+
+	.poc-stepper-example__cta--tod {
+		color: var(--accent);
+	}
+
+	.poc-stepper-example__cta--partial {
+		color: #2563eb;
+	}
+
+	.poc-stepper-example__cta--nontod {
+		color: var(--warning);
 	}
 
 	.poc-stepper-example__note {
