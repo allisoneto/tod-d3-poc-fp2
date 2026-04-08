@@ -1558,41 +1558,43 @@
 									<span class="poc-detail__summary">{selectedTractDetail.description}</span>
 								{/if}
 							</div>
+							<div class="poc-detail__primary">
+								<div class="poc-detail__hero">
+									<span class="poc-detail__stat-label">Housing growth</span>
+									<span class="poc-detail__hero-value">
+										{selectedTractDetail.huGrowth == null ? '—' : `${d3.format('.1f')(selectedTractDetail.huGrowth)}%`}
+									</span>
+								</div>
+								<div class="poc-detail__hero">
+									<span class="poc-detail__stat-label">Cohort avg.</span>
+									<span class="poc-detail__hero-value">
+										{selectedTractDetail.cohortAvgHu == null ? '—' : `${d3.format('.1f')(selectedTractDetail.cohortAvgHu)}%`}
+									</span>
+								</div>
+							</div>
 							<div class="poc-detail__stats">
 								<div>
-									<span class="poc-detail__stat-label">Housing growth</span>
-								<span class="poc-detail__stat-value">
-									{selectedTractDetail.huGrowth == null ? '—' : `${d3.format('.1f')(selectedTractDetail.huGrowth)}%`}
-								</span>
-							</div>
-							<div>
-								<span class="poc-detail__stat-label">Cohort avg.</span>
-								<span class="poc-detail__stat-value">
-									{selectedTractDetail.cohortAvgHu == null ? '—' : `${d3.format('.1f')(selectedTractDetail.cohortAvgHu)}%`}
-								</span>
-							</div>
-							<div>
-								<span class="poc-detail__stat-label">TOD share</span>
-								<span class="poc-detail__stat-value">
-									{selectedTractDetail.todShare == null ? '—' : `${d3.format('.1f')(selectedTractDetail.todShare * 100)}%`}
-								</span>
-							</div>
-							<div>
-								<span class="poc-detail__stat-label">Housing stock increase</span>
-								<span class="poc-detail__stat-value">
-									{selectedTractDetail.stockIncrease == null ? '—' : `${d3.format('.1f')(selectedTractDetail.stockIncrease)}%`}
-								</span>
-							</div>
-							<div>
-								<span class="poc-detail__stat-label">New units</span>
-								<span class="poc-detail__stat-value">
-									{selectedTractDetail.newUnits == null ? '—' : d3.format(',.0f')(selectedTractDetail.newUnits)}
-								</span>
-							</div>
-							<div>
-								<span class="poc-detail__stat-label">Selected tracts</span>
-								<span class="poc-detail__stat-value">{selectedTractDetail.countSelected}</span>
-							</div>
+									<span class="poc-detail__stat-label">TOD share</span>
+									<span class="poc-detail__stat-value">
+										{selectedTractDetail.todShare == null ? '—' : `${d3.format('.1f')(selectedTractDetail.todShare * 100)}%`}
+									</span>
+								</div>
+								<div>
+									<span class="poc-detail__stat-label">Stock increase</span>
+									<span class="poc-detail__stat-value">
+										{selectedTractDetail.stockIncrease == null ? '—' : `${d3.format('.1f')(selectedTractDetail.stockIncrease)}%`}
+									</span>
+								</div>
+								<div>
+									<span class="poc-detail__stat-label">New units</span>
+									<span class="poc-detail__stat-value">
+										{selectedTractDetail.newUnits == null ? '—' : d3.format(',.0f')(selectedTractDetail.newUnits)}
+									</span>
+								</div>
+								<div>
+									<span class="poc-detail__stat-label">Selected tracts</span>
+									<span class="poc-detail__stat-value">{selectedTractDetail.countSelected}</span>
+								</div>
 							</div>
 						</div>
 					{/if}
@@ -2265,6 +2267,28 @@
 		gap: 8px;
 	}
 
+	.poc-detail__primary {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+
+	.poc-detail__hero {
+		display: grid;
+		gap: 2px;
+		padding: 6px 8px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 7%, var(--bg-card));
+		border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border));
+	}
+
+	.poc-detail__hero-value {
+		font-size: 1rem;
+		font-weight: 800;
+		line-height: 1.1;
+		color: var(--text);
+	}
+
 	.poc-detail__stats {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2491,6 +2515,10 @@
 		.poc-detail__topline {
 			flex-direction: column;
 			align-items: flex-start;
+		}
+
+		.poc-detail__primary {
+			grid-template-columns: 1fr;
 		}
 
 		.poc-compare__row {
