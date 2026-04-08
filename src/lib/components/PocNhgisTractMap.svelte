@@ -2018,7 +2018,10 @@
 									class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
 								>
 									{#each tooltip.primaryRows as row, i (i)}
-										<div class="map-tooltip__primary-row">
+										<div
+											class="map-tooltip__primary-row"
+											class:map-tooltip__primary-row--stack={String(row.value ?? '').length > 20}
+										>
 											<span class="map-tooltip__primary-label">{row.label}</span>
 											<span class="map-tooltip__primary-value">{row.value}</span>
 										</div>
@@ -2030,7 +2033,10 @@
 									<p class="map-tooltip__details-label">Details</p>
 									<div class="map-tooltip__rows">
 										{#each tooltip.secondaryRows as row, i (i)}
-											<div class="map-tooltip__row">
+											<div
+												class="map-tooltip__row"
+												class:map-tooltip__row--stack={String(row.value ?? '').length > 26}
+											>
 												<span class="map-tooltip__label">{row.label}</span>
 												<span class="map-tooltip__value">{row.value}</span>
 											</div>
@@ -3759,6 +3765,7 @@
 	.map-tooltip__badge {
 		display: inline-flex;
 		align-items: center;
+		flex-wrap: wrap;
 		padding: 3px 8px;
 		border-radius: 999px;
 		font-size: 0.68rem;
@@ -3829,6 +3836,8 @@
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
 		color: var(--text-muted);
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.map-tooltip__primary-value {
@@ -3837,6 +3846,17 @@
 		line-height: 1.25;
 		text-align: right;
 		color: var(--text);
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.map-tooltip__primary-row--stack {
+		grid-template-columns: 1fr;
+		gap: 3px;
+	}
+
+	.map-tooltip__primary-row--stack .map-tooltip__primary-value {
+		text-align: left;
 	}
 
 	.map-tooltip__details {
@@ -3869,6 +3889,8 @@
 		color: var(--text-muted);
 		font-size: 0.73rem;
 		line-height: 1.35;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.map-tooltip__value {
@@ -3877,6 +3899,17 @@
 		font-weight: 600;
 		line-height: 1.35;
 		text-align: right;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.map-tooltip__row--stack {
+		grid-template-columns: 1fr;
+		gap: 2px;
+	}
+
+	.map-tooltip__row--stack .map-tooltip__value {
+		text-align: left;
 	}
 
 	.poc-map-zoom-hint {
