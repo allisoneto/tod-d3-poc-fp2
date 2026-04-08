@@ -598,6 +598,32 @@
 		return new Set(guidedRegionFeaturesForStage(stage).map((f) => f.properties?.gisjoin).filter(Boolean));
 	}
 
+	function guidedRegionOutlineFeaturesForStage(stage) {
+		const features = guidedRegionFeaturesForStage(stage);
+		if (!features.length) return [];
+		const [[west, south], [east, north]] = d3.geoBounds({
+			type: 'FeatureCollection',
+			features
+		});
+		if (![west, south, east, north].every(Number.isFinite)) return [];
+		return [
+			{
+				type: 'Feature',
+				properties: { stage },
+				geometry: {
+					type: 'Polygon',
+					coordinates: [[
+						[west, south],
+						[east, south],
+						[east, north],
+						[west, north],
+						[west, south]
+					]]
+				}
+			}
+		];
+	}
+
 	function stopRadius(stop) {
 		const m = stop.modes ?? [];
 		if (m.includes('rail') || m.includes('commuter_rail')) return 3;
@@ -1140,14 +1166,14 @@
 		if (!containerEl || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.focus-region-layer');
 		const t = d3.transition().duration(250);
-		const focusFeatures = guidedRegionFeaturesForStage(revealStage);
+		const focusFeatures = guidedRegionOutlineFeaturesForStage(revealStage);
 		if (!guidedMode || focusFeatures.length === 0) {
 			layer.selectAll('g.focus-region').transition(t).attr('opacity', 0).remove();
 			return;
 		}
 		const groups = layer
 			.selectAll('g.focus-region')
-			.data(focusFeatures, (d) => d.properties?.gisjoin)
+			.data(focusFeatures, (d) => d.properties?.stage)
 			.join(
 				(enter) => {
 					const g = enter.append('g').attr('class', 'focus-region').attr('opacity', 0);
