@@ -1177,11 +1177,10 @@
 
 				<h3>Why the tract groups use green, orange, and gray</h3>
 				<p>
-					We wanted the tract groups to use colors that are easy to tell apart, but that also sit on top of the red-blue choropleth without
-					looking like they belong to the same scale. Green and orange work well for the two main development groups because they are
-					distinct from the base fill and easy to notice as outlines. Gray is used for minimal-development tracts because it signals a
-					more neutral background role. The point is not that those colors have deep meaning on their own; it is that they stay
-					clear when layered over the map and stay consistent through the whole walkthrough.
+					We did not choose these colors arbitrarily. The palette is based on MBTA colors, which helps the map feel grounded in the
+					Greater Boston transit context from the start. Green and orange give the two main tract groups clear outlines that stand apart
+					from the red-blue choropleth, while gray gives minimal-development tracts a quieter background role. Using MBTA-linked colors
+					also helps the transit framing feel consistent across the whole page.
 				</p>
 
 				<h3>Why mismatch uses purple</h3>
@@ -1218,9 +1217,9 @@
 
 				<h3>Why the typography stays simple</h3>
 				<p>
-					We kept the type choices intentionally plain. This is a dense analytic page, not a branding exercise, so the goal is to make
-					headings easy to scan and supporting text easy to read for a long stretch. A clean sans-serif system keeps the page from
-					feeling overdesigned and lets the visual hierarchy come from weight, spacing, and layout instead of decorative typography.
+					We kept the typography simple on purpose. The page uses standard Helvetica and Inter, which makes the text feel familiar and
+					easy to read in a dense analytic layout. Helvetica also connects back to MBTA's visual language, so the type quietly supports
+					the transit framing without turning the page into a branding exercise.
 				</p>
 
 				<h3>What this adds up to</h3>
