@@ -48,6 +48,7 @@
 	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
 
 	let containerEl = $state(null);
+	let tooltipEl = $state(null);
 	let stepEls = $state([]);
 	let tooltip = $state({
 		visible: false,
@@ -68,6 +69,24 @@
 	let focusLowIncomeTracts = $state(false);
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
+
+	const tooltipPosition = $derived.by(() => {
+		const offset = 12;
+		const margin = 8;
+		const fallbackWidth = 360;
+		const fallbackHeight = 260;
+		const width = tooltipEl?.offsetWidth ?? fallbackWidth;
+		const height = tooltipEl?.offsetHeight ?? fallbackHeight;
+		const rawLeft = tooltip.x + offset;
+		const rawTop = tooltip.y + offset;
+		if (typeof window === 'undefined') return { left: rawLeft, top: rawTop };
+		const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+		const maxTop = Math.max(margin, window.innerHeight - height - margin);
+		return {
+			left: Math.min(maxLeft, Math.max(margin, rawLeft)),
+			top: Math.min(maxTop, Math.max(margin, rawTop))
+		};
+	});
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -1893,14 +1912,6 @@
 					onmouseleave={handleOverlayLeave}
 				>
 					<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
-					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
-						<p class="poc-detail__kicker">What to notice</p>
-						<ul class="poc-map-callouts__list">
-							{#each mapCallouts as c, i (i)}
-								<li>{c}</li>
-							{/each}
-						</ul>
-					</div>
 					<div class="map-widget">
 						<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
 							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
@@ -1912,8 +1923,9 @@
 					{#if tooltip.visible}
 						<div
 							class="map-tooltip"
-							style:left="{tooltip.x + 12}px"
-							style:top="{tooltip.y + 12}px"
+							bind:this={tooltipEl}
+							style:left="{tooltipPosition.left}px"
+							style:top="{tooltipPosition.top}px"
 						>
 							<div class="map-tooltip__header">
 								<div class="map-tooltip__header-copy">
@@ -1962,6 +1974,14 @@
 							{/if}
 						</div>
 					{/if}
+					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
+						<p class="poc-detail__kicker">What to notice</p>
+						<ul class="poc-map-callouts__list">
+							{#each mapCallouts as c, i (i)}
+								<li>{c}</li>
+							{/each}
+						</ul>
+					</div>
 				</div>
 
 				<div class="poc-control-stack">
@@ -2473,10 +2493,7 @@
 	.poc-control-stack {
 		display: grid;
 		gap: 8px;
-		order: 1;
-		max-height: min(34vh, 340px);
-		overflow: auto;
-		padding-right: 4px;
+		order: 2;
 	}
 
 	.poc-side-cards {
@@ -2524,9 +2541,7 @@
 		}
 
 		.poc-control-stack {
-			max-height: none;
-			overflow: visible;
-			padding-right: 0;
+			order: 2;
 		}
 
 		.map-left-column {
@@ -3474,7 +3489,7 @@
 		min-width: 0;
 		display: grid;
 		gap: 8px;
-		order: 2;
+		order: 1;
 		margin-bottom: clamp(20px, 6vh, 44px);
 	}
 
