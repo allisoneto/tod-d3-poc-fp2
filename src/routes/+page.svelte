@@ -744,6 +744,28 @@
 					are misaligned, who is more likely to lose out on the benefits of living near transit?
 				</p>
 			</section>
+
+			<section class="story card">
+				<h2>What does this tell us?</h2>
+				<p>
+					The main takeaway from this analysis is that the relationship between transit access and housing growth varies
+					significantly across Greater Boston. Some places follow the expected pattern, where strong access and meaningful
+					growth appear together. But other places do not. Some transit-rich tracts have seen limited housing growth, while
+					some faster-growing tracts sit outside the strongest transit context.
+				</p>
+				<p>
+					That matters for planners and policymakers because it suggests that transit-oriented growth is not happening evenly
+					or automatically. Transit access creates opportunity, but it does not guarantee housing production. At the same
+					time, growth outside the strongest transit geography raises a different planning question: if new housing is being
+					added in weaker-access areas, then the benefits of living near strong transit may not be reaching households in the
+					same way across the region.
+				</p>
+				<p>
+					The lower-income context makes that pattern more consequential. Once we shift from asking “where is growth?” to
+					asking “who is most affected by where growth is or is not happening?”, the mismatch becomes more than a spatial
+					oddity. It becomes a distributional question about access to transit-linked housing opportunity.
+				</p>
+			</section>
 		{/if}
 	</section>
 
@@ -754,10 +776,33 @@
 			<section class="explore-gate card full-width" aria-labelledby="explore-gate-heading">
 				<h2 id="explore-gate-heading">Explore the map</h2>
 				<p>
-					Use the controls to explore where transit access and housing growth are misaligned.
+					How does this pattern look in other municipalities, or in other tracts within the same municipality? Use the full
+					explorer below to compare places, inspect tract detail, and test how transit access, housing growth, and
+					lower-income context interact across the region.
 				</p>
 			</section>
 			<ExploreTractSection />
+
+			<section class="story card full-width sources-card">
+				<h2>Data sources and acknowledgments</h2>
+				<p>
+					This project brings together tract-level census data, tract geometry, MBTA stops and line data, and project-level
+					housing development records. In the current application, those processed assets are loaded as
+					<code>tract_data.json</code>, <code>tracts.geojson</code>, <code>developments.json</code>,
+					<code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>, and <code>meta.json</code>.
+				</p>
+				<p>
+					The tract-level housing and demographic measures are derived from NHGIS / census-based inputs. The development layer
+					draws from MassBuilds project records, with some affordable-unit fields supplemented through matched HUD LIHTC
+					information where available. The transit layer is based on MBTA stop and line geometry used to calculate project
+					proximity to transit and tract-level stop access.
+				</p>
+				<p>
+					This proof of concept also reflects substantial course feedback and repeated revision. The current page was shaped by
+					iteration on the story, layout, and interaction design so that the final experience would guide readers toward the
+					main planning question before opening into a fuller interactive exploration tool.
+				</p>
+			</section>
 		</div>
 	{/if}
 </div>
