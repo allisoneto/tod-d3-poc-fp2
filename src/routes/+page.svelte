@@ -1,6 +1,5 @@
 <script>
 	import { base } from '$app/paths';
-	import { onDestroy } from 'svelte';
 	import * as d3 from 'd3';
 	import {
 		loadMunicipalData,
@@ -10,48 +9,23 @@
 	} from '$lib/utils/municipalModel.js';
 	import {
 		renderMuniScatter,
-		renderMuniChoropleth,
-		renderMuniTimeline,
 		renderMuniComposition,
-		renderMuniRankedGrowth,
-		renderMuniAffordabilityComposition,
 		renderMuniGrowthCapture,
-		computeMuniSummary
 	} from '$lib/utils/municipalCharts.js';
-	import { tractData, developments, tractGeo, meta, mbtaStops } from '$lib/stores/data.svelte.js';
+	import { tractData, developments } from '$lib/stores/data.svelte.js';
 	import { loadAllData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
 		buildNhgisLikeRows,
 		buildTractDevClassMap,
-		buildTractPocRows,
-		buildProjectRowsWithGisjoin,
 		filterDevelopmentsByYearRange,
 		filterTractsForMainPoc,
 		uniqueCounties
 	} from '$lib/utils/mainPocTractModel.js';
-	import { drawMainPocTractCharts } from '$lib/utils/mainPocTractCharts.js';
 	import { createPanelState } from '$lib/stores/panelState.svelte.js';
 	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
-	import {
-		filterTractsByTract,
-		buildCohortDevelopmentSplit,
-		cohortYMeansForYKey,
-		getTodTracts,
-		getNonTodTracts,
-		aggregateDevsByTract,
-		filterDevelopments,
-		computeGroupMean,
-		popWeightKey,
-		yMetricDisplayKind,
-		formatYMetricSummary
-	} from '$lib/utils/derived.js';
-	import { periodCensusBounds } from '$lib/utils/periods.js';
-	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
 	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
-	const fmtInt = d3.format(',');
-	const fmtPct1 = d3.format('.1%');
 
 	/* ═══════════════════════════════════════════════════════
 	   MUNICIPAL STATE (Part 1)
@@ -69,40 +43,6 @@
 	let search = $state('');
 	let selected = $state(/** @type {Set<string>} */ (new Set()));
 	let mapMetric = $state(/** @type {string} */ ('units'));
-
-	const presets = [
-		{ label: 'Boston / Cambridge / Somerville', munis: ['Boston', 'Cambridge', 'Somerville'] },
-		{ label: 'Newton / Brookline / Wellesley', munis: ['Newton', 'Brookline', 'Wellesley'] },
-		{ label: 'Quincy / Malden / Revere', munis: ['Quincy', 'Malden', 'Revere'] }
-	];
-
-	/* ── Play-years animation ─────────────────────────── */
-	let playTimer = $state(/** @type {ReturnType<typeof setInterval> | null} */ (null));
-	let playPending = $state(false);
-
-	function stopPlayback() {
-		if (playTimer) {
-			clearInterval(playTimer);
-			playTimer = null;
-		}
-	}
-
-	function togglePlayback() {
-		if (playTimer) {
-			stopPlayback();
-			return;
-		}
-		if (yearEnd >= 2026) yearEnd = yearStart;
-		playTimer = setInterval(() => {
-			if (yearEnd >= 2026) {
-				stopPlayback();
-				return;
-			}
-			yearEnd += 1;
-		}, 700);
-	}
-
-	onDestroy(() => stopPlayback());
 
 	/* ── Derived municipal data ───────────────────────── */
 	const muniState = $derived({
@@ -161,28 +101,16 @@
 
 	const muniActive = $derived(getActiveRows(visibleRows, selected));
 
-	const summary = $derived.by(() =>
-		computeMuniSummary(visibleRows, muniActive, projectRows, muniState)
-	);
-
 	/* ── Element refs (municipal) ─────────────────────── */
 	let elScatter = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elChoro = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elTimeline = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elComposition = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elRanked = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elAffordMix = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
 		if (!muniData) return;
 		const cb = { onSelectionChange: () => { selected = new Set(selected); } };
 		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
-		if (elChoro) renderMuniChoropleth(elChoro, visibleRows, domainRows, muniData.muniGeo, muniState, cb);
-		if (elTimeline) renderMuniTimeline(elTimeline, projectRows, muniState);
 		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
-		if (elRanked) renderMuniRankedGrowth(elRanked, visibleRows);
-		if (elAffordMix) renderMuniAffordabilityComposition(elAffordMix, projectRows, muniState);
 		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
 	}
 
@@ -196,11 +124,7 @@
 		void mapMetric;
 		void muniData;
 		void elScatter;
-		void elChoro;
-		void elTimeline;
 		void elComposition;
-		void elRanked;
-		void elAffordMix;
 		void elGrowthCapture;
 		cancelAnimationFrame(rafId);
 		rafId = requestAnimationFrame(() => draw());
@@ -214,20 +138,6 @@
 			muniLoaded = true;
 		});
 	});
-
-	function resetMuniControls() {
-		stopPlayback();
-		yearStart = 1990;
-		yearEnd = 2026;
-		threshold = 0.5;
-		growthScale = 'units';
-		showTrendline = false;
-		dominanceFilter = 'all';
-		search = '';
-		selected = new Set();
-		mapMetric = 'units';
-		if (muniData) zoning = new Set(muniData.zoningOptions);
-	}
 
 	/* ═══════════════════════════════════════════════════════
 	   TRACT STATE (Part 2)
@@ -280,22 +190,6 @@
 			});
 	});
 
-	// Shared TOD threshold from Part 1
-	const tractPanelConfig = $derived({
-		timePeriod: tractTimePeriod,
-		minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops,
-		transitDistanceMi: threshold,
-		sigDevMinPctStockIncrease: tractSigDevMin,
-		todFractionCutoff: tractTodFractionCutoff,
-		huChangeSource: 'massbuilds',
-		minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation,
-		minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity,
-		minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
-		minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
-		minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,
-		includeRedevelopment: DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment
-	});
-
 	const tractDevOpts = $derived({
 		minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
 		minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
@@ -337,232 +231,6 @@
 	const nhgisLikeRows = $derived.by(() =>
 		buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod)
 	);
-
-	// Cohort dev split for affordability analysis
-	const cohortDevSplit = $derived.by(() => {
-		if (!tractData.length || !developments.length) return { tod: [], nonTod: [], minimal: [] };
-		return buildCohortDevelopmentSplit(tractData, tractPanelConfig, developments);
-	});
-
-	const cohortRowsByY = $derived.by(() => {
-		if (!meta.yVariables?.length) return [];
-		const tp = tractTimePeriod;
-		const weightKey = popWeightKey(tp);
-		const rows = [];
-		for (const v of meta.yVariables) {
-			const yKey = `${v.key}_${tp}`;
-			const raw = cohortYMeansForYKey(cohortDevSplit, yKey, weightKey);
-			const kind = yMetricDisplayKind(v);
-			rows.push({
-				key: v.key,
-				label: v.label ?? v.key,
-				catLabel: v.catLabel ?? 'Outcomes',
-				fmtTod: formatYMetricSummary(raw.meanTod, kind),
-				fmtCtrl: formatYMetricSummary(raw.meanNonTod, kind),
-				fmtMinimal: formatYMetricSummary(raw.meanMinimal, kind),
-				rawTod: raw.meanTod,
-				rawCtrl: raw.meanNonTod,
-				rawMinimal: raw.meanMinimal,
-				nTod: raw.nTod,
-				nNonTod: raw.nNonTod,
-				nMinimal: raw.nMinimal
-			});
-		}
-		return rows;
-	});
-
-	// Income and education row references for inline numbers
-	const incomeRow = $derived(cohortRowsByY.find((r) => r.key === 'median_income_change_pct'));
-	const eduRow = $derived(cohortRowsByY.find((r) => r.key === 'bachelors_pct_change'));
-
-	// Affordability split: among TOD tracts, high vs low affordable share
-	const todRows = $derived.by(() => {
-		if (!tractData.length || !developments.length) return [];
-		return getTodTracts(tractData, tractPanelConfig, developments);
-	});
-
-	const nonTodRows = $derived.by(() => {
-		if (!tractData.length || !developments.length) return [];
-		return getNonTodTracts(tractData, tractPanelConfig, developments);
-	});
-
-	const affShareMap = $derived.by(() => {
-		const tractMap = new Map();
-		for (const t of tractData) if (t.gisjoin) tractMap.set(t.gisjoin, t);
-		const filteredDevs = filterDevelopments(developments, tractPanelConfig);
-		return aggregateDevsByTract(filteredDevs, tractMap, tractTimePeriod, tractPanelConfig);
-	});
-
-	/** High vs low affordable TOD tracts: ≥50% affordable share vs &lt;50% (not a median split). */
-	const AFF_SPLIT_THRESHOLD = 0.5;
-
-	const affSplitCohorts = $derived.by(() => {
-		const tod = todRows;
-		const todAff = tod.filter((t) => {
-			const agg = affShareMap.get(t.gisjoin);
-			return agg && Number.isFinite(agg.affordable_share);
-		});
-		const getAffShare = (t) => affShareMap.get(t.gisjoin)?.affordable_share ?? NaN;
-		const hiAff = todAff.filter((t) => getAffShare(t) >= AFF_SPLIT_THRESHOLD);
-		const loAff = todAff.filter((t) => getAffShare(t) < AFF_SPLIT_THRESHOLD);
-		return { todAff, hiAff, loAff, affSplitThreshold: AFF_SPLIT_THRESHOLD };
-	});
-
-	const affSplitRowsByY = $derived.by(() => {
-		if (!meta.yVariables?.length) return [];
-		const { hiAff, loAff } = affSplitCohorts;
-		if (!hiAff.length || !loAff.length) return [];
-		const tp = tractTimePeriod;
-		const weightKey = popWeightKey(tp);
-		const rows = [];
-		for (const v of meta.yVariables) {
-			const yKey = `${v.key}_${tp}`;
-			const meanHi = computeGroupMean(hiAff, yKey, weightKey);
-			const meanLo = computeGroupMean(loAff, yKey, weightKey);
-			const kind = yMetricDisplayKind(v);
-			rows.push({
-				key: v.key,
-				label: v.label ?? v.key,
-				catLabel: v.catLabel ?? 'Outcomes',
-				fmtHi: formatYMetricSummary(meanHi, kind),
-				fmtLo: formatYMetricSummary(meanLo, kind),
-				rawHi: meanHi,
-				rawLo: meanLo,
-				nHi: hiAff.length,
-				nLo: loAff.length
-			});
-		}
-		return rows;
-	});
-
-	const affIncomeRow = $derived(affSplitRowsByY.find((r) => r.key === 'median_income_change_pct'));
-	const affEduRow = $derived(affSplitRowsByY.find((r) => r.key === 'bachelors_pct_change'));
-
-	function buildTakeawayScale(items) {
-		const finite = items.filter((d) => Number.isFinite(d.value));
-		if (!finite.length) return [];
-		const min = d3.min(finite, (d) => d.value) ?? 0;
-		const max = d3.max(finite, (d) => d.value) ?? 0;
-		const span = max - min;
-		const pad = span > 0 ? span * 0.12 : Math.max(Math.abs(max) * 0.15, 1);
-		const lo = min - pad;
-		const hi = max + pad;
-		const scale = d3.scaleLinear().domain([lo, hi]).range([0, 100]);
-		return finite.map((d) => ({ ...d, pct: scale(d.value) }));
-	}
-
-	function buildCohortTakeawayItems(row) {
-		if (!row) return [];
-		return buildTakeawayScale([
-			{ key: 'tod', label: 'TOD', value: row.rawTod, fmt: row.fmtTod, tone: 'tod' },
-			{ key: 'ctrl', label: 'non-TOD', value: row.rawCtrl, fmt: row.fmtCtrl, tone: 'ctrl' },
-			{ key: 'minimal', label: 'minimal dev.', value: row.rawMinimal, fmt: row.fmtMinimal, tone: 'minimal' }
-		]);
-	}
-
-	function buildAffordabilityTakeawayItems(row) {
-		if (!row) return [];
-		return buildTakeawayScale([
-			{ key: 'hi-aff', label: 'High aff.', value: row.rawHi, fmt: row.fmtHi, tone: 'hi-aff' },
-			{ key: 'lo-aff', label: 'Low aff.', value: row.rawLo, fmt: row.fmtLo, tone: 'lo-aff' }
-		]);
-	}
-
-	function formatTakeawayDelta(value, key) {
-		if (!Number.isFinite(value)) return '—';
-		const kind = key === 'bachelors_pct_change' ? 'pp' : 'pct';
-		const out = formatYMetricSummary(value, kind);
-		return value > 0 ? `+${out}` : out;
-	}
-
-	/** Panel state for the TodIntensityScatter — shared config + a yVar override. */
-	function makeTodScatterPanelState(yVar) {
-		return {
-			timePeriod: tractTimePeriod,
-			yVar,
-			transitDistanceMi: threshold,
-			sigDevMinPctStockIncrease: tractSigDevMin,
-			todFractionCutoff: tractTodFractionCutoff,
-			huChangeSource: 'massbuilds',
-			minPopulation: DEFAULT_MAIN_POC_UNIVERSE.minPopulation,
-			minPopDensity: DEFAULT_MAIN_POC_UNIVERSE.minPopDensity,
-			minStops: DEFAULT_MAIN_POC_UNIVERSE.minStops,
-			minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
-			minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
-			minDevAffordableRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevAffordableRatioPct,
-			includeRedevelopment: DEFAULT_MAIN_POC_DEV_OPTS.includeRedevelopment,
-			trimOutliers: true,
-			hoveredTract: null,
-			selectedTracts: new Set(),
-			/** @param {string | null} gisjoin */
-			setHovered(gisjoin) {
-				this.hoveredTract = gisjoin;
-			},
-			/** @param {string} gisjoin */
-			toggleTract(gisjoin) {
-				const next = new Set(this.selectedTracts);
-				if (next.has(gisjoin)) next.delete(gisjoin);
-				else next.add(gisjoin);
-				this.selectedTracts = next;
-			}
-		};
-	}
-
-	/** $state so hover/selection updates rerun TodIntensityScatter effects (plain $derived objects are not deeply reactive). */
-	let incomePanelState = $state(makeTodScatterPanelState('median_income_change_pct'));
-	let eduPanelState = $state(makeTodScatterPanelState('bachelors_pct_change'));
-
-	$effect(() => {
-		void threshold;
-		incomePanelState = makeTodScatterPanelState('median_income_change_pct');
-		eduPanelState = makeTodScatterPanelState('bachelors_pct_change');
-	});
-
-	/* ── Tract chart element refs ─────────────────────── */
-	let elTractEdu = $state(/** @type {HTMLElement | undefined} */ (undefined));
-	let elTakeaway = $state(/** @type {HTMLElement | undefined} */ (undefined));
-
-	$effect(() => {
-		if (!tractReady || !tractData.length || !developments.length) return;
-		const devOpts2 = tractDevOpts;
-		const windowDevs = filterDevelopmentsByYearRange(developments, 1990, 2026, devOpts2);
-
-		const pocRows = buildTractPocRows(tractListFiltered, windowDevs, threshold, 0, tractTimePeriod).filter(
-			(d) => Number.isFinite(d.vulnerabilityPct)
-		);
-		const projRows = buildProjectRowsWithGisjoin(developments, 1990, 2026, threshold, devOpts2);
-
-		drawMainPocTractCharts({
-			elScatter: null,
-			elChoro: null,
-			elTimeline: null,
-			elComposition: null,
-			elRanked: null,
-			elAffordMix: null,
-			elGrowthCapture: null,
-			elTractEdu,
-			elMobility: null,
-			elTakeaway,
-			state: {
-				yearStart: 1990,
-				yearEnd: 2026,
-				threshold,
-				growthScale: 'units',
-				showTrendline: false,
-				dominanceFilter: 'all',
-				search: '',
-				selected: new Set(),
-				mapMetric: 'units'
-			},
-			visibleRows: pocRows,
-			domainRows: pocRows,
-			projectRows: projRows,
-			selectedProjectRows: projRows,
-			nhgisLikeRows,
-			tractGeo,
-			timePeriod: tractTimePeriod
-		});
-	});
 </script>
 
 <div class="poc-root">
@@ -609,33 +277,33 @@
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
-				<h3>TOD is growing, but it is not the whole growth story</h3>
+				<h3>Transit-oriented development is growing, but it still does not absorb most new housing</h3>
 				<div class="chart-wrap small-chart" bind:this={elComposition}></div>
 				<figcaption>
-					This chart helps set expectations before the map begins. Even when TOD production increases, a large share of new
-					housing is still being built outside the highest-access transit context. In other words, “more TOD than before” is
-					not the same as “most growth is happening near transit.” That distinction matters because the central argument of
-					this project is about misalignment, not about whether TOD exists at all.
+					We start here because it prevents an easy misunderstanding. The question is not whether TOD exists in Greater
+					Boston. It clearly does. The question is whether new housing is consistently concentrating in the places with the
+					strongest transit access. This figure shows that the answer is no: TOD makes up an important share of recent growth,
+					but a large share of new units still lands outside the highest-access transit context.
 				</figcaption>
 			</figure>
 			<figure class="guide-figure card">
-				<h3>Growth is concentrated in a small number of municipalities</h3>
-				<div class="chart-wrap small-chart" bind:this={elRanked}></div>
+				<h3>New housing growth is not only uneven, but socially uneven</h3>
+				<div class="chart-wrap small-chart" bind:this={elGrowthCapture}></div>
 				<figcaption>
-					This figure shows that new housing production is concentrated rather than evenly spread across the region. That is
-					important context for the map, because it helps explain why transit access alone does not predict where growth will
-					appear. If a relatively small number of municipalities absorb most new units, then strong transit infrastructure in
-					other places can still coexist with weak housing growth.
+					This figure moves from geography to stakes. It shows how much yearly growth is landing in municipalities with
+					higher shares of households below $125k. That matters because the mismatch argument is not only about where growth
+					is missing from transit-rich places. It is also about where growth pressure is landing, and who is more likely to
+					be living there when that pressure arrives.
 				</figcaption>
 			</figure>
 			<figure class="guide-figure card">
-				<h3>Lower-income municipalities already carry a lot of the pressure</h3>
+				<h3>Transit access and lower-income geography do not line up cleanly</h3>
 				<div class="chart-wrap small-chart" bind:this={elScatter}></div>
 				<figcaption>
-					This figure introduces the social stakes of the story. Many municipalities with larger shares of households below
-					$125k are also absorbing substantial new development. That does not prove displacement on its own, but it does show
-					why the spatial mismatch matters for a gentrification argument: when access, growth, and affordability do not line
-					up, lower-income households are more likely to experience the consequences of that uneven geography.
+					Here the point is comparison. Municipalities with larger lower-income shares do not map neatly onto the places with
+					the strongest TOD share or the largest amount of new growth. That is why we do not stop at a regional summary. The
+					map is needed next, because the tract scale shows where transit access, housing growth, and lower-income context
+					line up, and where they begin to pull apart.
 				</figcaption>
 			</figure>
 		</div>
