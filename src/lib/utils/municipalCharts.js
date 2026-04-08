@@ -160,8 +160,6 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 	const margin = { top: 20, right: 20, bottom: 54, left: 66 };
 	const innerW = width - margin.left - margin.right;
 	const innerH = height - margin.top - margin.bottom;
-	const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
-	const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 	const unitValues = domainRows.map(yDomainAccessor).filter(Number.isFinite).sort(d3.ascending);
 	const affordableValues = domainRows
 		.map((d) => d.affordableUnits)
@@ -226,6 +224,9 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 				? 'The dashed gray lines mark the regional averages on each axis. Use them to see which municipalities sit above or below the typical lower-income share and the typical share of visible-window growth.'
 				: `The dashed gray lines mark the regional averages on each axis. The chart is zoomed to the main municipal range through about ${d3.format(',.0f')(yMax)} units.`
 		);
+
+	const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+	const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
 	const tooltip = makeTooltip(root);
 
