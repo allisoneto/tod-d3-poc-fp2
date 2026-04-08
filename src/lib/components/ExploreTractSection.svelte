@@ -116,13 +116,29 @@
 </script>
 
 <section class="explore-root card full-width" aria-labelledby="explore-tract-heading">
-	<h2 id="explore-tract-heading">Explore the data for yourself</h2>
-	<p class="explore-lead">
-		Use the same tract filters, development rules, and TOD cohort settings as the
-		<a href="{base}/tract">full tract dashboard</a>. Click tracts on the map or points on the scatter plot to
-		inspect details; selections stay in sync. Brush-drag on the plot to add multiple tracts. Selected tracts
-		are outlined in <strong>red</strong> with a weighted best-fit line when two or more are selected.
-	</p>
+	<div class="explore-intro">
+		<div>
+			<p class="explore-kicker">Interactive exploration</p>
+			<h2 id="explore-tract-heading">Explore the data for yourself</h2>
+		</div>
+		<p class="explore-lead">
+			Use the same tract filters, development rules, and TOD cohort settings as the
+			<a href="{base}/tract">full tract dashboard</a>. Click tracts on the map or points on the scatter plot to
+			inspect details; selections stay in sync.
+		</p>
+	</div>
+
+	<div class="explore-help-row">
+		<div class="explore-help-chip">
+			<strong>Compare:</strong> click tracts on the map to inspect them side by side.
+		</div>
+		<div class="explore-help-chip">
+			<strong>Select many:</strong> brush-drag on the scatter plot to add multiple tracts.
+		</div>
+		<div class="explore-help-chip">
+			<strong>Read the fit:</strong> selected tracts are outlined in red with a weighted best-fit line when two or more are selected.
+		</div>
+	</div>
 
 	<div class="explore-grid">
 		<aside class="explore-filters">
@@ -180,7 +196,7 @@
 			<div class="explore-map card explore-card">
 				<h3 class="explore-h3">Map</h3>
 				<p class="explore-hint">
-					This uses the same layered tract map as the main dashboard, with the current tract and development filters applied.
+					The full layered tract map, now unlocked for free exploration with the current filters applied.
 				</p>
 				<div class="explore-map-inner">
 					<PocNhgisTractMap
@@ -197,8 +213,7 @@
 					<div>
 						<h3 class="explore-h3">TOD Analysis</h3>
 						<p class="explore-hint explore-hint--tight">
-							Y axis follows &ldquo;Time &amp; Axes&rdquo; above. Toggle the second plot for affordable-share
-							among TOD-dominated tracts only (same as the tract dashboard).
+							Y axis follows &ldquo;Time &amp; Axes&rdquo; above. Toggle to compare TOD intensity versus the affordable-share view for TOD-dominated tracts.
 						</p>
 					</div>
 					<div class="explore-toggle" role="group" aria-label="TOD scatter type">
@@ -231,6 +246,7 @@
 		</div>
 
 		<aside class="explore-sidebar card explore-card">
+			<h3 class="explore-h3 explore-h3--sidebar">Selected tract detail</h3>
 			<div class="explore-detail-wrap">
 				<TractDetail
 					panelState={explorePanel}
@@ -249,19 +265,37 @@
 <style>
 	.explore-root {
 		margin-top: 18px;
-		padding: 18px 20px 22px;
+		padding: 20px 22px 24px;
+		display: grid;
+		gap: 16px;
 	}
 
 	.explore-root h2 {
-		margin: 0 0 10px;
-		font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+		margin: 0;
+		font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+	}
+
+	.explore-intro {
+		display: grid;
+		gap: 8px;
+		padding-bottom: 4px;
+		border-bottom: 1px solid rgba(120, 114, 102, 0.12);
+	}
+
+	.explore-kicker {
+		margin: 0 0 4px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--accent);
 	}
 
 	.explore-lead {
-		margin: 0 0 16px;
+		margin: 0;
 		color: var(--muted);
 		line-height: 1.55;
-		font-size: 0.95rem;
+		font-size: 0.94rem;
 		max-width: 900px;
 	}
 
@@ -270,10 +304,30 @@
 		font-weight: 600;
 	}
 
+	.explore-help-row {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 10px;
+	}
+
+	.explore-help-chip {
+		padding: 10px 12px;
+		border-radius: 12px;
+		border: 1px solid rgba(120, 114, 102, 0.14);
+		background: rgba(255, 253, 248, 0.78);
+		font-size: 0.84rem;
+		line-height: 1.45;
+		color: var(--muted);
+	}
+
+	.explore-help-chip strong {
+		color: var(--ink);
+	}
+
 	.explore-grid {
 		display: grid;
 		grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(280px, 400px);
-		gap: 14px;
+		gap: 16px;
 		align-items: start;
 	}
 
@@ -291,7 +345,7 @@
 
 	.explore-filters {
 		min-width: 0;
-		padding: 10px 12px;
+		padding: 12px 14px;
 		background: var(--paper);
 		border: 1px solid rgba(120, 114, 102, 0.14);
 		border-radius: 12px;
@@ -316,17 +370,25 @@
 	}
 
 	.explore-card {
-		padding: 12px 14px;
+		padding: 14px 16px;
 		margin: 0;
+		border: 1px solid rgba(120, 114, 102, 0.14);
+		box-shadow: 0 10px 24px rgba(31, 36, 48, 0.05);
 	}
 
 	.explore-h3 {
-		margin: 0 0 6px;
-		font-size: 1.05rem;
+		margin: 0 0 8px;
+		font-size: 1.02rem;
+		line-height: 1.3;
+	}
+
+	.explore-h3--sidebar {
+		padding-bottom: 8px;
+		border-bottom: 1px solid rgba(120, 114, 102, 0.12);
 	}
 
 	.explore-hint {
-		margin: 0 0 10px;
+		margin: 0 0 12px;
 		font-size: 0.82rem;
 		color: var(--muted);
 		line-height: 1.45;
@@ -340,9 +402,9 @@
 		display: flex;
 		justify-content: center;
 		align-items: flex-start;
-		min-height: min(420px, 70vh);
+		min-height: min(430px, 72vh);
 		overflow: hidden;
-		border-radius: 8px;
+		border-radius: 12px;
 		border: 1px solid rgba(120, 114, 102, 0.12);
 		background: var(--bg-card, #fffdf8);
 	}
@@ -352,7 +414,7 @@
 	}
 
 	.cohort-summary {
-		padding: 8px 10px 10px;
+		padding: 10px 12px 12px;
 		background: var(--paper);
 		border: 1px solid rgba(120, 114, 102, 0.14);
 		border-radius: 12px;
@@ -522,13 +584,12 @@
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow: auto;
-		border-top: 1px solid rgba(120, 114, 102, 0.12);
 		padding-top: 8px;
 	}
 
 	.explore-method {
 		border-top: 1px solid rgba(120, 114, 102, 0.12);
-		padding-top: 6px;
+		padding-top: 10px;
 		font-size: 0.75rem;
 	}
 </style>
