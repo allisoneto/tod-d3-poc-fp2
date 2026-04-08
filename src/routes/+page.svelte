@@ -49,162 +49,8 @@
 	} from '$lib/utils/derived.js';
 	import { periodCensusBounds } from '$lib/utils/periods.js';
 	import TodIntensityScatter from '$lib/components/TodIntensityScatter.svelte';
-
 	const fmtInt = d3.format(',');
 	const fmtPct1 = d3.format('.1%');
-	const finalProjectPlan = [
-		{
-			week: 'Week 9: 3/30-4/3',
-			overall: [
-				'Polish one visualization',
-				'Understand and justify design decisions',
-				'Understand and learn from the development process'
-			],
-			people: {
-				Allison: [
-					'Make initial suggested edits to the current visualization',
-					'Determine which demographic(s) are most illustrative of the main point',
-					'Schedule and prepare for the office hours check-in'
-				],
-				Krishna: [
-					'Make initial suggested edits to the current visualization',
-					'Determine which demographic(s) are most illustrative of the main point',
-					'Schedule and prepare for the office hours check-in'
-				],
-				Hanna: [
-					'Parse and organize staff and classmate feedback',
-					'Determine which demographic(s) are most illustrative of the main point',
-					'Play around with and edit the revised visualization',
-					'Schedule and prepare for the office hours check-in'
-				],
-				Supriya: [
-					'Determine which demographic(s) are most illustrative of the main point',
-					'Play around with and edit the revised visualization',
-					'Schedule and prepare for the office hours check-in'
-				]
-			}
-		},
-		{
-			week: 'Week 10: 4/6-4/10',
-			overall: [
-				'Finalize one visualization',
-				'Start working on the minimal viable product',
-				'Complete the office hours check-in'
-			],
-			people: {
-				Allison: [
-					'Implement changes in the edited visualization',
-					'Complete the office hours check-in'
-				],
-				Krishna: [
-					'Implement changes in the edited visualization',
-					'Complete the office hours check-in'
-				],
-				Hanna: [
-					'Finalize feedback for the initial edit of the visualization',
-					'Implement changes in the edited visualization',
-					'Complete the office hours check-in'
-				],
-				Supriya: [
-					'Finalize feedback for the initial edit of the visualization',
-					'Complete the office hours check-in'
-				]
-			}
-		},
-		{
-			week: 'Week 11: 4/13-4/17',
-			overall: [
-				'Have satisfactory demos for the minimal viable product',
-				'Have satisfactory progress on the presentation of the minimal viable product'
-			],
-			people: {
-				Allison: [
-					'Finalize visuals showing demographic changes',
-					'Make adjustments to narrative around demographic changes'
-				],
-				Krishna: [
-					'Work on the data visualization interpretation part of the presentation',
-					'Refine interactive elements and features'
-				],
-				Hanna: [
-					'Work on the introduction, motivation, and sources part of the presentation',
-					'Collaboratively and individually make changes to demos'
-				],
-				Supriya: [
-					'Work on the audience and main goals part of the presentation',
-					'Collaboratively and individually make changes to demos'
-				]
-			}
-		},
-		{
-			week: 'Week 12: 4/20-4/24',
-			overall: [
-				'Finish the minimal viable product',
-				'Finalize and record the presentation',
-				"Start exploration of other teams' projects and begin thinking about critique"
-			],
-			people: {
-				Allison: [
-					'Finalize the minimal viable product',
-					'Record the presentation',
-					"Start exploration of other teams' projects and begin thinking about critique"
-				],
-				Krishna: [
-					'Finalize the minimal viable product',
-					'Record the presentation',
-					"Start exploration of other teams' projects and begin thinking about critique"
-				],
-				Hanna: [
-					'Finalize the minimal viable product',
-					'Record the presentation',
-					"Start exploration of other teams' projects and begin thinking about critique"
-				],
-				Supriya: [
-					'Finalize the minimal viable product',
-					'Record the presentation',
-					"Start exploration of other teams' projects and begin thinking about critique"
-				]
-			}
-		},
-		{
-			week: 'Week 13: 4/27-5/1',
-			overall: [
-				'Finalize critique for other teams',
-				'Keep looking over final products'
-			],
-			people: {
-				Allison: ['Write critique for other teams', 'Keep looking over final products'],
-				Krishna: ['Write critique for other teams', 'Keep looking over final products'],
-				Hanna: ['Write critique for other teams', 'Keep looking over final products'],
-				Supriya: ['Write critique for other teams', 'Keep looking over final products']
-			}
-		},
-		{
-			week: 'Week 14: 5/4-5/8',
-			overall: [
-				'Integrate provided feedback',
-				'Mostly finalize the final project'
-			],
-			people: {
-				Allison: ['Integrate changes from feedback and iterate'],
-				Krishna: ['Integrate changes from feedback and iterate'],
-				Hanna: ['Parse and organize feedback', 'Integrate changes from feedback and iterate'],
-				Supriya: ['Integrate changes from feedback and iterate']
-			}
-		},
-		{
-			week: 'Week 15: 5/11',
-			overall: ['Finish the final project'],
-			people: {
-				Allison: ['Final walkthrough evaluation of the project'],
-				Krishna: ['Final walkthrough evaluation of the project'],
-				Hanna: ['Final walkthrough evaluation of the project'],
-				Supriya: ['Final walkthrough evaluation of the project']
-			}
-		}
-	];
-	const projectPlanContingency =
-		"If things go wrong, the team will schedule an emergency meeting as soon as possible to get back on track, review any unmet goals without assigning blame, redistribute missed work that same week when needed, and adjust responsibilities so delays do not snowball.";
 	let exploreSectionComponent = $state(null);
 	let exploreSectionLoading = $state(false);
 
@@ -743,8 +589,8 @@
 			The results shown below are descriptive and correlational, not causal estimates. We use them as policy-relevant signals for how TOD and affordability appear together in practice.
 		</p>
 		<p class="hero-plan-note">
-			A detailed plan for finishing the project is included at the end of this interactive visualization writeup:
-			<a href="#final-project-plan">jump to the final project plan</a>.
+			A separate writeup page includes our design decisions, processing notes, development overview, and final project plan:
+			<a href={`${base}/writeup`}>open the full writeup</a>.
 		</p>
 	</section>
 
@@ -1422,69 +1268,6 @@
 				</p>
 			</section> -->
 
-			<section class="story card full-width plan-section" id="final-project-plan">
-				<h2>Final Project Plan</h2>
-				<p>
-					This project plan is included as part of the interactive visualization writeup to document the team’s design rationale,
-					development process, and week-by-week path to a finished final project.
-				</p>
-
-				<div class="plan-grid">
-					{#each finalProjectPlan as week (week.week)}
-						<section class="plan-card">
-							<h3>{week.week}</h3>
-							<div class="plan-block">
-								<h4>Overall</h4>
-								<ul class="story-list plan-list">
-									{#each week.overall as item}
-										<li>{item}</li>
-									{/each}
-								</ul>
-							</div>
-
-							<div class="plan-people">
-								{#each Object.entries(week.people) as [name, tasks]}
-									<div class="plan-person">
-										<h4>{name}</h4>
-										<ul class="story-list plan-list">
-											{#each tasks as task}
-												<li>{task}</li>
-											{/each}
-										</ul>
-									</div>
-								{/each}
-							</div>
-						</section>
-					{/each}
-				</div>
-
-				<section class="plan-contingency">
-					<h3>If things go wrong</h3>
-					<p>{projectPlanContingency}</p>
-				</section>
-
-				<section class="plan-contingency">
-					<h3>Development process, team split, and opportunities to improve</h3>
-					<p>
-						This proof-of-concept required approximately <strong>80–90 people-hours</strong> across the team. Work was split between
-						visualization implementation and narrative/design framing so that interaction and interpretation could be developed in parallel.
-					</p>
-					<ul class="story-list plan-list">
-						<li><strong>Krishna:</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
-						<li><strong>Allison:</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
-						<li><strong>Hanna:</strong> narrative structure, framing/implementing revisions for dashboard and chart/map, design-decision articulation, and team plan.</li>
-						<li><strong>Supriya:</strong> narrative structure, framing/implementing revisions for dashboard and chart/map, and design-decision articulation.</li>
-					</ul>
-					<p>
-						The most time-intensive work was integration: keeping map encodings, interaction logic, legends, and narrative text aligned while preserving non-causal claims.
-						The next most time-intensive area was iterative layout polish, especially balancing explanatory panels with map readability.
-					</p>
-					<p>
-						For future milestones, we plan to improve process quality by locking a tighter weekly integration cadence, defining “done” criteria for each interaction earlier,
-						and running shorter but more frequent review checkpoints so narrative text and visual behavior remain synchronized throughout development.
-					</p>
-				</section>
-			</section>
 		{/if}
 	</section>
 
