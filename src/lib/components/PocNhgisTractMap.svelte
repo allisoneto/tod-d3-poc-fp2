@@ -72,7 +72,7 @@
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
 	let pinnedTooltipStage = $state(/** @type {number | null} */ (null));
-	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 3 : focusLowIncomeTracts);
+	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 10 : focusLowIncomeTracts);
 
 	const tooltipPosition = $derived.by(() => {
 		const offset = 12;
@@ -153,7 +153,7 @@
 	}
 
 	function showCohortOutlines() {
-		if (guidedMode) return revealStage >= 4 && revealStage <= 6;
+		if (guidedMode) return revealStage >= 4 && revealStage <= 7;
 		return revealStage === 1 || revealStage === 3;
 	}
 
@@ -163,7 +163,7 @@
 	}
 
 	function showDevelopmentDots() {
-		if (guidedMode) return revealStage >= 7 && revealStage <= 8;
+		if (guidedMode) return revealStage >= 8 && revealStage <= 9;
 		return revealStage === 3;
 	}
 
@@ -306,6 +306,14 @@
 			},
 			{
 				kicker: 'Step 5',
+				title: 'TOD and non-TOD tracts',
+				body: 'Before zooming into specific places, the map now switches from mismatch to tract grouping across the full region. Green outlines mark tracts where significant development has been more TOD-dominated, while orange outlines mark tracts where growth has leaned more non-TOD.',
+				legend: 'The choropleth still shows housing growth underneath. The outlines add a second question: was that growth concentrated near transit, or did it happen more outside the TOD threshold?',
+				why: 'This matters because it turns the regional mismatch argument into a tract classification the reader can follow through the rest of the story. It becomes easier to see whether growth happened, and whether it happened in a more transit-oriented way.',
+				prompt: 'Use this as the bridge between the mismatch claim and the place-based examples that come next.'
+			},
+			{
+				kicker: 'Step 6',
 				title: 'Boston and Cambridge',
 				body: 'This zoom shifts from mismatch to tract grouping. The green and orange outlines show whether significant development in each tract has been more TOD-dominated or more non-TOD-dominated, while the choropleth underneath still shows housing growth.',
 				legend: 'Green outlines mark TOD-dominated tracts, and orange outlines mark non-TOD-dominated tracts. This lets the reader compare where growth happened with whether that growth was concentrated near transit.',
@@ -313,7 +321,7 @@
 				prompt: 'Use this as the reference case before the walkthrough moves to municipalities where the same orange-versus-green comparison looks less consistent.'
 			},
 			{
-				kicker: 'Step 6',
+				kicker: 'Step 7',
 				title: 'Quincy and Revere',
 				body: 'Quincy and Revere keep the same green-versus-orange tract grouping, but the local pattern is more uneven. Transit access is present here too, yet nearby tracts do not all show the same relationship between growth and TOD-oriented development.',
 				legend: 'Read the outlines and the choropleth together: some tracts with similar transit context still land in different cohort categories and show different levels of housing growth.',
@@ -321,7 +329,7 @@
 				prompt: 'Read this step as a reminder that transit access alone does not determine whether growth ends up concentrated in more TOD-dominated tracts.'
 			},
 			{
-				kicker: 'Step 7',
+				kicker: 'Step 8',
 				title: 'Outer-ring growth',
 				body: 'The outer-ring view shows the reverse side of the cohort pattern. Some tracts farther from the strongest transit geography still show meaningful housing growth, and orange outlines help show where that development is less TOD-oriented.',
 				legend: 'The important point is not that these places have no transit at all, but that they sit farther from the strongest MBTA geography and often land in less TOD-dominated categories.',
@@ -329,7 +337,7 @@
 				prompt: 'Compare these tracts to the earlier Boston and Cambridge case and notice how different the orange-versus-green balance looks.'
 			},
 			{
-				kicker: 'Step 8',
+				kicker: 'Step 9',
 				title: 'Projects enter the picture',
 				body: 'Project dots now connect the tract pattern back to actual housing developments. The point here is to move from tract-level averages to concrete projects and ask where new housing is being added on the ground.',
 				legend: 'These dots do not replace the tract pattern underneath. They let the reader see whether project activity accumulates in the same places that already looked important at the tract scale.',
@@ -337,7 +345,7 @@
 				prompt: 'The examples below show a few notable TOD and non-TOD projects so the project layer reads as evidence rather than just another set of symbols.'
 			},
 			{
-				kicker: 'Step 9',
+				kicker: 'Step 10',
 				title: 'A development cluster',
 				body: 'This zoom focuses on one development-heavy area where project activity and transit access are not especially well matched. It makes the broader mismatch argument concrete by showing a place where weaker-access growth is visible at the project level as well.',
 				legend: 'At this stage, the dots and the choropleth are meant to be read together. The project locations help explain how the tract-level growth pattern is being produced.',
@@ -345,7 +353,7 @@
 				prompt: 'The highlighted projects below help decode what kinds of developments make up this cluster and how much affordability they include.'
 			},
 			{
-				kicker: 'Step 10',
+				kicker: 'Step 11',
 				title: 'Lower-income access',
 				body: 'The final step adds lower-income context. Tracts above the $125k median-income threshold fade back so it becomes easier to see where this mismatch may matter most for households with fewer housing options near transit.',
 				legend: 'Income is not introduced as a second choropleth. It appears here as contextual emphasis so the map can stay focused on the relationship between access and growth.',
@@ -622,31 +630,6 @@
 	}
 
 	function guidedRegionFeaturesForStage(stage) {
-		if (!guidedMode) return [];
-		if (stage === 4) {
-			return tractFeatureByGeoFilter((t) => {
-				const lat = Number(t.centlat);
-				const lon = Number(t.centlon);
-				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.30 && lat <= 42.43 && lon >= -71.17 && lon <= -70.98;
-			});
-		}
-		if (stage === 5) {
-			return tractFeatureByGeoFilter((t) => {
-				const lat = Number(t.centlat);
-				const lon = Number(t.centlon);
-				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.20 && lat <= 42.47 && lon >= -71.10 && lon <= -70.90;
-			});
-		}
-		if (stage === 6 || stage === 8) {
-			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
-			return tractFeatureByGeoFilter((t) => {
-				const lat = Number(t.centlat);
-				const lon = Number(t.centlon);
-				const row = rowsByGj.get(t.gisjoin);
-				const growth = Number(row?.census_hu_pct_change);
-				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.2 && lat >= 42.1 && lat <= 42.55 && growth >= (stage === 8 ? 10 : 15);
-			});
-		}
 		return [];
 	}
 
@@ -2139,11 +2122,11 @@
 		void tractList;
 		void tractGeo;
 		if (!guidedMode || !svgRef || !zoomBehaviorRef || !projectionRef) return;
-		if (revealStage <= 3 || revealStage === 7 || revealStage === 9) {
+		if (revealStage <= 4 || revealStage === 8 || revealStage === 10) {
 			recenterMap();
 			return;
 		}
-		if (revealStage === 4) {
+		if (revealStage === 5) {
 			const focus = tractFeatureByGeoFilter((t) => {
 				const lat = Number(t.centlat);
 				const lon = Number(t.centlon);
@@ -2152,7 +2135,7 @@
 			zoomToFeatureGroup(focus, 8.5);
 			return;
 		}
-		if (revealStage === 5) {
+		if (revealStage === 6) {
 			const focus = tractFeatureByGeoFilter((t) => {
 				const lat = Number(t.centlat);
 				const lon = Number(t.centlon);
@@ -2161,7 +2144,7 @@
 			zoomToFeatureGroup(focus, 8.2);
 			return;
 		}
-		if (revealStage === 6) {
+		if (revealStage === 7) {
 			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 			const focus = tractFeatureByGeoFilter((t) => {
 				const lat = Number(t.centlat);
@@ -2173,7 +2156,7 @@
 			zoomToFeatureGroup(focus, 7.2);
 			return;
 		}
-		if (revealStage === 8) {
+		if (revealStage === 9) {
 			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 			const focus = tractFeatureByGeoFilter((t) => {
 				const lat = Number(t.centlat);
@@ -2908,7 +2891,7 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && i === 7 && guidedDevelopmentExamples.length}
+								{#if guidedMode && i === 8 && guidedDevelopmentExamples.length}
 									<div class="poc-stepper-examples" aria-label="Notable TOD and non-TOD developments">
 										<p class="poc-stepper-examples-title">Scroll down and we will unpack projects like these</p>
 										{#each guidedDevelopmentExamples as dev (dev.id)}
@@ -2930,7 +2913,7 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && i === 8 && guidedClusterDevelopmentExamples.length}
+								{#if guidedMode && i === 9 && guidedClusterDevelopmentExamples.length}
 									<div class="poc-stepper-examples" aria-label="Development examples in the zoomed cluster">
 										<p class="poc-stepper-examples-title">A few notable projects in this weaker-transit growth cluster</p>
 										{#each guidedClusterDevelopmentExamples as dev (dev.id)}
@@ -2952,7 +2935,7 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && step.prompt && i !== 2 && i !== 3 && i !== 7 && i !== 8}
+								{#if guidedMode && step.prompt && i !== 2 && i !== 3 && i !== 8 && i !== 9}
 									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
 								{/if}
 							</section>
