@@ -244,30 +244,30 @@
 		{
 			kicker: 'Step 1',
 			title: 'Transit-rich places',
-			body: 'These areas are well-served by transit and are often considered ideal for dense housing. Read tract color as housing growth before adding outlines.'
+			body: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.'
 		},
 		{
 			kicker: 'Step 2',
 			title: 'Growth is not only “on the line”',
-			body: 'Orange and green outlines show where filtered tract growth is TOD-dominated versus non-TOD-dominated, while the choropleth still carries the housing-growth story.'
+			body: 'Orange and green outlines show where filtered growth is TOD-dominated versus non-TOD-dominated, while the choropleth still carries the main story.'
 		},
 		{
 			kicker: 'Step 3',
 			title: 'A measurable mismatch',
-			body: 'Purple mismatch outlines take over here to show where transit access and housing growth diverge. This step isolates the mismatch pattern without the cohort outlines competing for attention.'
+			body: 'Purple outlines take over here to show where transit access and housing growth diverge, without the cohort outlines competing for attention.'
 		},
 		{
 			kicker: 'Step 4',
 			title: 'Bring projects back in',
-			body: 'The orange and green cohort outlines return, now with development dots layered on top so you can connect tract category patterns to the projects themselves.'
+			body: 'The cohort outlines return with development dots on top, so you can connect tract patterns back to the projects themselves.'
 		}
 	];
 
 	const keyFindings = [
 		'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
-		'TOD-dominated and non-TOD-dominated tracts both appear across the map, which suggests transit-oriented development is only one part of the broader growth pattern.',
+		'TOD-dominated and non-TOD-dominated tracts both appear across the map, so transit-oriented development is only one part of the broader pattern.',
 		'Several highly transit-accessible tracts still show relatively weak housing growth, revealing a meaningful access-growth mismatch.',
-		'Bringing project dots back into the final view helps connect tract-level patterns to the actual developments shaping them.'
+		'Project dots in the final view help link tract-level patterns back to the developments shaping them.'
 	];
 
 	function stepRef(node, index) {
@@ -1715,10 +1715,10 @@
 			<div class="poc-methods poc-methods--lead card-key" role="note" aria-label="TOD definitions">
 				<p class="poc-methods__title">Key definitions</p>
 				<p class="poc-methods__text">
-					<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop; everything else is treated as <strong>non-TOD development</strong>.
-					<strong>TOD-dominated tracts</strong> are tracts where at least <strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units come from TOD developments and housing stock increases by at least <strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong>.
-					<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
-					<strong>Minimal development</strong> tracts do not reach that stock-increase threshold.
+					<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop; all others count as <strong>non-TOD</strong>.
+					<strong>TOD-dominated tracts</strong> are places where at least <strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units come from TOD projects and housing stock grows by at least <strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong>.
+					<strong>Non-TOD-dominated tracts</strong> clear the same growth threshold but fall below that TOD share.
+					<strong>Minimal development</strong> tracts stay below the stock-growth threshold.
 				</p>
 			</div>
 			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Visual encoding and scrolly map">
@@ -1726,23 +1726,23 @@
 				<ul class="poc-methods__list poc-methods__list--encoding">
 					<li>
 						<span class="poc-methods__label">Fill (choropleth):</span>
-						The tract fill shows census % change in housing units for the selected period using a red-to-blue scale. This is the main signal and it stays consistent as you scroll.
+						Fill shows census % change in housing units for the selected period on a red-to-blue scale. That scale stays fixed as the story builds.
 					</li>
 					<li>
 						<span class="poc-methods__label">Cohort outlines (steps 2–4):</span>
-						Teal, orange, and slate outlines show the three tract groups from the MassBuilds data. They add context, but they are not a second growth color scale.
+						Teal, orange, and slate outlines show the MassBuilds tract groups. They add context, but they are not a second growth scale.
 					</li>
 					<li>
 						<span class="poc-methods__label">Mismatch overlays (steps 3–4):</span>
-						Purple and dashed lavender outlines mark places where transit access and housing growth pull in different directions. They stay as outlines so the map still reads through the choropleth.
+						Purple outlines mark places where transit access and housing growth pull apart. They stay as outlines so the choropleth still does the main visual work.
 					</li>
 					<li>
 						<span class="poc-methods__label">Scrolly flow:</span>
-						Each step adds just one more layer at a time, so the map builds up gradually instead of all at once. The controls above are there if you want to explore on your own first.
+						Each step adds one layer at a time, so the map builds gradually instead of dropping everything in at once. The controls above let you explore on your own too.
 					</li>
 					<li>
 						<span class="poc-methods__label">Income:</span>
-						Median income and the “lower income” flag (&lt;$125k) appear in tooltips and supporting views, not as map fill, so the map stays readable.
+						Median income and the “lower income” flag (&lt;$125k) appear in tooltips and linked views, not as map fill, to keep the map readable.
 					</li>
 				</ul>
 			</div>
@@ -1751,22 +1751,22 @@
 				<ul class="poc-methods__list">
 					<li>
 						<span class="poc-methods__label">TOD access assumption:</span>
-						We approximate MBTA access with a fixed cutoff of
+						MBTA access is approximated with a fixed cutoff of
 						<strong> {d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong>.
 					</li>
 					<li>
 						<span class="poc-methods__label">Tract grouping assumption:</span>
-						We classify tracts using
+						Tracts are grouped using
 						<strong> {d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase as the significant-development floor and
 						<strong> {d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> TOD share as the TOD-dominated cutoff.
 					</li>
 					<li>
 						<span class="poc-methods__label">Aggregation assumption:</span>
-						The averages shown here are simple tract-level means, so each tract counts equally rather than being weighted by population or units.
+						Averages shown here are simple tract means, so every tract counts equally rather than being weighted by population or units.
 					</li>
 					<li>
 						<span class="poc-methods__label">Data quality assumption:</span>
-						Tan tracts are treated as limited-data areas when % change is missing or unreliable.
+						Tan tracts mark places where % change is missing or unreliable.
 					</li>
 				</ul>
 			</div>
@@ -1992,7 +1992,7 @@
 					<p class="poc-detail__kicker">Mismatch focus</p>
 					<label class="poc-focus-toggle">
 						<input type="checkbox" bind:checked={focusLowIncomeTracts} />
-						<span>Focus lower-income tracts (&lt;$125k median)</span>
+						<span>Bring lower-income tracts (&lt;$125k median) forward</span>
 					</label>
 					<p class="poc-detail__kicker" style="margin-top: 12px">Mismatch outlines</p>
 					<div class="poc-mismatch-mode" role="group" aria-label="Which mismatch categories to outline">
@@ -2030,7 +2030,7 @@
 						</button>
 					</div>
 					<p class="poc-detail__summary">
-						Use this to focus one mismatch pattern, bring lower-income tracts forward, or jump to a notable tract with the red markers.
+						Use these controls to isolate one mismatch pattern, highlight lower-income tracts, or jump to a notable example with the red markers.
 					</p>
 				</div>
 
