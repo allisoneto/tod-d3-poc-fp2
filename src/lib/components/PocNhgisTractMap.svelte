@@ -74,6 +74,7 @@
 
 	/** Lighter grey for minimal-development tract outline (half stroke vs TOD tiers); legend ring matches. */
 	const MINIMAL_TRACT_STROKE = '#94a3b8';
+	const MISMATCH_STROKE = '#7B61FF';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
@@ -127,36 +128,71 @@
 		return d3.interpolateRgb(baseFill, accent)(dc === 'minimal' ? 0.1 : 0.17);
 	}
 
-	function tractsByInsightMode(mode) {
-		if (!mode || mode === 'none') return new Set();
+	function computeClusters() {
 		const byGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
-		const stops = tractList
-			.map((t) => Number(t?.transit_stops))
-			.filter(Number.isFinite);
-		const growths = (nhgisRows ?? [])
-			.map((r) => Number(r?.census_hu_pct_change))
-			.filter(Number.isFinite);
-		if (!stops.length || !growths.length) return new Set();
-		const qStopsLo = d3.quantile(stops.sort(d3.ascending), 0.25) ?? 0;
-		const qStopsHi = d3.quantile(stops.sort(d3.ascending), 0.75) ?? 0;
-		const qGrowthLo = d3.quantile(growths.sort(d3.ascending), 0.25) ?? 0;
-		const qGrowthHi = d3.quantile(growths.sort(d3.ascending), 0.75) ?? 0;
-		const ids = new Set();
+		const accessVals = tractList.map((t) => Number(t?.transit_stops)).filter(Number.isFinite);
+		const growthVals = (nhgisRows ?? []).map((r) => Number(r?.census_hu_pct_change)).filter(Number.isFinite);
+		if (!accessVals.length || !growthVals.length) {
+			return { highGrowthLowAccess: new Set(), highAccessLowGrowth: new Set(), flagsByGj: new Map() };
+		}
+		const sortedAccess = [...accessVals].sort(d3.ascending);
+		const sortedGrowth = [...growthVals].sort(d3.ascending);
+		const accessLow = d3.quantile(sortedAccess, 0.25) ?? 0;
+		const accessHigh = d3.quantile(sortedAccess, 0.75) ?? 0;
+		const growthLow = d3.quantile(sortedGrowth, 0.25) ?? 0;
+		const growthHigh = d3.quantile(sortedGrowth, 0.75) ?? 0;
+		const highGrowthLowAccess = new Set();
+		const highAccessLowGrowth = new Set();
+		const flagsByGj = new Map();
 		for (const t of tractList ?? []) {
 			const id = t?.gisjoin;
 			if (!id) continue;
 			const row = byGj.get(id);
 			if (!row) continue;
-			const stopN = Number(t?.transit_stops);
-			const g = Number(row?.census_hu_pct_change);
-			if (!Number.isFinite(stopN) || !Number.isFinite(g)) continue;
-			if (mode === HIGH_ACCESS_LOW_GROWTH && stopN >= qStopsHi && g <= qGrowthLo) ids.add(id);
-			if (mode === HIGH_GROWTH_LOW_ACCESS && stopN <= qStopsLo && g >= qGrowthHi) ids.add(id);
+			const access = Number(t?.transit_stops);
+			const growth = Number(row?.census_hu_pct_change);
+			if (!Number.isFinite(access) || !Number.isFinite(growth)) continue;
+			const isHighGrowthLowAccess = growth >= growthHigh && access <= accessLow;
+			const isHighAccessLowGrowth = access >= accessHigh && growth <= growthLow;
+			if (isHighGrowthLowAccess) highGrowthLowAccess.add(id);
+			if (isHighAccessLowGrowth) highAccessLowGrowth.add(id);
+			flagsByGj.set(id, { isHighGrowthLowAccess, isHighAccessLowGrowth });
 		}
-		return ids;
+		return { highGrowthLowAccess, highAccessLowGrowth, flagsByGj };
 	}
 
-	const insightSet = $derived.by(() => tractsByInsightMode(insightMode));
+	function tractsByInsightMode(mode, clusters) {
+		if (!mode || mode === 'none') {
+			return new Set([...(clusters?.highGrowthLowAccess ?? []), ...(clusters?.highAccessLowGrowth ?? [])]);
+		}
+		if (mode === HIGH_ACCESS_LOW_GROWTH) return new Set(clusters?.highAccessLowGrowth ?? []);
+		if (mode === HIGH_GROWTH_LOW_ACCESS) return new Set(clusters?.highGrowthLowAccess ?? []);
+		return new Set();
+	}
+
+	const mismatchClusters = $derived.by(() => computeClusters());
+	const mismatchFlagsByGj = $derived.by(() => mismatchClusters.flagsByGj);
+	const insightSet = $derived.by(() => tractsByInsightMode(insightMode, mismatchClusters));
+	const mismatchAnnotationAnchors = $derived.by(() => {
+		if (!projectionRef) return { highAccessLowGrowth: null, highGrowthLowAccess: null };
+		const geomByGj = new Map((tractGeo?.features ?? []).map((f) => [f.properties?.gisjoin, f]));
+		const centroidFor = (ids) => {
+			const points = [...ids]
+				.map((id) => {
+					const f = geomByGj.get(id);
+					if (!f) return null;
+					const c = d3.geoPath(projectionRef).centroid(f);
+					return Number.isFinite(c[0]) && Number.isFinite(c[1]) ? c : null;
+				})
+				.filter(Boolean);
+			if (!points.length) return null;
+			return [d3.mean(points, (p) => p[0]), d3.mean(points, (p) => p[1])];
+		};
+		return {
+			highAccessLowGrowth: centroidFor(mismatchClusters.highAccessLowGrowth),
+			highGrowthLowAccess: centroidFor(mismatchClusters.highGrowthLowAccess)
+		};
+	});
 
 	const stepContent = [
 		{
@@ -180,14 +216,14 @@
 		if (revealStage === 0) {
 			return [
 				'Interpret the fill first: stronger blue indicates higher housing growth in the selected period.',
-				'Compare nearby tracts before interacting to establish a visual baseline.'
+				'Purple outlines mark mismatch tracts: high growth + low access and high access + low growth.'
 			];
 		}
 		if (revealStage === 1) {
 			return [
 				'Outline colors add cohort meaning on top of growth: TOD-dominated, non-TOD-dominated, and minimal-development.',
 				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.',
-				'Use "Insight reveal" to surface tract-level mismatches that are hard to see in the default layering.'
+				'Mismatch outlines remain visible in every stage so access-growth misalignment is always legible.'
 			];
 		}
 		return [
@@ -633,6 +669,7 @@
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
+				if (insightSet.has(id)) return MISMATCH_STROKE;
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
 				return devClassStroke(row);
 			})
@@ -640,6 +677,7 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				const dc = row?.devClass;
+				if (insightSet.has(id)) return 2.8;
 				if (revealStage < 1) return 0.45;
 				const inInsight = insightSet.has(id);
 				if (insightMode !== 'none' && inInsight) return 3.8;
@@ -836,7 +874,11 @@
 		if (!containerEl || !svgRef || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.insight-layer');
 		const t = d3.transition().duration(250);
-		if (insightMode === 'none' || insightSet.size === 0) {
+		const alwaysVisibleSet = new Set([
+			...mismatchClusters.highAccessLowGrowth,
+			...mismatchClusters.highGrowthLowAccess
+		]);
+		if (alwaysVisibleSet.size === 0) {
 			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
 			return;
 		}
@@ -845,23 +887,25 @@
 		const candidates = (tractGeo?.features ?? [])
 			.map((f) => {
 				const id = f?.properties?.gisjoin;
-				if (!id || !insightSet.has(id)) return null;
+				if (!id || !alwaysVisibleSet.has(id)) return null;
 				const centroid = d3.geoPath(projectionRef).centroid(f);
 				const row = rowsByGj.get(id);
 				const tract = tractList.find((t) => t.gisjoin === id);
 				const growth = Number(row?.census_hu_pct_change);
 				const stops = Number(tract?.transit_stops);
-				const score =
-					insightMode === HIGH_ACCESS_LOW_GROWTH
-						? (Number.isFinite(stops) ? stops : 0) - (Number.isFinite(growth) ? growth : 0)
-						: (Number.isFinite(growth) ? growth : 0) - (Number.isFinite(stops) ? stops : 0);
+				const type = mismatchFlagsByGj.get(id)?.isHighAccessLowGrowth
+					? HIGH_ACCESS_LOW_GROWTH
+					: HIGH_GROWTH_LOW_ACCESS;
+				const score = type === HIGH_ACCESS_LOW_GROWTH
+					? (Number.isFinite(stops) ? stops : 0) - (Number.isFinite(growth) ? growth : 0)
+					: (Number.isFinite(growth) ? growth : 0) - (Number.isFinite(stops) ? stops : 0);
 				return Number.isFinite(centroid[0]) && Number.isFinite(centroid[1])
-					? { id, x: centroid[0], y: centroid[1], growth, stops, score }
+					? { id, x: centroid[0], y: centroid[1], growth, stops, score, type }
 					: null;
 			})
 			.filter(Boolean)
 			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-			.slice(0, 5);
+			.slice(0, 8);
 
 		const markers = layer
 			.selectAll('g.insight-marker')
@@ -930,6 +974,7 @@
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
 				if (selectedSet.has(id)) return 'var(--cat-a, #6366f1)';
+				if (insightSet.has(id)) return MISMATCH_STROKE;
 				const row = rowByGj?.get(id);
 				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
 				return devClassStroke(row);
@@ -941,6 +986,7 @@
 				const inInsight = insightSet.has(id);
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
+				if (inInsight) return 2.8;
 				if (revealStage < 1) return 0.45;
 				if (insightMode !== 'none' && inInsight) return 3.8;
 				if (!dc) return 0.5;
@@ -952,6 +998,7 @@
 				const row = rowByGj?.get(id);
 				const inInsight = insightSet.has(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (inInsight) return 1;
 				if (insightMode !== 'none') return inInsight ? 1 : 0.14;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
@@ -976,6 +1023,7 @@
 		const huPct = row ? Number(row.census_hu_pct_change) : NaN;
 		const pl = periodDisplayLabel(panelState.timePeriod);
 
+		const mismatchFlag = mismatchFlagsByGj.get(id);
 		const tier =
 			row?.devClass === 'tod_dominated'
 				? 'TOD-dominated tract'
@@ -1051,12 +1099,20 @@
 			visible: true,
 			x: event.clientX,
 			y: event.clientY,
-			eyebrow: 'Census tract',
+			eyebrow: mismatchFlag?.isHighGrowthLowAccess || mismatchFlag?.isHighAccessLowGrowth ? 'Mismatch tract' : 'Census tract',
 			title: county && String(county) !== 'County Name' ? `Tract in ${tractPlace}` : `Tract: ${tractPlace}`,
 			badge: tier,
 			badgeTone,
 			primaryRows,
-			secondaryRows
+			secondaryRows: [
+				...secondaryRows,
+				...(mismatchFlag?.isHighAccessLowGrowth
+					? [{ label: 'Mismatch type', value: 'High access + low growth' }]
+					: []),
+				...(mismatchFlag?.isHighGrowthLowAccess
+					? [{ label: 'Mismatch type', value: 'High growth + low access' }]
+					: [])
+			]
 		};
 	}
 
@@ -1169,7 +1225,7 @@
 
 	function handleInsightEnter(event, d) {
 		const modeLabel =
-			insightMode === HIGH_ACCESS_LOW_GROWTH
+			d.type === HIGH_ACCESS_LOW_GROWTH
 				? 'High access + low growth'
 				: 'High growth + low access';
 		tooltip = {
@@ -1188,7 +1244,7 @@
 				{
 					label: 'Why flagged',
 					value:
-						insightMode === HIGH_ACCESS_LOW_GROWTH
+						d.type === HIGH_ACCESS_LOW_GROWTH
 							? 'High stop access but relatively weak housing growth.'
 							: 'Strong housing growth despite relatively low stop access.'
 				}
@@ -1570,6 +1626,7 @@
 									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
 									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
+									<li><span class="poc-k-ring poc-k-ring--mismatch"></span> Mismatch areas (high growth + low access OR high access + low growth)</li>
 								</ul>
 							{/if}
 						</div>
@@ -1942,11 +1999,30 @@
 									<span>Green/orange/gray outlines separate TOD-dominant, non-TOD-dominant, and minimal-development tracts.</span>
 								</div>
 							</div>
-							<div class="poc-annotation poc-annotation--bottom" class:poc-annotation--visible={insightMode !== 'none'}>
+							<div
+								class="poc-annotation poc-annotation--bottom"
+								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highAccessLowGrowth}
+								style={mismatchAnnotationAnchors.highAccessLowGrowth
+									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highAccessLowGrowth[1] / 480) * 100))}%;`
+									: ''}
+							>
 								<div class="poc-annotation__line"></div>
 								<div class="poc-annotation__box">
-									<strong>Mismatch reveal surfaces hidden cases</strong>
-									<span>Dimming non-matches makes tract-level contradictions visible without manual scanning.</span>
+									<strong>High access + low growth cluster</strong>
+									<span>These tracts are well served by transit but show relatively limited housing growth.</span>
+								</div>
+							</div>
+							<div
+								class="poc-annotation poc-annotation--bottom-right"
+								class:poc-annotation--visible={!!mismatchAnnotationAnchors.highGrowthLowAccess}
+								style={mismatchAnnotationAnchors.highGrowthLowAccess
+									? `left:${Math.max(14, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[0] / Math.max(1, mapW)) * 100))}%;top:${Math.max(12, Math.min(84, (mismatchAnnotationAnchors.highGrowthLowAccess[1] / 480) * 100))}%;`
+									: ''}
+							>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>High growth + low access cluster</strong>
+									<span>These tracts add housing quickly despite relatively limited transit access.</span>
 								</div>
 							</div>
 						</div>
@@ -3080,6 +3156,11 @@
 		border-color: #94a3b8;
 	}
 
+	.poc-k-ring--mismatch {
+		border-color: #7b61ff;
+		border-width: 2.4px;
+	}
+
 
 	/* Dev outline swatches: grey fill so stroke semantics stay visible (map dots stay orange–green by MF). */
 	.poc-k-ring--dev-access,
@@ -3176,6 +3257,11 @@
 	.poc-annotation--bottom {
 		bottom: 38px;
 		left: 34%;
+	}
+
+	.poc-annotation--bottom-right {
+		bottom: 62px;
+		left: 58%;
 	}
 
 	.poc-annotation__line {
