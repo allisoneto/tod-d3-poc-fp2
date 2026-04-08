@@ -2383,9 +2383,9 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 16vh;
-		padding-top: 92px;
+		padding-top: 64px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: calc(32vh + 40px);
+		padding-bottom: calc(32vh + 68px);
 		isolation: isolate;
 	}
 
