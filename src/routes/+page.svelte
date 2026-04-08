@@ -727,19 +727,27 @@
 		<div class="eyebrow">Proof of Concept</div>
 		<h1>TOD can expand access. Do lower-income residents benefit too?</h1>
 		<p class="subtitle">
-			Transit-oriented development is widely viewed as a robust and highly beneficial planning strategy: it can support housing growth,
-			reduce car dependence, and create higher-density neighborhoods with closer access to jobs and services. 
-			However, debate remains about <strong>whether the benefits of TOD are being shared with lower-income residents</strong>, and <strong>whether this development contributes
-			to gentrification and displacement</strong>. To answer this question, we analyze the correlations between TOD and demographic changes across Massachusetts.
+			Transit-oriented development (TOD) is often associated with housing growth, reduced car dependence, and denser neighborhoods with stronger access to jobs and services.
+			At the same time, public debate asks whether these benefits are broadly shared, especially by lower-income residents, and whether TOD is associated with demographic
+			changes that can indicate neighborhood pressure. This prototype examines tract- and municipality-level associations between TOD patterns and demographic change across Massachusetts.
 		</p>
 		<p class="subtitle">
-			Although the patterns below are descriptive associations, not causal proof, they do strongly suggest that TOD should be paired
-			with stronger affordable-housing requirements in order to achieve inclusive growth.
+			The results shown below are descriptive and correlational, not causal estimates. We use them as policy-relevant signals for how TOD and affordability appear together in practice.
 		</p>
 		<p class="hero-plan-note">
 			A detailed plan for finishing the project is included at the end of this interactive visualization writeup:
 			<a href="#final-project-plan">jump to the final project plan</a>.
 		</p>
+	</section>
+
+	<section class="story card">
+		<h2>How to read this story</h2>
+		<ul class="story-list">
+			<li><strong>Step 1 (municipal context):</strong> establish where TOD and non-TOD development are concentrated statewide.</li>
+			<li><strong>Step 2 (tract comparison):</strong> compare TOD-dominated, non-TOD-dominated, and minimal-development tracts.</li>
+			<li><strong>Step 3 (affordability split):</strong> compare TOD tracts with higher vs lower affordable-unit shares.</li>
+			<li><strong>Interpretation rule:</strong> all findings are associations; no chart is interpreted as causal proof.</li>
+		</ul>
 	</section>
 
 	{#if !muniLoaded}
@@ -889,9 +897,8 @@
 			<section class="story card">
 				<h2>What is the status of TOD in Massachusetts?</h2>
 				<p>
-					Despite policy efforts, most new housing being built in Massachusetts consists of non-TOD units. However, total development has increased over time,
-					so the volume of TOD units has also been increasing. With the passage of the MBTA Communities Act, TOD is expected to become even more widespread,
-					so it is important to understand the effects TOD has already had on the state.
+					Despite policy efforts, most newly produced units in Massachusetts are still non-TOD units. At the same time, as overall development volume has increased,
+					the total number of TOD units has also increased. This makes it useful to evaluate how TOD growth patterns are associated with affordability and demographic outcomes.
 				</p>
 				
 				<details class="supplemental">
@@ -915,14 +922,13 @@
 						<p>
 							For many residents, a primary concern with TOD is the gap between housing supply and genuine affordability.
 							Although TOD projects often increase the total number of housing units, if these units are
-							market-rate, they are usually significantly more expensive than existing units in the neighborhood.
-							This not means that low-to-moderate income households cannot afford to move into these homes,
-							and more importantly, it often raises rents for those already living in the area.
+							market-rate, they are often priced above much of the existing neighborhood stock.
+							That pattern can be associated with reduced access for low-to-moderate income households and with stronger rent pressure for existing residents.
 						</p>
 
 						<p>
 							Encouraging TOD projects that include affordable housing units can help mitigate this issue, but recent
-							trends show that affordability is not currently keeping pace with total production.
+							trends suggest affordability has not consistently kept pace with total production.
 						</p>
 					</div>
 					<!-- <div class="story-chart-panel__chart">
@@ -956,7 +962,7 @@
 						<p>
 						    Although lower-income residents are the most at risk of displacement,
 							municipalities with more lower income households (&lt; $125k/year) are often the ones seeing the most new development.
-							This suggests that equitable implementation matters most in the places already under the most pressure.
+							This concentration pattern suggests that implementation details (especially affordability provisions) matter most in places already facing the highest pressure.
 						</p>
 					</div>
 					<!-- <div class="story-chart-panel__chart">
@@ -1036,8 +1042,8 @@
 		<section class="story card full-width">
 			<h2>How can we use demographic data to measure the effects of TOD?</h2>
 			<p>
-				This dashboard will analyze how TOD-dominated tracts show different socioeconomic changes with respect to comparable
-				non-TOD or minimal-development tracts, and whether higher affordable-housing shares appear to moderate that pattern.
+				This dashboard analyzes how TOD-dominated tracts are associated with different socioeconomic change patterns relative to comparable
+				non-TOD or minimal-development tracts, and whether higher affordable-housing shares are associated with moderated shifts.
 				These are not direct measures of displacement; they are tract-level comparisons using demographic proxies.
 			</p>
 			<h4>Data analysis methodology</h4>
@@ -1129,6 +1135,18 @@
 					The full dashboard will include an analysis of median income and education changes compared between different tract categories,
 					between different levels of development intensity, and between different levels of affordability.
 				</p>
+			</section>
+
+			<section class="story card">
+				<h2>Design decisions and visual encodings</h2>
+				<ul class="story-list">
+					<li><strong>Color system:</strong> MBTA line colors anchor the palette for transit relevance (green, orange, red, blue), with neutral tones for baselines and missing/limited data.</li>
+					<li><strong>Typography:</strong> Helvetica-family headings and Inter body text prioritize legibility and align with common transit/public-information design conventions.</li>
+					<li><strong>Primary quantitative encoding:</strong> position on common axes is used for comparisons because it supports the most accurate visual estimation.</li>
+					<li><strong>Categorical encoding:</strong> hue distinguishes cohort categories (TOD-dominated, non-TOD-dominated, minimal-development).</li>
+					<li><strong>Continuous encoding:</strong> gradients represent continuous magnitudes (for example, housing growth or TOD share), while symbol size represents scale variables.</li>
+					<li><strong>Interaction encoding:</strong> outlines and emphasis states are reserved for hover/selection so interaction does not conflict with core data semantics.</li>
+				</ul>
 			</section>
 
 			<!-- <div class="story-chart-row story-chart-row--tract full-width">
