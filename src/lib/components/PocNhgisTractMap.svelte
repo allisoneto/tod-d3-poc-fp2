@@ -630,6 +630,35 @@
 	}
 
 	function guidedRegionFeaturesForStage(stage) {
+		if (!guidedMode) return [];
+		if (stage === 5) {
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.30 && lat <= 42.43 && lon >= -71.17 && lon <= -70.98;
+			});
+		}
+		if (stage === 6) {
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				const isQuincy =
+					Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.22 && lat <= 42.31 && lon >= -71.07 && lon <= -70.96;
+				const isRevere =
+					Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.39 && lat <= 42.45 && lon >= -71.04 && lon <= -70.96;
+				return isQuincy || isRevere;
+			});
+		}
+		if (stage === 7 || stage === 9) {
+			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+			return tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				const row = rowsByGj.get(t.gisjoin);
+				const growth = Number(row?.census_hu_pct_change);
+				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.2 && lat >= 42.1 && lat <= 42.55 && growth >= (stage === 9 ? 10 : 15);
+			});
+		}
 		return [];
 	}
 
@@ -638,29 +667,7 @@
 	}
 
 	function guidedRegionOutlineFeaturesForStage(stage) {
-		const features = guidedRegionFeaturesForStage(stage);
-		if (!features.length) return [];
-		const [[west, south], [east, north]] = d3.geoBounds({
-			type: 'FeatureCollection',
-			features
-		});
-		if (![west, south, east, north].every(Number.isFinite)) return [];
-		return [
-			{
-				type: 'Feature',
-				properties: { stage },
-				geometry: {
-					type: 'Polygon',
-					coordinates: [[
-						[west, south],
-						[east, south],
-						[east, north],
-						[west, north],
-						[west, south]
-					]]
-				}
-			}
-		];
+		return [];
 	}
 
 	function stopRadius(stop) {
@@ -960,6 +967,9 @@
 				const v = row ? Number(row.census_hu_pct_change) : NaN;
 				let baseFill = Number.isFinite(v) ? color(v) : '#e7e0d5';
 				let fill = tintFill(baseFill, row);
+				if (guidedMode && guidedFocusIds.size && !guidedFocusIds.has(id) && !isSelHover) {
+					fill = d3.interpolateRgb(fill, FILL_DESAT)(0.72);
+				}
 				if (mismatchLayerOn) {
 					if (!effectiveMismatchIds.has(id)) {
 						fill = d3.interpolateRgb(fill, FILL_DESAT)(0.65);
@@ -1001,6 +1011,7 @@
 			.attr('stroke-opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (guidedMode && guidedFocusIds.size && !guidedFocusIds.has(id)) return 0.18;
 				if (mismatchLayerOn) {
 					const row = rowByGj.get(id);
 					const dc = row?.devClass;
@@ -1012,6 +1023,9 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
+				if (guidedMode && guidedFocusIds.size) {
+					return guidedFocusIds.has(id) ? 1 : 0.18;
+				}
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
 				if (revealStage === 0) return 1;
 				if (!mismatchLayerOn) return 1;
