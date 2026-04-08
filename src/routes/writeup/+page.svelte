@@ -208,6 +208,24 @@
 			verify.
 		</p>
 
+		<h3>Color palette details</h3>
+		<p>
+			We also want the palette to be documented concretely. The core MBTA-based colors used in the project are
+			<strong>green</strong> <code>#00843D</code> / <code>rgb(0, 132, 61)</code>, <strong>orange</strong>
+			<code>#ED8B00</code> / <code>rgb(237, 139, 0)</code>, <strong>red</strong> <code>#DA291C</code> /
+			<code>rgb(218, 41, 28)</code>, and <strong>blue</strong> <code>#003DA5</code> /
+			<code>rgb(0, 61, 165)</code>. We use green and orange for TOD versus non-TOD development categories, and we use the
+			red-blue pair for the housing-growth choropleth.
+		</p>
+		<p>
+			The mismatch layer uses a related purple family rather than a completely separate arbitrary color: the stronger mismatch
+			outline is <code>#8A78E0</code> / <code>rgb(138, 120, 224)</code>, and the lighter dashed mismatch outline is
+			<code>#C4B5F0</code> / <code>rgb(196, 181, 240)</code>. Minimal-development outlines use a quieter gray
+			<code>#94A3B8</code> / <code>rgb(148, 163, 184)</code>, and supporting neutral fills use tan tones such as
+			<code>#E7E0D5</code> / <code>rgb(231, 224, 213)</code>. Writing the values out this way makes it clearer that the color
+			system was chosen deliberately and implemented consistently across the map, legends, and linked views.
+		</p>
+
 		<h3>What do we think does not work quite as well as we hoped?</h3>
 		<p>
 			The strongest remaining weakness is density. Even after we simplified the walkthrough, the system still carries several
