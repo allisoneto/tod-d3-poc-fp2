@@ -263,30 +263,28 @@
 		}
 	];
 
-	const mapCallouts = $derived.by(() => {
+	const keyFindings = $derived.by(() => {
 		if (revealStage === 0) {
 			return [
-				'Blue fill = stronger census housing growth in the selected period; red = weaker or negative growth.',
-				'Scroll to add tract-category outlines and then mismatch highlights—without changing the choropleth scale.'
+				'Housing growth is uneven across the region: blue tracts gained units faster, while red tracts lagged or lost units.',
+				'Transit access alone does not explain that variation, which is why the next steps add development context without changing the choropleth baseline.'
 			];
 		}
 		if (revealStage === 1) {
 			return [
-				'Orange and green outlines encode TOD-dominated versus non-TOD-dominated tracts; fill still shows census growth.',
-				'This is the clean cohort-comparison step before mismatch highlights or project dots are added.'
+				'TOD-dominated and non-TOD-dominated tracts do not line up neatly with the strongest housing-growth areas.',
+				'That means development near transit is only part of the story, even before we isolate mismatch tracts.'
 			];
 		}
 		if (revealStage === 2) {
 			return [
-				'Purple mismatch outlines take priority here so the access-vs-growth mismatch is easier to see on its own.',
-				'If it still feels busy, hover any highlighted tract to spotlight its whole cluster.',
-				'Optional: “Show lower-income tracts” replaces growth color with neutral fill for tracts at/above the $125k median (no second choropleth).'
+				'Some of the most transit-accessible tracts still show relatively weak housing growth, creating a clear access-growth mismatch.',
+				'These mismatch areas are the key places to investigate more closely with hover, selection, and the lower-income focus toggle.'
 			];
 		}
 		return [
-			'Orange and green outlines return here, and the project dots join them so you can relate tract patterns back to individual developments.',
-			'Dot color still shows multi-family share, while outline color shows whether the tract is TOD-dominated or non-TOD-dominated.',
-			'Income detail stays in tooltips and the charts below; hover or select a tract to link map → charts.'
+			'Bringing development dots back in links tract-level patterns to the actual projects shaping them.',
+			'This final view helps connect where growth happened, what kind of development was built, and whether those places align with transit access.'
 		];
 	});
 
@@ -2285,14 +2283,6 @@
 								{/if}
 							</div>
 						{/if}
-						<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
-							<p class="poc-detail__kicker">What to look for</p>
-							<ul class="poc-map-callouts__list">
-								{#each mapCallouts as c, i (i)}
-									<li>{c}</li>
-								{/each}
-							</ul>
-						</div>
 						</div>
 					</div>
 					</div>
@@ -2323,6 +2313,14 @@
 						{/each}
 					</div>
 				</aside>
+			</div>
+			<div class="poc-key-findings card-key" role="note" aria-label="Key findings in this step">
+				<p class="poc-detail__kicker">Key findings</p>
+				<ul class="poc-map-callouts__list">
+					{#each keyFindings as c, i (i)}
+						<li>{c}</li>
+					{/each}
+				</ul>
 			</div>
 			<p class="poc-map-zoom-hint">Scroll through the walkthrough, drag to pan, and scroll or pinch to zoom.</p>
 		</div>
@@ -3553,6 +3551,13 @@
 
 	.poc-map-callouts {
 		padding: 4px 6px;
+	}
+
+	.poc-key-findings {
+		margin-top: 8px;
+		padding: 8px 10px;
+		border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
 	}
 
 	.poc-map-callouts__list {
