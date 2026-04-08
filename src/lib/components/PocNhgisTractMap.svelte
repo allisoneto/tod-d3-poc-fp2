@@ -346,11 +346,11 @@
 			},
 			{
 				kicker: 'Step 10',
-				title: 'A development cluster',
-				body: 'This zoom focuses on one development-heavy area where project activity and transit access are not especially well matched. It makes the broader mismatch argument concrete by showing a place where weaker-access growth is visible at the project level as well.',
-				legend: 'At this stage, the dots and the choropleth are meant to be read together. The project locations help explain how the tract-level growth pattern is being produced.',
-				why: 'This matters because it ties the story back to actual housing production rather than leaving the mismatch argument at the level of tract averages alone.',
-				prompt: 'The highlighted projects below help decode what kinds of developments make up this cluster and how much affordability they include.'
+				title: 'Important developments',
+				body: 'This step keeps the project layer in view but shifts the emphasis to a few developments that help explain the broader argument. Looking at both TOD and non-TOD projects makes it easier to see how new housing, affordability, and transit access do not always line up in the same way.',
+				legend: 'Read these dots as concrete examples rather than as a complete inventory. Some are close to transit and add many units, while others show how substantial housing growth can still be delivered outside the stronger transit geography.',
+				why: 'This matters for the gentrification argument because the geography of actual projects helps shape who benefits from new housing and who remains farther from transit-linked opportunity.',
+				prompt: 'The examples below highlight a few projects that matter to this argument. Hover over dots and tracts for tooltips with more detail.'
 			},
 			{
 				kicker: 'Step 11',
@@ -2054,13 +2054,12 @@
 		if (!guidedMode || !tractList?.length) return [];
 		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
-		return filteredDevs
+		const enriched = filteredDevs
 			.map((d) => {
 				const lon = Number(d.longitude);
 				const lat = Number(d.latitude);
 				const units = Number(d.hu) || 0;
 				if (!Number.isFinite(lon) || !Number.isFinite(lat) || units <= 0) return null;
-				if (!(lon <= -71.15 && lon >= -72.1 && lat >= 42.1 && lat <= 42.55)) return null;
 				const affordableUnits = developmentAffordableUnitsCapped(d);
 				const isTod = isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
 				return {
@@ -2069,12 +2068,18 @@
 					affordableUnits,
 					isTod,
 					categoryLabel: isTod ? 'TOD development' : 'Non-TOD development',
-					score: units + affordableUnits * 3
+					importanceNote: isTod
+						? 'This TOD project shows where new housing is being added close to transit, which is the alignment case the policy conversation often expects.'
+						: 'This non-TOD project shows that substantial housing can still be added outside the strongest transit geography, which matters for the mismatch argument.',
+					score: units + affordableUnits * 3 + (affordableUnits > 0 ? 120 : 0) + (isTod ? 40 : 0)
 				};
 			})
 			.filter(Boolean)
-			.sort((a, b) => b.score - a.score)
-			.slice(0, 3);
+			.sort((a, b) => b.score - a.score);
+		const tod = enriched.find((d) => d.isTod);
+		const nonTod = enriched.find((d) => !d.isTod);
+		const affordability = enriched.find((d) => d.affordableUnits > 0 && d !== tod && d !== nonTod) ?? enriched.find((d) => d.affordableUnits > 0);
+		return [tod, nonTod, affordability].filter(Boolean).slice(0, 3);
 	});
 
 	function inspectGuidedExample(id) {
@@ -2928,8 +2933,8 @@
 									</div>
 								{/if}
 								{#if guidedMode && i === 9 && guidedClusterDevelopmentExamples.length}
-									<div class="poc-stepper-examples" aria-label="Development examples in the zoomed cluster">
-										<p class="poc-stepper-examples-title">A few notable projects in this weaker-transit growth cluster</p>
+									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
+										<p class="poc-stepper-examples-title">A few developments that help explain the broader pattern</p>
 										{#each guidedClusterDevelopmentExamples as dev (dev.id)}
 											<button
 												type="button"
@@ -2940,7 +2945,7 @@
 													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
 													<span class="poc-stepper-example__cta">{dev.categoryLabel}</span>
 												</div>
-												<p class="poc-stepper-example__note">{dev.municipal ? `${dev.municipal}. ` : ''}{dev.affordableUnits > 0 ? 'This project includes some income-restricted units.' : 'This project does not show affordable-unit counts in the filtered data.'}</p>
+												<p class="poc-stepper-example__note">{dev.municipal ? `${dev.municipal}. ` : ''}{dev.importanceNote} {dev.affordableUnits > 0 ? 'It also includes some income-restricted units.' : 'It does not show affordable-unit counts in the filtered data.'}</p>
 												<div class="poc-stepper-example__metrics">
 													<span><strong>Total units:</strong> {d3.format(',.0f')(dev.units)}</span>
 													<span><strong>Affordable units:</strong> {d3.format(',.0f')(dev.affordableUnits || 0)}</span>
