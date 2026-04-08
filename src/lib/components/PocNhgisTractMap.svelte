@@ -1773,7 +1773,9 @@
 				</ul>
 			</div>
 
-			<div class="poc-control-stack">
+			<div class="poc-scrolly-shell">
+				<div class="poc-scrolly-left">
+					<div class="poc-control-stack">
 				<div class="poc-side-cards">
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
@@ -2062,12 +2064,12 @@
 						</div>
 					</div>
 				{/if}
-			</div>
+					</div>
 
-			<div class="map-wrap">
-				<div class="map-visual-column">
-					<div class="map-left-column">
-						<div class="poc-legend-row">
+					<div class="map-wrap">
+						<div class="map-visual-column">
+							<div class="map-left-column">
+								<div class="poc-legend-row">
 					<fieldset class="poc-transit-field">
 						<legend class="poc-transit-legend">MBTA Overlays</legend>
 						<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
@@ -2275,6 +2277,8 @@
 								{/each}
 							</ul>
 						</div>
+						</div>
+					</div>
 					</div>
 				</div>
 
@@ -2340,6 +2344,20 @@
 		color: var(--text);
 	}
 
+	.poc-scrolly-shell {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+		gap: 28px;
+		align-items: start;
+	}
+
+	.poc-scrolly-left {
+		display: grid;
+		gap: 10px;
+		min-width: 0;
+		min-height: 0;
+	}
+
 	.poc-stepper-side {
 		display: grid;
 		gap: 14px;
@@ -2348,8 +2366,6 @@
 		min-width: 0;
 		position: relative;
 		z-index: 1;
-		grid-column: 2;
-		grid-row: 1;
 	}
 
 	.poc-stepper-head {
@@ -2530,11 +2546,6 @@
 			grid-row: 1;
 		}
 
-		.poc-stepper-side {
-			grid-column: 2;
-			grid-row: 1;
-		}
-
 		.poc-insight {
 			grid-column: 1;
 			grid-row: 2;
@@ -2543,10 +2554,16 @@
 	}
 
 	@media (max-width: 900px) {
+		.poc-scrolly-shell {
+			grid-template-columns: 1fr;
+			gap: 16px;
+		}
+
 		.map-wrap {
 			grid-template-columns: 1fr;
 		}
 
+		.poc-scrolly-left,
 		.map-visual-column {
 			gap: 6px;
 		}
@@ -2580,8 +2597,7 @@
 		}
 
 		.poc-stepper-side {
-			grid-column: auto;
-			grid-row: auto;
+			order: 2;
 		}
 
 		.poc-stepper-inline-rail {
@@ -3485,7 +3501,7 @@
 
 	.map-wrap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+		grid-template-columns: 1fr;
 		gap: 28px;
 		width: 100%;
 		background: transparent;
