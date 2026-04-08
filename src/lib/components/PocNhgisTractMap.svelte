@@ -1162,8 +1162,8 @@
 
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
 		const featuredDevelopmentIds =
-			guidedMode && revealStage === 9
-				? new Set((guidedClusterDevelopmentExamples ?? []).map((d) => d?.id).filter(Boolean))
+			guidedMode && revealStage === 9 && importantDevelopmentExamples?.length
+				? new Set((importantDevelopmentExamples ?? []).map((d) => d?.id).filter(Boolean))
 				: null;
 		const huVals = filteredDevs.map((d) => Number(d.hu) || 0).filter((h) => h > 0);
 		const huMin = huVals.length ? d3.min(huVals) : 1;
@@ -2113,6 +2113,11 @@
 		return [tod, nonTod, affordability].filter(Boolean).slice(0, 3);
 	});
 
+	const importantDevelopmentExamples = $derived.by(() => {
+		if (guidedClusterDevelopmentExamples?.length) return guidedClusterDevelopmentExamples;
+		return guidedDevelopmentExamples ?? [];
+	});
+
 	function inspectGuidedExample(id) {
 		if (!id) return;
 		zoomToTract(id);
@@ -2971,10 +2976,10 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && i === 9 && guidedClusterDevelopmentExamples.length}
+								{#if guidedMode && i === 9 && importantDevelopmentExamples.length}
 									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
 										<p class="poc-stepper-examples-title">A few developments that help explain the broader pattern</p>
-										{#each guidedClusterDevelopmentExamples as dev (dev.id)}
+										{#each importantDevelopmentExamples as dev (dev.id)}
 											<div class="poc-stepper-example">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
