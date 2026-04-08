@@ -574,6 +574,7 @@
 			.on('mouseleave', handleOverlayLeave);
 
 		zoomLayer.append('g').attr('class', 'dev-dots-layer');
+		zoomLayer.append('g').attr('class', 'insight-layer');
 
 		const zoom = d3
 			.zoom()
@@ -829,6 +830,64 @@
 			.attr('opacity', 1)
 			.selection()
 			.style('pointer-events', 'auto');
+	}
+
+	function updateInsightMarkers() {
+		if (!containerEl || !svgRef || !projectionRef) return;
+		const layer = d3.select(containerEl).select('.insight-layer');
+		const t = d3.transition().duration(250);
+		if (insightMode === 'none' || insightSet.size === 0) {
+			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
+			return;
+		}
+
+		const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const candidates = (tractGeo?.features ?? [])
+			.map((f) => {
+				const id = f?.properties?.gisjoin;
+				if (!id || !insightSet.has(id)) return null;
+				const centroid = d3.geoPath(projectionRef).centroid(f);
+				const row = rowsByGj.get(id);
+				const tract = tractList.find((t) => t.gisjoin === id);
+				const growth = Number(row?.census_hu_pct_change);
+				const stops = Number(tract?.transit_stops);
+				const score =
+					insightMode === HIGH_ACCESS_LOW_GROWTH
+						? (Number.isFinite(stops) ? stops : 0) - (Number.isFinite(growth) ? growth : 0)
+						: (Number.isFinite(growth) ? growth : 0) - (Number.isFinite(stops) ? stops : 0);
+				return Number.isFinite(centroid[0]) && Number.isFinite(centroid[1])
+					? { id, x: centroid[0], y: centroid[1], growth, stops, score }
+					: null;
+			})
+			.filter(Boolean)
+			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+			.slice(0, 5);
+
+		const markers = layer
+			.selectAll('g.insight-marker')
+			.data(candidates, (d) => d.id)
+			.join(
+				(enter) => {
+					const g = enter
+						.append('g')
+						.attr('class', 'insight-marker')
+						.attr('opacity', 0)
+						.style('cursor', 'help')
+						.on('mouseenter', handleInsightEnter)
+						.on('mousemove', handleMouseMove)
+						.on('mouseleave', handleOverlayLeave);
+					g.append('circle').attr('class', 'insight-marker__halo').attr('r', 10);
+					g.append('circle').attr('class', 'insight-marker__dot').attr('r', 4);
+					return g;
+				},
+				(update) => update,
+				(exit) => exit.transition(t).attr('opacity', 0).remove()
+			);
+
+		markers
+			.transition(t)
+			.attr('transform', (d) => `translate(${d.x},${d.y})`)
+			.attr('opacity', 1);
 	}
 
 	function updateOverlays() {
@@ -1108,6 +1167,35 @@
 		tooltip = { ...tooltip, visible: false };
 	}
 
+	function handleInsightEnter(event, d) {
+		const modeLabel =
+			insightMode === HIGH_ACCESS_LOW_GROWTH
+				? 'High access + low growth'
+				: 'High growth + low access';
+		tooltip = {
+			visible: true,
+			x: event.clientX,
+			y: event.clientY,
+			eyebrow: 'Insight marker',
+			title: modeLabel,
+			badge: 'Mismatch tract',
+			badgeTone: 'nontod',
+			primaryRows: [
+				{ label: 'Housing growth', value: Number.isFinite(d.growth) ? `${d3.format('.1f')(d.growth)}%` : '—' },
+				{ label: 'Transit stops', value: Number.isFinite(d.stops) ? d3.format(',.0f')(d.stops) : '—' }
+			],
+			secondaryRows: [
+				{
+					label: 'Why flagged',
+					value:
+						insightMode === HIGH_ACCESS_LOW_GROWTH
+							? 'High stop access but relatively weak housing growth.'
+							: 'Strong housing growth despite relatively low stop access.'
+				}
+			]
+		};
+	}
+
 	const overlayKey = $derived(
 		JSON.stringify({
 			busL: panelState.showBusLines,
@@ -1326,6 +1414,7 @@
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
+		updateInsightMarkers();
 		updateSelection();
 	});
 
@@ -1343,6 +1432,7 @@
 		void insightSet;
 		if (!containerEl || !svgRef) return;
 		updateSelection();
+		updateInsightMarkers();
 	});
 
 	$effect(() => {
@@ -3343,5 +3433,19 @@
 		padding: 16px;
 		font-size: 0.875rem;
 		color: var(--text-muted);
+	}
+
+	:global(.insight-marker__halo) {
+		fill: color-mix(in srgb, var(--warning) 26%, white 74%);
+		stroke: color-mix(in srgb, var(--warning) 58%, #1f2937);
+		stroke-width: 1.1;
+		vector-effect: non-scaling-stroke;
+	}
+
+	:global(.insight-marker__dot) {
+		fill: color-mix(in srgb, var(--warning) 86%, #7c2d12);
+		stroke: #fff;
+		stroke-width: 1;
+		vector-effect: non-scaling-stroke;
 	}
 </style>
