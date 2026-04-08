@@ -579,6 +579,21 @@
 		};
 	}
 
+	function developmentScreenAnchor(d) {
+		if (!d || !projectionRef || !svgRef || !containerEl) return null;
+		const lon = Number(d.longitude ?? d.lon);
+		const lat = Number(d.latitude ?? d.lat);
+		if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+		const point = projectionRef([lon, lat]);
+		if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return null;
+		const transform = d3.zoomTransform(svgRef.node());
+		const rect = containerEl.getBoundingClientRect();
+		return {
+			x: rect.left + transform.applyX(point[0]),
+			y: rect.top + transform.applyY(point[1])
+		};
+	}
+
 	function zoomToFeatureGroup(features, scaleCap = 9) {
 		if (!features?.length || !svgRef || !zoomBehaviorRef || !projectionRef) return;
 		const path = d3.geoPath(projectionRef);
@@ -1146,6 +1161,10 @@
 		const invK = 1 / currentK;
 
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const featuredDevelopmentIds =
+			guidedMode && revealStage === 9
+				? new Set((guidedClusterDevelopmentExamples ?? []).map((d) => d?.id).filter(Boolean))
+				: null;
 		const huVals = filteredDevs.map((d) => Number(d.hu) || 0).filter((h) => h > 0);
 		const huMin = huVals.length ? d3.min(huVals) : 1;
 		const huMax = huVals.length ? d3.max(huVals) : 1;
@@ -1168,7 +1187,8 @@
 				mfShare: mf,
 				rBase,
 				strokeWBase: access ? 0.55 : 0.4,
-				transitAccessible: access
+				transitAccessible: access,
+				isFeatured: featuredDevelopmentIds ? featuredDevelopmentIds.has(d.id) : false
 			};
 		});
 
@@ -1210,8 +1230,11 @@
 			)
 			.attr('fill-opacity', 0.78)
 			.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
-			.attr('stroke-width', (d) => d.strokeWBase * invK)
-			.attr('opacity', 1)
+			.attr('stroke-width', (d) => ((d.strokeWBase + (d.isFeatured ? 0.18 : 0)) * invK))
+			.attr('opacity', (d) => {
+				if (!featuredDevelopmentIds) return 1;
+				return d.isFeatured ? 1 : 0.16;
+			})
 			.selection()
 			.style('pointer-events', 'auto');
 	}
@@ -1635,7 +1658,7 @@
 		};
 	}
 
-	function handleDevEnter(event, d) {
+	function showDevelopmentTooltip(d, x, y, anchor = null) {
 		const fmtPct = d3.format('.1f');
 		const primaryRows = [
 			{ label: 'Municipality', value: d.municipal || '—' },
@@ -1671,8 +1694,10 @@
 		if (d.rdv) secondaryRows.push({ label: 'Redevelopment', value: 'Yes' });
 		tooltip = {
 			visible: true,
-			x: event.clientX,
-			y: event.clientY,
+			x,
+			y,
+			anchorX: anchor?.x ?? null,
+			anchorY: anchor?.y ?? null,
 			eyebrow: 'MassBuilds project',
 			title: `Development: ${d.name || 'Unnamed project'}`,
 			badge: access ? 'Transit-accessible' : 'Not transit-accessible',
@@ -1680,6 +1705,11 @@
 			primaryRows,
 			secondaryRows
 		};
+		pinnedTooltipStage = anchor ? revealStage : null;
+	}
+
+	function handleDevEnter(event, d) {
+		showDevelopmentTooltip(d, event.clientX, event.clientY);
 	}
 
 	function handleOverlayLeave() {
@@ -2102,6 +2132,14 @@
 	function inspectGuidedDevelopment(d) {
 		if (!d) return;
 		zoomToDevelopment(d);
+		window.setTimeout(() => {
+			const anchor = developmentScreenAnchor(d);
+			const fallbackX = typeof window !== 'undefined' ? window.innerWidth * 0.7 : 980;
+			const fallbackY = typeof window !== 'undefined' ? window.innerHeight * 0.38 : 380;
+			const x = anchor ? anchor.x + 76 : fallbackX;
+			const y = anchor ? anchor.y - 14 : fallbackY;
+			showDevelopmentTooltip(d, x, y, anchor);
+		}, 640);
 	}
 
 	$effect(() => {
@@ -2885,7 +2923,7 @@
 									<div class="poc-stepper-examples" aria-label="Mismatch examples highlighted on the map">
 										<p class="poc-stepper-examples-title">These cards correspond to the red mismatch markers already on the map</p>
 										{#each guidedMismatchExamples as example (example.id)}
-											<div class="poc-stepper-example">
+											<div class="poc-stepper-example poc-stepper-example--static">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{example.label}</span>
 													<span class="poc-stepper-example__cta">{example.kind}</span>
@@ -2937,11 +2975,7 @@
 									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
 										<p class="poc-stepper-examples-title">A few developments that help explain the broader pattern</p>
 										{#each guidedClusterDevelopmentExamples as dev (dev.id)}
-											<button
-												type="button"
-												class="poc-stepper-example"
-												onclick={() => inspectGuidedDevelopment(dev)}
-											>
+											<div class="poc-stepper-example">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
 													<span class="poc-stepper-example__cta">{dev.categoryLabel}</span>
@@ -2951,7 +2985,16 @@
 													<span><strong>Total units:</strong> {d3.format(',.0f')(dev.units)}</span>
 													<span><strong>Affordable units:</strong> {d3.format(',.0f')(dev.affordableUnits || 0)}</span>
 												</div>
-											</button>
+												<div class="poc-stepper-example__actions">
+													<button
+														type="button"
+														class="poc-stepper-example__button"
+														onclick={() => inspectGuidedDevelopment(dev)}
+													>
+														Show on map
+													</button>
+												</div>
+											</div>
 										{/each}
 									</div>
 								{/if}
@@ -3274,6 +3317,17 @@
 		border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
 		box-shadow: 0 8px 18px rgba(18, 30, 51, 0.08);
 		transform: translateY(-1px);
+	}
+
+	.poc-stepper-example--static {
+		cursor: default;
+	}
+
+	.poc-stepper-example--static:hover,
+	.poc-stepper-example--static:focus-visible {
+		border-color: color-mix(in srgb, var(--accent) 22%, var(--border));
+		box-shadow: none;
+		transform: none;
 	}
 
 	.poc-stepper-example__head {
