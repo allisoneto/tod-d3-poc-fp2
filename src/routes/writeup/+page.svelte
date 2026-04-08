@@ -213,6 +213,36 @@
 	</section>
 
 	<section class="writeup-section card">
+		<h2>Critique of Our Design Decisions</h2>
+		<p>
+			Even though we think the current design is much stronger than earlier versions, it still has real tradeoffs. The
+			choropleth works well as a base map, but it also means the viewer has to hold two different ideas in mind at once:
+			census-based housing growth in the fill and MassBuilds-based development patterns in the overlays. That combination is
+			useful, but it is not perfectly intuitive on first read, and some viewers may initially assume every layer comes from the
+			same source.
+		</p>
+		<p>
+			The scrollytelling structure also helps a lot with pacing, but it introduces its own challenge. When the map changes by
+			scroll step, readers can miss a transition if they scroll quickly or jump around the page. Persistent controls help offset
+			that problem, but they also make the interface denser. In other words, the same design choice that makes the page more
+			explorable also makes it a little harder to make the first screen feel calm and simple.
+		</p>
+		<p>
+			The linked-view design has a similar tradeoff. Keeping detail off the map protects readability, but it means some of the
+			most important supporting evidence sits in side cards and comparison panels instead of directly in the main visual field.
+			That is usually the right choice for clarity, but it does demand more active reading from the user. Someone who only looks
+			at the map and ignores the linked views will miss part of the argument.
+		</p>
+		<p>
+			We also think the color system is successful overall, but not perfect. The MBTA-based palette gives the project a strong
+			identity and keeps the transit framing consistent, yet once several outline systems and dot layers are visible together,
+			the map still becomes visually busy. That is especially true in dense areas where outlines overlap and project dots cluster.
+			If we extend this project further, one of the biggest improvements would be finding ways to preserve the same analytical
+			depth while reducing visual crowding in the most information-dense parts of the map.
+		</p>
+	</section>
+
+	<section class="writeup-section card">
 		<h2>Assumptions and Limitations</h2>
 		<p>
 			This proof of concept makes several explicit simplifying assumptions. First, TOD classification depends on the project’s
