@@ -57,7 +57,26 @@ function assertDevelopmentsHaveNearestStopDist(devs) {
 /** @type {Promise<void> | null} */
 let loadStoryDataPromise = null;
 /** @type {Promise<void> | null} */
+let loadGuidedDevelopmentsPromise = null;
+/** @type {Promise<void> | null} */
 let loadAllDataPromise = null;
+
+export async function loadGuidedDevelopments() {
+	if (developments.length) return;
+	if (loadGuidedDevelopmentsPromise) return loadGuidedDevelopmentsPromise;
+	loadGuidedDevelopmentsPromise = (async () => {
+		const p = (/** @type {string} */ path) => `${base}${path}`;
+		const devsRes = await fetch(p('/data/developments.json'));
+		const devsJson = await devsRes.json();
+		assertDevelopmentsHaveNearestStopDist(devsJson);
+		developments.length = 0;
+		developments.push(...devsJson);
+	})().catch((e) => {
+		loadGuidedDevelopmentsPromise = null;
+		throw e;
+	});
+	return loadGuidedDevelopmentsPromise;
+}
 
 /**
  * Fetch the smaller data bundle needed for the guided home-page tract story.
@@ -92,6 +111,7 @@ export async function loadStoryData() {
 		mbtaStops.length = 0;
 		mbtaStops.push(...mbtaStopsJson);
 		replaceObjectProps(mbtaLines, mbtaLinesJson);
+		void loadGuidedDevelopments().catch(() => {});
 	})().catch((e) => {
 		loadStoryDataPromise = null;
 		throw e;
