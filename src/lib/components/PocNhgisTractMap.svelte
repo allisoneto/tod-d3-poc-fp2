@@ -254,7 +254,7 @@
 		{
 			kicker: 'Step 3',
 			title: 'A measurable mismatch',
-			body: 'Purple outlines take over here to show where transit access and housing growth diverge, without the cohort outlines competing for attention.'
+			body: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.'
 		},
 		{
 			kicker: 'Step 4',
@@ -265,8 +265,8 @@
 
 	const keyFindings = [
 		'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
-		'TOD-dominated and non-TOD-dominated tracts both appear across the map, so transit-oriented development is only one part of the broader pattern.',
-		'Several highly transit-accessible tracts still show relatively weak housing growth, revealing a meaningful access-growth mismatch.',
+		'TOD-dominated and non-TOD-dominated tracts both show up across the map, so transit-oriented development is only one part of the bigger pattern.',
+		'Several transit-rich tracts still show relatively weak housing growth, which points to a clear access-growth mismatch.',
 		'Project dots in the final view make it easier to compare tract-level patterns with the developments located there.'
 	];
 
@@ -1722,27 +1722,27 @@
 				</p>
 			</div>
 			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Design decisions">
-				<p class="poc-methods__title">Why It Is Designed This Way</p>
+				<p class="poc-methods__title">Why It Looks Like This</p>
 				<ul class="poc-methods__list poc-methods__list--encoding">
 					<li>
-						<span class="poc-methods__label">One stable map scale:</span>
-						The choropleth stays fixed from start to finish so you can compare every later layer back to the same baseline.
+						<span class="poc-methods__label">One steady map scale:</span>
+						The choropleth stays the same from start to finish, so every later layer can be read against the same base map.
 					</li>
 					<li>
 						<span class="poc-methods__label">Outlines instead of more fill:</span>
-						The tract groups sit on top as outlines so they add context without competing with the growth colors underneath.
+						The tract groups sit on top as outlines, so they add context without covering up the growth colors underneath.
 					</li>
 					<li>
-						<span class="poc-methods__label">A staged build:</span>
-						The walkthrough adds one layer at a time so it is easier to see what each design choice contributes before the map gets busier.
+						<span class="poc-methods__label">One step at a time:</span>
+						The walkthrough adds one layer at a time, so it is easier to see what each piece adds before the map gets busier.
 					</li>
 					<li>
-						<span class="poc-methods__label">Highlights stay in the foreground:</span>
-						Mismatch outlines and project dots use distinct marks so the most important comparisons stand out without replacing the base map.
+						<span class="poc-methods__label">The main highlights stand out:</span>
+						Mismatch outlines and project dots use different marks so the key comparisons stand out without replacing the base map.
 					</li>
 					<li>
-						<span class="poc-methods__label">Details live in the side views:</span>
-						Income, selected-tract information, and comparisons sit in linked panels and tooltips so the map can stay readable at a glance.
+						<span class="poc-methods__label">Extra detail stays off the map:</span>
+						Income, tract details, and comparisons sit in side panels and tooltips so the map stays easy to read.
 					</li>
 				</ul>
 			</div>
