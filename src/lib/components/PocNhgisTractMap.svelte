@@ -263,30 +263,12 @@
 		}
 	];
 
-	const keyFindings = $derived.by(() => {
-		if (revealStage === 0) {
-			return [
-				'Housing growth is uneven across the region: blue tracts gained units faster, while red tracts lagged or lost units.',
-				'Transit access alone does not explain that variation, which is why the next steps add development context without changing the choropleth baseline.'
-			];
-		}
-		if (revealStage === 1) {
-			return [
-				'TOD-dominated and non-TOD-dominated tracts do not line up neatly with the strongest housing-growth areas.',
-				'That means development near transit is only part of the story, even before we isolate mismatch tracts.'
-			];
-		}
-		if (revealStage === 2) {
-			return [
-				'Some of the most transit-accessible tracts still show relatively weak housing growth, creating a clear access-growth mismatch.',
-				'These mismatch areas are the key places to investigate more closely with hover, selection, and the lower-income focus toggle.'
-			];
-		}
-		return [
-			'Bringing development dots back in links tract-level patterns to the actual projects shaping them.',
-			'This final view helps connect where growth happened, what kind of development was built, and whether those places align with transit access.'
-		];
-	});
+	const keyFindings = [
+		'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
+		'TOD-dominated and non-TOD-dominated tracts both appear across the map, which suggests transit-oriented development is only one part of the broader growth pattern.',
+		'Several highly transit-accessible tracts still show relatively weak housing growth, revealing a meaningful access-growth mismatch.',
+		'Bringing project dots back into the final view helps connect tract-level patterns to the actual developments shaping them.'
+	];
 
 	function stepRef(node, index) {
 		stepEls[index] = node;
@@ -2314,7 +2296,7 @@
 					</div>
 				</aside>
 			</div>
-			<div class="poc-key-findings card-key" role="note" aria-label="Key findings in this step">
+			<div class="poc-key-findings card-key" role="note" aria-label="Key findings summary">
 				<p class="poc-detail__kicker">Key findings</p>
 				<ul class="poc-map-callouts__list">
 					{#each keyFindings as c, i (i)}
