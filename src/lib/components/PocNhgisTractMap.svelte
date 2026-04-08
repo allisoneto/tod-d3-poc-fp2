@@ -2021,11 +2021,18 @@
 									<span>Start by reading color contrast before using controls: adjacent tracts often differ sharply.</span>
 								</div>
 							</div>
-							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage >= 1}>
+							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage === 1}>
 								<div class="poc-annotation__line"></div>
 								<div class="poc-annotation__box">
 									<strong>Category outlines add structure</strong>
 									<span>Green/orange/gray outlines separate TOD-dominant, non-TOD-dominant, and minimal-development tracts.</span>
+								</div>
+							</div>
+							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage === 2}>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>MassBuilds projects layer on</strong>
+									<span>Each dot is a project: dot size reflects unit count; fill shows multifamily share; white ring marks transit-accessible sites.</span>
 								</div>
 							</div>
 						</div>
