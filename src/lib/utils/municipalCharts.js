@@ -155,13 +155,6 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 			? 'Share of visible-window growth (%)'
 			: 'New units added in selected years';
 
-	const dominantLegend = addHtmlLegend(root, [
-		{ type: 'outline', color: 'var(--accent)', fill: '#ffffff', label: 'TOD-dominant municipality' },
-		{ type: 'outline', color: 'var(--warning)', fill: '#ffffff', label: 'Non-TOD-dominant municipality' },
-		{ type: 'outline', color: '#b7b0a3', fill: '#ffffff', label: 'No units yet in current window' }
-	]);
-	addRampLegend(root, 'Lower affordable share', 'Higher affordable share', incomePalette);
-
 	const width = root.node().clientWidth || 800;
 	const height = 460;
 	const margin = { top: 20, right: 20, bottom: 54, left: 66 };
@@ -217,14 +210,21 @@ export function renderMuniScatter(el, allRows, domainRows, state, callbacks) {
 		item.append('span').text(d3.format(',.0f')(v));
 	}
 
+	const dominantLegend = addHtmlLegend(root, [
+		{ type: 'outline', color: 'var(--accent)', fill: '#ffffff', label: 'TOD-dominant municipality' },
+		{ type: 'outline', color: 'var(--warning)', fill: '#ffffff', label: 'Non-TOD-dominant municipality' },
+		{ type: 'outline', color: '#b7b0a3', fill: '#ffffff', label: 'No units yet in current window' }
+	]);
+	addRampLegend(root, 'Lower affordable share', 'Higher affordable share', incomePalette);
+
 	root
 		.append('div')
 		.attr('class', 'chart-note')
 		.style('margin-bottom', '10px')
 		.text(
 			state.growthScale === 'share'
-				? 'Linear y-axis, fixed at share of visible-window growth. Use this mode to see which municipalities capture the growth mix.'
-				: `Linear y-axis, fixed over time. The chart is zoomed to the main municipal range through about ${d3.format(',.0f')(yMax)} units.`
+				? 'The dashed gray lines mark the regional averages on each axis. Use them to see which municipalities sit above or below the typical lower-income share and the typical share of visible-window growth.'
+				: `The dashed gray lines mark the regional averages on each axis. The chart is zoomed to the main municipal range through about ${d3.format(',.0f')(yMax)} units.`
 		);
 
 	const tooltip = makeTooltip(root);
