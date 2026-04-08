@@ -919,7 +919,8 @@
 						.style('cursor', 'help')
 						.on('mouseenter', handleInsightEnter)
 						.on('mousemove', handleMouseMove)
-						.on('mouseleave', handleOverlayLeave);
+						.on('mouseleave', handleOverlayLeave)
+						.on('click', handleInsightClick);
 					g.append('circle').attr('class', 'insight-marker__halo').attr('r', 10);
 					g.append('circle').attr('class', 'insight-marker__dot').attr('r', 4);
 					return g;
@@ -1250,6 +1251,16 @@
 				}
 			]
 		};
+	}
+
+	function handleInsightClick(event, d) {
+		event.stopPropagation();
+		if (!d?.id) return;
+		zoomToTract(d.id);
+		if (!panelState.selectedTracts.has(d.id)) {
+			panelState.toggleTract(d.id);
+		}
+		panelState.setLastInteracted(d.id);
 	}
 
 	const overlayKey = $derived(
@@ -3533,5 +3544,10 @@
 		stroke: #fff;
 		stroke-width: 1;
 		vector-effect: non-scaling-stroke;
+	}
+
+	:global(.insight-marker:hover .insight-marker__halo) {
+		stroke-width: 1.8;
+		filter: brightness(1.08);
 	}
 </style>
