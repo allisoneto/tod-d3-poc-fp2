@@ -1715,60 +1715,60 @@
 	<div class="poc-scrolly">
 		<div class="poc-scrolly-map">
 			<div class="poc-methods poc-methods--lead card-key" role="note" aria-label="TOD definitions">
-				<p class="poc-methods__title">Definitions</p>
+				<p class="poc-methods__title">Key definitions</p>
 				<p class="poc-methods__text">
-					<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop; other projects are treated as <strong>non-TOD developments</strong>.
-					<strong>TOD-dominated tracts</strong> are tracts with at least <strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units in TOD developments and at least <strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase.
+					<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop; everything else is treated as <strong>non-TOD development</strong>.
+					<strong>TOD-dominated tracts</strong> are tracts where at least <strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units come from TOD developments and housing stock increases by at least <strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong>.
 					<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
-					<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
+					<strong>Minimal development</strong> tracts do not reach that stock-increase threshold.
 				</p>
 			</div>
 			<div class="poc-methods poc-methods--encoding card-key" role="note" aria-label="Visual encoding and scrolly map">
-				<p class="poc-methods__title">How to read this map</p>
+				<p class="poc-methods__title">How to read the story</p>
 				<ul class="poc-methods__list poc-methods__list--encoding">
 					<li>
 						<span class="poc-methods__label">Fill (choropleth):</span>
-						Census % change in housing units for the selected period (diverging red–neutral–blue). This is the primary encoding; it does not change across scroll steps.
+						The tract fill shows census % change in housing units for the selected period using a red-to-blue scale. This is the main signal and it stays consistent as you scroll.
 					</li>
 					<li>
 						<span class="poc-methods__label">Cohort outlines (steps 2–4):</span>
-						Teal / orange / slate rings show MassBuilds-derived tract classes (TOD-dominated, non-TOD-dominated, minimal development), with a light interior tint—not a second color scale for growth.
+						Teal, orange, and slate outlines show the three tract groups from the MassBuilds data. They add context, but they are not a second growth color scale.
 					</li>
 					<li>
 						<span class="poc-methods__label">Mismatch overlays (steps 3–4):</span>
-						Violet and dashed lavender mark quartile-based “access vs growth” tension (transit stops vs census growth). Outlines only—so the story stays tied to the choropleth. Step 3 introduces one mismatch type; step 4 adds the second; step 4 can add optional project dots.
+						Purple and dashed lavender outlines mark places where transit access and housing growth pull in different directions. They stay as outlines so the map still reads through the choropleth.
 					</li>
 					<li>
-						<span class="poc-methods__label">Scrolly structure:</span>
-						Each step adds at most one layer (fill → cohorts → first mismatch → both mismatches + dots) to limit cognitive load. Toggles (mismatch-only, low-income emphasis) are optional filters for when the field feels dense.
+						<span class="poc-methods__label">Scrolly flow:</span>
+						Each step adds just one more layer at a time, so the map builds up gradually instead of all at once. The controls above are there if you want to explore on your own first.
 					</li>
 					<li>
 						<span class="poc-methods__label">Income:</span>
-						Median income and “lower income” (&lt;$125k) appear in tooltips and supplementary charts—not as map fill—so the view stays legible.
+						Median income and the “lower income” flag (&lt;$125k) appear in tooltips and supporting views, not as map fill, so the map stays readable.
 					</li>
 				</ul>
 			</div>
 			<div class="poc-methods poc-methods--assumptions card-key" role="note" aria-label="Assumptions used">
-				<p class="poc-methods__title">Assumptions Used</p>
+				<p class="poc-methods__title">Assumptions we use</p>
 				<ul class="poc-methods__list">
 					<li>
 						<span class="poc-methods__label">TOD access assumption:</span>
-						Distance to MBTA is approximated with a fixed cutoff of
+						We approximate MBTA access with a fixed cutoff of
 						<strong> {d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong>.
 					</li>
 					<li>
 						<span class="poc-methods__label">Tract grouping assumption:</span>
-						Classification uses
+						We classify tracts using
 						<strong> {d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase as the significant-development floor and
 						<strong> {d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> TOD share as the TOD-dominated cutoff.
 					</li>
 					<li>
 						<span class="poc-methods__label">Aggregation assumption:</span>
-						Displayed averages are simple tract-level means (each tract weighted equally), not weighted by tract population or unit counts.
+						The averages shown here are simple tract-level means, so each tract counts equally rather than being weighted by population or units.
 					</li>
 					<li>
 						<span class="poc-methods__label">Data quality assumption:</span>
-						Tan tracts are excluded from choropleth interpretation when % change is missing or unreliable.
+						Tan tracts are treated as limited-data areas when % change is missing or unreliable.
 					</li>
 				</ul>
 			</div>
@@ -1869,7 +1869,7 @@
 						<div class="poc-detail card-key" role="region" aria-label="Selected tract detail">
 							<div class="poc-detail__head">
 								<div>
-									<p class="poc-detail__kicker">Selected tract detail</p>
+									<p class="poc-detail__kicker">Selected tract</p>
 									<p class="poc-detail__title">{selectedTractDetail.title}</p>
 								</div>
 							<div class="poc-detail__actions">
@@ -1940,7 +1940,7 @@
 				<div class="poc-compare card-key" role="region" aria-label="Selected tract comparison chart">
 					<div class="poc-compare__head">
 						<div>
-							<p class="poc-detail__kicker">Selected tract chart</p>
+							<p class="poc-detail__kicker">Selection chart</p>
 							<p class="poc-detail__title">{selectionComparison.title}</p>
 						</div>
 						<div class="poc-compare__metric-tabs">
@@ -1992,7 +1992,7 @@
 					<p class="poc-detail__kicker">Mismatch focus</p>
 					<label class="poc-focus-toggle">
 						<input type="checkbox" bind:checked={focusLowIncomeTracts} />
-						<span>Show lower-income tracts (&lt;$125k median)</span>
+						<span>Focus lower-income tracts (&lt;$125k median)</span>
 					</label>
 					<p class="poc-detail__kicker" style="margin-top: 12px">Mismatch outlines</p>
 					<div class="poc-mismatch-mode" role="group" aria-label="Which mismatch categories to outline">
@@ -2030,7 +2030,7 @@
 						</button>
 					</div>
 					<p class="poc-detail__summary">
-						Choose mismatch pattern, optionally focus lower-income tracts, and click red markers to zoom to notable tracts.
+						Use this to focus one mismatch pattern, bring lower-income tracts forward, or jump to a notable tract with the red markers.
 					</p>
 				</div>
 
@@ -2039,7 +2039,7 @@
 						<div class="poc-detail__head">
 							<div>
 								<p class="poc-detail__kicker">A/B tract comparison</p>
-								<p class="poc-detail__title">Shift-click tracts to compare side by side</p>
+								<p class="poc-detail__title">Shift-click two tracts to compare them side by side</p>
 							</div>
 							<button class="poc-detail__btn poc-detail__btn--ghost" type="button" onclick={() => panelState.clearComparisonPair()}>
 								Reset
@@ -2267,7 +2267,7 @@
 						</div>
 					{/if}
 					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
-						<p class="poc-detail__kicker">What to notice</p>
+						<p class="poc-detail__kicker">What to look for</p>
 						<ul class="poc-map-callouts__list">
 							{#each mapCallouts as c, i (i)}
 								<li>{c}</li>
@@ -2279,7 +2279,7 @@
 						<aside class="poc-stepper-side" aria-label="Map explanation steps">
 					<div class="poc-stepper-head">
 						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">Scroll down the page and the map will progressively add layers.</p>
+						<p class="poc-stepper-inline-hint">When you scroll here, the map adds one layer at a time.</p>
 					</div>
 					<div class="poc-stepper-inline-rail" aria-label="Map steps">
 						{#each stepContent as step, i (i)}
@@ -2302,7 +2302,7 @@
 					</div>
 				</aside>
 			</div>
-			<p class="poc-map-zoom-hint">Scroll through the narrative steps · drag to pan · scroll or pinch to zoom</p>
+			<p class="poc-map-zoom-hint">Scroll through the walkthrough, drag to pan, and scroll or pinch to zoom.</p>
 		</div>
 	</div>
 </div>
