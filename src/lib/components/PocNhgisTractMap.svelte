@@ -3469,8 +3469,8 @@
 
 	.map-wrap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 10px;
+		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+		gap: 28px;
 		width: 100%;
 		background: transparent;
 		align-items: start;
