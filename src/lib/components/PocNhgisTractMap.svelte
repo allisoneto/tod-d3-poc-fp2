@@ -1988,6 +1988,32 @@
 					</div>
 				</div>
 
+				<aside class="poc-stepper-side" aria-label="Map explanation steps">
+					<div class="poc-stepper-head">
+						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
+						<p class="poc-stepper-inline-hint">When you scroll here, the map adds one layer at a time.</p>
+					</div>
+					<div class="poc-stepper-inline-rail" aria-label="Map steps">
+						{#each stepContent as step, i (i)}
+							<section
+								use:stepRef={i}
+								class="poc-stepper-card"
+								class:poc-stepper-card--active={revealStage === i}
+								data-step-index={i}
+							>
+								<div class="poc-stepper-card-top">
+									<span class="poc-stepper-pill-num">{i + 1}</span>
+									<div class="poc-stepper-pill-text">
+										<span class="poc-stepper-pill-kicker">{step.kicker}</span>
+										<span class="poc-stepper-pill-title">{step.title}</span>
+									</div>
+								</div>
+								<p class="poc-stepper-card-body">{step.body}</p>
+							</section>
+						{/each}
+					</div>
+				</aside>
+
 				<div class="poc-insight card-key" role="group" aria-label="Mismatch focus">
 					<p class="poc-detail__kicker">Mismatch focus</p>
 					<label class="poc-focus-toggle">
@@ -2275,32 +2301,6 @@
 						</ul>
 					</div>
 				</div>
-
-						<aside class="poc-stepper-side" aria-label="Map explanation steps">
-					<div class="poc-stepper-head">
-						<p class="poc-stepper-inline-kicker">Map walkthrough</p>
-						<p class="poc-stepper-inline-hint">When you scroll here, the map adds one layer at a time.</p>
-					</div>
-					<div class="poc-stepper-inline-rail" aria-label="Map steps">
-						{#each stepContent as step, i (i)}
-							<section
-								use:stepRef={i}
-								class="poc-stepper-card"
-								class:poc-stepper-card--active={revealStage === i}
-								data-step-index={i}
-							>
-								<div class="poc-stepper-card-top">
-									<span class="poc-stepper-pill-num">{i + 1}</span>
-									<div class="poc-stepper-pill-text">
-										<span class="poc-stepper-pill-kicker">{step.kicker}</span>
-										<span class="poc-stepper-pill-title">{step.title}</span>
-									</div>
-								</div>
-								<p class="poc-stepper-card-body">{step.body}</p>
-							</section>
-						{/each}
-					</div>
-				</aside>
 			</div>
 			<p class="poc-map-zoom-hint">Scroll through the walkthrough, drag to pan, and scroll or pinch to zoom.</p>
 		</div>
@@ -2342,12 +2342,10 @@
 		display: grid;
 		gap: 14px;
 		align-content: start;
-		padding-top: 4px;
+		padding-top: 0;
 		min-width: 0;
 		position: relative;
 		z-index: 1;
-		grid-column: 2;
-		grid-row: 1 / span 3;
 	}
 
 	.poc-stepper-head {
@@ -2383,7 +2381,7 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 16vh;
-		padding-top: 12px;
+		padding-top: 0;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
 		padding-bottom: calc(32vh + 68px);
 		isolation: isolate;
@@ -2525,6 +2523,17 @@
 
 		.poc-compare {
 			grid-column: 2;
+			grid-row: 1;
+		}
+
+		.poc-stepper-side {
+			grid-column: 2;
+			grid-row: 2;
+		}
+
+		.poc-insight {
+			grid-column: 1;
+			grid-row: 2;
 		}
 
 	}
@@ -3468,8 +3477,8 @@
 
 	.map-wrap {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
-		gap: 28px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 10px;
 		width: 100%;
 		background: transparent;
 		align-items: start;
