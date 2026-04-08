@@ -2415,10 +2415,10 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 14vh;
+		gap: 18vh;
 		padding-top: 8px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: calc(30vh + 56px);
+		padding-bottom: calc(34vh + 64px);
 		isolation: isolate;
 	}
 
@@ -2427,7 +2427,7 @@
 		align-content: center;
 		gap: 12px;
 		width: 100%;
-		min-height: 58vh;
+		min-height: 62vh;
 		padding: 10px 0 0;
 		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		padding-left: 18px;
@@ -2748,7 +2748,7 @@
 		font-weight: 700;
 		line-height: 1.2;
 		text-align: left;
-		min-height: 62px;
+		min-height: 56px;
 		transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
 	}
 
@@ -2790,7 +2790,7 @@
 
 	.poc-spotlight__summary-title {
 		margin: 0;
-		font-size: 0.82rem;
+		font-size: 0.78rem;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -2820,7 +2820,7 @@
 	.poc-spotlight__stat-value {
 		display: block;
 		margin-top: 2px;
-		font-size: 0.82rem;
+		font-size: 0.76rem;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -2954,7 +2954,7 @@
 
 	.poc-insight {
 		display: grid;
-		gap: 6px;
+		gap: 5px;
 	}
 
 	.poc-insight__buttons {
@@ -3013,7 +3013,7 @@
 
 	.poc-compare__head {
 		display: grid;
-		gap: 6px;
+		gap: 5px;
 	}
 
 	.poc-compare__metric-tabs {
@@ -3039,17 +3039,17 @@
 
 	.poc-compare__bars {
 		display: grid;
-		gap: 8px;
+		gap: 6px;
 	}
 
 	.poc-compare__row {
 		display: grid;
 		grid-template-columns: minmax(0, 156px) minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 8px;
+		gap: 7px;
 		border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--border));
 		border-radius: 12px;
-		padding: 0.42rem 0.58rem;
+		padding: 0.34rem 0.48rem;
 		background: color-mix(in srgb, var(--bg-card) 96%, white 4%);
 		color: inherit;
 		text-align: left;
@@ -3064,7 +3064,7 @@
 	.poc-compare__track {
 		display: flex;
 		align-items: center;
-		height: 12px;
+		height: 10px;
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--border) 72%, var(--bg-card));
 		overflow: hidden;
@@ -3460,8 +3460,8 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.45rem;
-		font-size: 0.72rem;
-		line-height: 1.28;
+		font-size: 0.69rem;
+		line-height: 1.22;
 		color: var(--text);
 		cursor: pointer;
 		user-select: none;
@@ -3476,7 +3476,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 5px;
-		margin: 0 0 6px;
+		margin: 0 0 4px;
 	}
 
 	.poc-mismatch-mode__btn {
