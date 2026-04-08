@@ -2356,6 +2356,10 @@
 		gap: 10px;
 		min-width: 0;
 		min-height: 0;
+		position: sticky;
+		top: 10px;
+		align-self: start;
+		z-index: 1;
 	}
 
 	.poc-stepper-side {
@@ -2566,6 +2570,11 @@
 		.poc-scrolly-left,
 		.map-visual-column {
 			gap: 6px;
+		}
+
+		.poc-scrolly-left {
+			position: relative;
+			top: auto;
 		}
 
 		.poc-control-stack {
@@ -3528,8 +3537,8 @@
 	}
 
 	.map-main {
-		position: sticky;
-		top: 10px;
+		position: relative;
+		top: auto;
 		align-self: start;
 		z-index: 1;
 		min-width: 0;
