@@ -1089,11 +1089,9 @@
 		{:else}
 			<!-- Tract cohort map -->
 			<section class="chart-card card full-width">
-				<h3>TOD and housing growth do not align uniformly across tracts (2000–2020)</h3>
+				<h3>Transit access and new housing growth do not consistently align across Greater Boston tracts</h3>
 				<p class="chart-note">
-					Census tracts are colored by <strong>percent change in housing units (2000–2020)</strong>, relative to 2000 stock, and outlined according to
-					their development categorizations (minimal development TOD-dominated vs non-TOD-dominated).
-					Use the overlays to show MBTA lines and stops, as well as development projects from the 
+					Read this map in layers: tract color shows <strong>percent housing growth (2000–2020)</strong>, outlines show development cohort, and optional overlays add MBTA lines/stops and project points from the 
 					<a href="https://www.massbuilds.com/map" target="_blank" rel="noopener noreferrer">MassBuilds dataset</a>.
 				</p>
 				<ul class="story-list chart-guide">

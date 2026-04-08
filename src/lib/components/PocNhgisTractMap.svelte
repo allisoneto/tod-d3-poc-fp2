@@ -62,6 +62,7 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
+	let insightMode = $state(/** @type {'none' | 'high_access_low_growth' | 'high_growth_low_access'} */ ('none'));
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
 	let devSizeLegendTicks = $state(/** @type {{ units: number; rPx: number }[] | null} */ (null));
@@ -73,6 +74,8 @@
 
 	/** Lighter grey for minimal-development tract outline (half stroke vs TOD tiers); legend ring matches. */
 	const MINIMAL_TRACT_STROKE = '#94a3b8';
+	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
+	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
 	function devClassStroke(row) {
 		const dc = row?.devClass;
@@ -124,6 +127,37 @@
 		return d3.interpolateRgb(baseFill, accent)(dc === 'minimal' ? 0.1 : 0.17);
 	}
 
+	function tractsByInsightMode(mode) {
+		if (!mode || mode === 'none') return new Set();
+		const byGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const stops = tractList
+			.map((t) => Number(t?.transit_stops))
+			.filter(Number.isFinite);
+		const growths = (nhgisRows ?? [])
+			.map((r) => Number(r?.census_hu_pct_change))
+			.filter(Number.isFinite);
+		if (!stops.length || !growths.length) return new Set();
+		const qStopsLo = d3.quantile(stops.sort(d3.ascending), 0.25) ?? 0;
+		const qStopsHi = d3.quantile(stops.sort(d3.ascending), 0.75) ?? 0;
+		const qGrowthLo = d3.quantile(growths.sort(d3.ascending), 0.25) ?? 0;
+		const qGrowthHi = d3.quantile(growths.sort(d3.ascending), 0.75) ?? 0;
+		const ids = new Set();
+		for (const t of tractList ?? []) {
+			const id = t?.gisjoin;
+			if (!id) continue;
+			const row = byGj.get(id);
+			if (!row) continue;
+			const stopN = Number(t?.transit_stops);
+			const g = Number(row?.census_hu_pct_change);
+			if (!Number.isFinite(stopN) || !Number.isFinite(g)) continue;
+			if (mode === HIGH_ACCESS_LOW_GROWTH && stopN >= qStopsHi && g <= qGrowthLo) ids.add(id);
+			if (mode === HIGH_GROWTH_LOW_ACCESS && stopN <= qStopsLo && g >= qGrowthHi) ids.add(id);
+		}
+		return ids;
+	}
+
+	const insightSet = $derived.by(() => tractsByInsightMode(insightMode));
+
 	const stepContent = [
 		{
 			kicker: 'Step 1',
@@ -152,7 +186,8 @@
 		if (revealStage === 1) {
 			return [
 				'Outline colors add cohort meaning on top of growth: TOD-dominated, non-TOD-dominated, and minimal-development.',
-				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.'
+				'Use the spotlight buttons to isolate one cohort and compare patterns against the rest of the map.',
+				'Use "Insight reveal" to surface tract-level mismatches that are hard to see in the default layering.'
 			];
 		}
 		return [
@@ -605,13 +640,18 @@
 				const row = rowByGj.get(id);
 				const dc = row?.devClass;
 				if (revealStage < 1) return 0.45;
+				const inInsight = insightSet.has(id);
+				if (insightMode !== 'none' && inInsight) return 3.8;
 				if (!dc) return 0.5;
 				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
-				return dc === 'minimal' ? 1.15 : 2.4;
+				// Default pre-highlight so a key pattern is immediately visible without interaction.
+				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
 			})
 			.attr('opacity', (d) => {
 				const row = rowByGj.get(d.properties?.gisjoin);
+				const inInsight = insightSet.has(d.properties?.gisjoin);
 				if (!spotlight) return 1;
+				if (insightMode !== 'none') return inInsight ? 1 : 0.14;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
 
@@ -839,17 +879,21 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
 				const dc = row?.devClass;
+				const inInsight = insightSet.has(id);
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
 				if (revealStage < 1) return 0.45;
+				if (insightMode !== 'none' && inInsight) return 3.8;
 				if (!dc) return 0.5;
 				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
-				return dc === 'minimal' ? 1.15 : 2.4;
+				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
 			})
 			.attr('opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj?.get(id);
+				const inInsight = insightSet.has(id);
 				if (id === hoveredId || selectedSet.has(id)) return 1;
+				if (insightMode !== 'none') return inInsight ? 1 : 0.14;
 				if (!spotlight) return 1;
 				return isSpotlightMatch(row, spotlight) ? 1 : 0.2;
 			});
@@ -969,7 +1013,10 @@
 	function handleTractClick(event, d) {
 		event.stopPropagation();
 		const id = d.properties?.gisjoin;
-		if (id) panelState.toggleTract(id);
+		if (!id) return;
+		panelState.toggleTract(id);
+		// Shift-click builds explicit A/B tract comparison.
+		if (event.shiftKey) panelState.toggleComparisonTract(id);
 	}
 
 	function handleStopEnter(event, d) {
@@ -1235,6 +1282,27 @@
 		return { label: 'Avg. housing growth', suffix: '%', formatter: d3.format('.1f') };
 	});
 
+	const comparisonPairDetails = $derived.by(() => {
+		const pair = panelState.comparisonPair ?? [];
+		if (!pair.length) return [];
+		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		return pair.map((id) => {
+			const row = rowByGj.get(id) ?? null;
+			const metric = tractTodMetricsMap?.get(id) ?? null;
+			const tract = tractList.find((t) => t.gisjoin === id) ?? null;
+			return {
+				id,
+				label: tract?.county && String(tract.county) !== 'County Name' ? `Tract in ${tract.county}` : id,
+				cohort: cohortLabel(row?.devClass),
+				huGrowth: Number.isFinite(Number(row?.census_hu_pct_change)) ? Number(row.census_hu_pct_change) : null,
+				todShare: Number.isFinite(Number(metric?.todFraction)) ? Number(metric.todFraction) : null,
+				stockIncrease: Number.isFinite(Number(metric?.pctStockIncrease)) ? Number(metric.pctStockIncrease) : null,
+				newUnits: Number.isFinite(Number(metric?.totalNewUnits)) ? Number(metric.totalNewUnits) : null,
+				stops: Number.isFinite(Number(tract?.transit_stops)) ? Number(tract.transit_stops) : null
+			};
+		});
+	});
+
 	$effect(() => {
 		void structuralKey;
 		void containerEl;
@@ -1253,6 +1321,8 @@
 		void dataKey;
 		void revealStage;
 		void activeSpotlight;
+		void insightMode;
+		void insightSet;
 		if (!containerEl || !svgRef) return;
 		updateChoropleth();
 		updateDevelopments();
@@ -1269,6 +1339,8 @@
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
+		void insightMode;
+		void insightSet;
 		if (!containerEl || !svgRef) return;
 		updateSelection();
 	});
@@ -1674,6 +1746,74 @@
 						{/each}
 					</div>
 				</div>
+
+				<div class="poc-insight card-key" role="group" aria-label="Non-obvious pattern reveal">
+					<p class="poc-detail__kicker">Insight reveal</p>
+					<div class="poc-insight__buttons">
+						<button
+							type="button"
+							class="poc-compare__tab"
+							class:poc-compare__tab--active={insightMode === 'none'}
+							onclick={() => (insightMode = 'none')}
+						>
+							Off
+						</button>
+						<button
+							type="button"
+							class="poc-compare__tab"
+							class:poc-compare__tab--active={insightMode === 'high_access_low_growth'}
+							onclick={() => (insightMode = 'high_access_low_growth')}
+						>
+							High access + low growth
+						</button>
+						<button
+							type="button"
+							class="poc-compare__tab"
+							class:poc-compare__tab--active={insightMode === 'high_growth_low_access'}
+							onclick={() => (insightMode = 'high_growth_low_access')}
+						>
+							High growth + low access
+						</button>
+					</div>
+					<p class="poc-detail__summary">
+						{#if insightMode === 'high_access_low_growth'}
+							Highlights tracts in the top quartile of transit access but bottom quartile of housing growth.
+						{:else if insightMode === 'high_growth_low_access'}
+							Highlights tracts in the top quartile of housing growth but bottom quartile of transit access.
+						{:else}
+							Turn on one reveal mode to isolate mismatch tracts and dim the rest of the map.
+						{/if}
+					</p>
+				</div>
+
+				{#if comparisonPairDetails.length > 0}
+					<div class="poc-pair card-key" role="region" aria-label="Two-tract side-by-side comparison">
+						<div class="poc-detail__head">
+							<div>
+								<p class="poc-detail__kicker">A/B tract comparison</p>
+								<p class="poc-detail__title">Shift-click tracts to compare side by side</p>
+							</div>
+							<button class="poc-detail__btn poc-detail__btn--ghost" type="button" onclick={() => panelState.clearComparisonPair()}>
+								Reset
+							</button>
+						</div>
+						<div class="poc-pair__grid" style={`grid-template-columns: repeat(${Math.max(1, comparisonPairDetails.length)}, minmax(0, 1fr));`}>
+							{#each comparisonPairDetails as tract (tract.id)}
+								<section class="poc-pair__card">
+									<p class="poc-pair__title">{tract.label}</p>
+									<p class="poc-pair__sub">{tract.cohort}</p>
+									<div class="poc-pair__rows">
+										<div><span>Housing growth</span><strong>{tract.huGrowth == null ? '—' : `${d3.format('.1f')(tract.huGrowth)}%`}</strong></div>
+										<div><span>TOD share</span><strong>{tract.todShare == null ? '—' : `${d3.format('.1f')(tract.todShare * 100)}%`}</strong></div>
+										<div><span>Stock increase</span><strong>{tract.stockIncrease == null ? '—' : `${d3.format('.1f')(tract.stockIncrease)}%`}</strong></div>
+										<div><span>New units</span><strong>{tract.newUnits == null ? '—' : d3.format(',.0f')(tract.newUnits)}</strong></div>
+										<div><span>Transit stops</span><strong>{tract.stops == null ? '—' : d3.format(',.0f')(tract.stops)}</strong></div>
+									</div>
+								</section>
+							{/each}
+						</div>
+					</div>
+				{/if}
 				</div>
 
 					<div
@@ -1696,6 +1836,29 @@
 							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
 							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
 							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
+						</div>
+						<div class="poc-annotations" aria-hidden="true">
+							<div class="poc-annotation" class:poc-annotation--visible={revealStage === 0}>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>Growth is uneven across nearby tracts</strong>
+									<span>Start by reading color contrast before using controls: adjacent tracts often differ sharply.</span>
+								</div>
+							</div>
+							<div class="poc-annotation poc-annotation--right" class:poc-annotation--visible={revealStage >= 1}>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>Category outlines add structure</strong>
+									<span>Green/orange/gray outlines separate TOD-dominant, non-TOD-dominant, and minimal-development tracts.</span>
+								</div>
+							</div>
+							<div class="poc-annotation poc-annotation--bottom" class:poc-annotation--visible={insightMode !== 'none'}>
+								<div class="poc-annotation__line"></div>
+								<div class="poc-annotation__box">
+									<strong>Mismatch reveal surfaces hidden cases</strong>
+									<span>Dimming non-matches makes tract-level contradictions visible without manual scanning.</span>
+								</div>
+							</div>
 						</div>
 						<div class="map-root" bind:this={containerEl}></div>
 					</div>
@@ -2341,6 +2504,65 @@
 		height: 100%;
 	}
 
+	.poc-insight {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-insight__buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.poc-pair {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-pair__grid {
+		display: grid;
+		gap: 8px;
+	}
+
+	.poc-pair__card {
+		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 4%, var(--bg-card));
+		padding: 8px;
+	}
+
+	.poc-pair__title {
+		margin: 0;
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.poc-pair__sub {
+		margin: 2px 0 6px;
+		font-size: 0.68rem;
+		color: var(--text-muted);
+	}
+
+	.poc-pair__rows {
+		display: grid;
+		gap: 5px;
+	}
+
+	.poc-pair__rows div {
+		display: flex;
+		justify-content: space-between;
+		gap: 10px;
+		font-size: 0.7rem;
+		color: var(--text-muted);
+	}
+
+	.poc-pair__rows strong {
+		color: var(--text);
+		font-variant-numeric: tabular-nums;
+	}
+
 	.poc-compare__head {
 		display: grid;
 		gap: 8px;
@@ -2828,6 +3050,71 @@
 
 	.map-widget {
 		position: relative;
+	}
+
+	.poc-annotations {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: 5;
+	}
+
+	.poc-annotation {
+		position: absolute;
+		display: grid;
+		gap: 3px;
+		opacity: 0;
+		transform: translateY(4px);
+		transition: opacity 220ms ease, transform 220ms ease;
+	}
+
+	.poc-annotation--visible {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.poc-annotation:first-child {
+		top: 72px;
+		left: 24px;
+	}
+
+	.poc-annotation--right {
+		top: 130px;
+		right: 72px;
+	}
+
+	.poc-annotation--bottom {
+		bottom: 38px;
+		left: 34%;
+	}
+
+	.poc-annotation__line {
+		width: 34px;
+		height: 2px;
+		background: color-mix(in srgb, var(--accent) 62%, white 38%);
+	}
+
+	.poc-annotation__box {
+		max-width: 220px;
+		display: grid;
+		gap: 2px;
+		padding: 6px 8px;
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--bg-card) 92%, white 8%);
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+		box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+	}
+
+	.poc-annotation__box strong {
+		font-size: 0.66rem;
+		line-height: 1.2;
+		color: var(--text);
+	}
+
+	.poc-annotation__box span {
+		font-size: 0.62rem;
+		line-height: 1.35;
+		color: var(--text-muted);
 	}
 
 	.map-widget__controls {
