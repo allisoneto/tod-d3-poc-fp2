@@ -1387,17 +1387,12 @@
 			});
 	}
 
-	function handleTractEnter(event, d) {
-		const id = d.properties?.gisjoin;
-		panelState.setHovered(id);
-		const mk = id ? mismatchKind(id) : null;
-		hoveredMismatchCluster =
-			mk && effectiveMismatchIds.has(id) ? mk : null;
+	function showTractTooltip(id, x, y) {
+		if (!id) return;
 		const el = containerEl;
 		if (!el) return;
 		const rowByGj = el.__pocRowByGj;
 		const row = rowByGj?.get(id);
-		const fmt = d3.format('.2f');
 		const fmt1 = d3.format('.1f');
 		const fmtInt = d3.format(',.0f');
 		const tractLookup = buildTractLookup();
@@ -1521,8 +1516,8 @@
 
 		tooltip = {
 			visible: true,
-			x: event.clientX,
-			y: event.clientY,
+			x,
+			y,
 			eyebrow: mismatchEyebrow ?? 'Census tract',
 			title: county && String(county) !== 'County Name' ? `Tract in ${tractPlace}` : `Tract: ${tractPlace}`,
 			badge: tier,
@@ -1530,6 +1525,14 @@
 			primaryRows,
 			secondaryRows
 		};
+	}
+
+	function handleTractEnter(event, d) {
+		const id = d.properties?.gisjoin;
+		panelState.setHovered(id);
+		const mk = id ? mismatchKind(id) : null;
+		hoveredMismatchCluster = mk && effectiveMismatchIds.has(id) ? mk : null;
+		showTractTooltip(id, event.clientX, event.clientY);
 	}
 
 	function handleMouseMove(event) {
@@ -2032,10 +2035,15 @@
 	function inspectGuidedExample(id) {
 		if (!id) return;
 		zoomToTract(id);
-		if (!panelState.selectedTracts.has(id)) {
-			panelState.toggleTract(id);
-		}
+		panelState.selectAll([id]);
 		panelState.setLastInteracted(id);
+		panelState.setHovered(id);
+		const rect = containerEl?.getBoundingClientRect();
+		const fallbackX = typeof window !== 'undefined' ? window.innerWidth * 0.68 : 960;
+		const fallbackY = typeof window !== 'undefined' ? window.innerHeight * 0.34 : 360;
+		const x = rect ? rect.left + rect.width * 0.38 : fallbackX;
+		const y = rect ? rect.top + rect.height * 0.24 : fallbackY;
+		showTractTooltip(id, x, y);
 	}
 
 	function inspectGuidedDevelopment(d) {
@@ -2788,7 +2796,7 @@
 											>
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{example.label}</span>
-													<span class="poc-stepper-example__cta">Zoom to tract</span>
+													<span class="poc-stepper-example__cta">Show on map</span>
 												</div>
 												<p class="poc-stepper-example__note">{example.note}</p>
 												<div class="poc-stepper-example__metrics">
