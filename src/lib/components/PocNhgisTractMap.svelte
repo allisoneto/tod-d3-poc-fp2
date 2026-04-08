@@ -348,10 +348,10 @@
 			{
 				kicker: 'Step 10',
 				title: 'Important developments',
-				body: 'This step keeps the project layer in view but shifts the emphasis to a few developments that help explain the broader argument. Looking at both TOD and non-TOD projects makes it easier to see how new housing, affordability, and transit access do not always line up in the same way.',
-				legend: 'Read these dots as concrete examples rather than as a complete inventory. Some are close to transit and add many units, while others show how substantial housing growth can still be delivered outside the stronger transit geography.',
-				why: 'This matters for the gentrification argument because the geography of actual projects helps shape who benefits from new housing and who remains farther from transit-linked opportunity.',
-				prompt: 'The examples below highlight a few projects that matter to this argument. Hover over dots and tracts for tooltips with more detail.'
+				body: 'This step moves from the full project field to a smaller set of developments that help explain the argument more directly. Projects like Assembly Row and Suffolk Downs show how dense housing can align with strong transit access, while places like the Seaport or weaker-transit suburban cases show that substantial growth can also occur outside that geography.',
+				legend: 'Read these dots as named examples, not as a complete inventory. The point is to compare how different projects line up with transit access, scale, and affordable-unit commitments.',
+				why: 'This matters for the gentrification argument because new housing does not benefit every household in the same way. Where projects are built, how transit-linked they are, and whether affordability is included all shape who can actually access the opportunity those developments create.',
+				prompt: 'Use Show on map to pin one of these developments, then read its tooltip for units, affordable units, and transit access.'
 			},
 			{
 				kicker: 'Step 11',
@@ -2085,6 +2085,51 @@
 		if (!guidedMode || !tractList?.length) return [];
 		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const curatedTargets = [
+			{
+				match: (name, municipal) => name.includes('assembly row') && municipal === 'somerville',
+				sortBoost: 420,
+				importanceNote:
+					'Assembly Row is one of the clearest alignment cases in the region: dense housing delivered right on top of rapid transit, which is the TOD pattern planners often hope to reproduce.'
+			},
+			{
+				match: (name, municipal) =>
+					(name.includes('cambridge crossing') || name.includes('north point')) && municipal === 'cambridge',
+				sortBoost: 360,
+				importanceNote:
+					'Cambridge Crossing shows that strong TOD can still lean heavily market-rate, which matters because transit access alone does not guarantee affordability.'
+			},
+			{
+				match: (name) => name.includes('suffolk downs'),
+				sortBoost: 380,
+				importanceNote:
+					'Suffolk Downs matters because it represents TOD at very large future scale, but the affordability story is phased over time rather than arriving all at once.'
+			},
+			{
+				match: (name) => name.includes('south bay'),
+				sortBoost: 260,
+				importanceNote:
+					'South Bay helps show a weaker TOD case: substantial housing growth near transit infrastructure, but not with the same direct, subway-oriented accessibility as the strongest core examples.'
+			},
+			{
+				match: (name) => name.includes('seaport'),
+				sortBoost: 300,
+				importanceNote:
+					'Seaport growth is important because it shows how a large share of housing and jobs can still accumulate outside the strongest rapid-transit geography.'
+			},
+			{
+				match: (_name, municipal) => municipal === 'quincy',
+				sortBoost: 180,
+				importanceNote:
+					'A Quincy example helps show that even in a transit-served city, development is uneven and not every major project lands in the strongest TOD setting.'
+			},
+			{
+				match: (_name, municipal) => municipal === 'weymouth',
+				sortBoost: 170,
+				importanceNote:
+					'A Weymouth example shows the reverse case: meaningful multifamily growth can still occur in places that depend more on weaker or less frequent transit access.'
+			}
+		];
 		const enriched = filteredDevs
 			.map((d) => {
 				const lon = Number(d.longitude);
@@ -2093,20 +2138,33 @@
 				if (!Number.isFinite(lon) || !Number.isFinite(lat) || units <= 0) return null;
 				const affordableUnits = developmentAffordableUnitsCapped(d);
 				const isTod = isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+				const normalizedName = String(d.name || d.project_name || '').toLowerCase();
+				const normalizedMunicipal = String(d.municipal || '').toLowerCase();
+				const curated = curatedTargets.find((t) => t.match(normalizedName, normalizedMunicipal));
 				return {
 					...d,
 					units,
 					affordableUnits,
 					isTod,
 					categoryLabel: isTod ? 'TOD development' : 'Non-TOD development',
-					importanceNote: isTod
-						? 'This TOD project shows where new housing is being added close to transit, which is the alignment case the policy conversation often expects.'
-						: 'This non-TOD project shows that substantial housing can still be added outside the strongest transit geography, which matters for the mismatch argument.',
-					score: units + affordableUnits * 3 + (affordableUnits > 0 ? 120 : 0) + (isTod ? 40 : 0)
+					importanceNote: curated
+						? curated.importanceNote
+						: isTod
+							? 'This TOD project shows where new housing is being added close to transit, which is the alignment case the policy conversation often expects.'
+							: 'This non-TOD project shows that substantial housing can still be added outside the strongest transit geography, which matters for the mismatch argument.',
+					curatedPriority: curated ? 1 : 0,
+					score:
+						units +
+						affordableUnits * 3 +
+						(affordableUnits > 0 ? 120 : 0) +
+						(isTod ? 40 : 0) +
+						(curated?.sortBoost ?? 0)
 				};
 			})
 			.filter(Boolean)
 			.sort((a, b) => b.score - a.score);
+		const curated = enriched.filter((d) => d.curatedPriority === 1);
+		if (curated.length) return curated.slice(0, 4);
 		const tod = enriched.find((d) => d.isTod);
 		const nonTod = enriched.find((d) => !d.isTod);
 		const affordability = enriched.find((d) => d.affordableUnits > 0 && d !== tod && d !== nonTod) ?? enriched.find((d) => d.affordableUnits > 0);
