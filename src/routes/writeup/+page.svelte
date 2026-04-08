@@ -211,19 +211,29 @@
 		<h3>Color palette details</h3>
 		<p>
 			We also want the palette to be documented concretely. The core MBTA-based colors used in the project are
-			<strong>green</strong> <code>#00843D</code> / <code>rgb(0, 132, 61)</code>, <strong>orange</strong>
-			<code>#ED8B00</code> / <code>rgb(237, 139, 0)</code>, <strong>red</strong> <code>#DA291C</code> /
-			<code>rgb(218, 41, 28)</code>, and <strong>blue</strong> <code>#003DA5</code> /
-			<code>rgb(0, 61, 165)</code>. We use green and orange for TOD versus non-TOD development categories, and we use the
-			red-blue pair for the housing-growth choropleth.
+			<strong>green</strong> <span class="writeup-color-chip" style="--chip:#00843D; --chip-ink:#ffffff;">#00843D</span>
+			/ <span class="writeup-color-chip" style="--chip:#00843D; --chip-ink:#ffffff;">rgb(0, 132, 61)</span>,
+			<strong>orange</strong> <span class="writeup-color-chip" style="--chip:#ED8B00; --chip-ink:#1f2430;">#ED8B00</span>
+			/ <span class="writeup-color-chip" style="--chip:#ED8B00; --chip-ink:#1f2430;">rgb(237, 139, 0)</span>,
+			<strong>red</strong> <span class="writeup-color-chip" style="--chip:#DA291C; --chip-ink:#ffffff;">#DA291C</span>
+			/ <span class="writeup-color-chip" style="--chip:#DA291C; --chip-ink:#ffffff;">rgb(218, 41, 28)</span>, and
+			<strong>blue</strong> <span class="writeup-color-chip" style="--chip:#003DA5; --chip-ink:#ffffff;">#003DA5</span>
+			/ <span class="writeup-color-chip" style="--chip:#003DA5; --chip-ink:#ffffff;">rgb(0, 61, 165)</span>. We use green
+			and orange for TOD versus non-TOD development categories, and we use the red-blue pair for the housing-growth
+			choropleth.
 		</p>
 		<p>
 			The mismatch layer uses a related purple family rather than a completely separate arbitrary color: the stronger mismatch
-			outline is <code>#8A78E0</code> / <code>rgb(138, 120, 224)</code>, and the lighter dashed mismatch outline is
-			<code>#C4B5F0</code> / <code>rgb(196, 181, 240)</code>. Minimal-development outlines use a quieter gray
-			<code>#94A3B8</code> / <code>rgb(148, 163, 184)</code>, and supporting neutral fills use tan tones such as
-			<code>#E7E0D5</code> / <code>rgb(231, 224, 213)</code>. Writing the values out this way makes it clearer that the color
-			system was chosen deliberately and implemented consistently across the map, legends, and linked views.
+			outline is <span class="writeup-color-chip" style="--chip:#8A78E0; --chip-ink:#ffffff;">#8A78E0</span> /
+			<span class="writeup-color-chip" style="--chip:#8A78E0; --chip-ink:#ffffff;">rgb(138, 120, 224)</span>, and the
+			lighter dashed mismatch outline is <span class="writeup-color-chip" style="--chip:#C4B5F0; --chip-ink:#1f2430;">#C4B5F0</span>
+			/ <span class="writeup-color-chip" style="--chip:#C4B5F0; --chip-ink:#1f2430;">rgb(196, 181, 240)</span>.
+			Minimal-development outlines use a quieter gray <span class="writeup-color-chip" style="--chip:#94A3B8; --chip-ink:#1f2430;">#94A3B8</span>
+			/ <span class="writeup-color-chip" style="--chip:#94A3B8; --chip-ink:#1f2430;">rgb(148, 163, 184)</span>, and
+			supporting neutral fills use tan tones such as <span class="writeup-color-chip" style="--chip:#E7E0D5; --chip-ink:#1f2430;">#E7E0D5</span>
+			/ <span class="writeup-color-chip" style="--chip:#E7E0D5; --chip-ink:#1f2430;">rgb(231, 224, 213)</span>. Writing the
+			values out this way makes it clearer that the color system was chosen deliberately and implemented consistently across the
+			map, legends, and linked views.
 		</p>
 
 		<h3>What do we think does not work quite as well as we hoped?</h3>
@@ -479,6 +489,20 @@
 		color: #00843d;
 		font-weight: 700;
 		text-decoration: none;
+	}
+
+	.writeup-color-chip {
+		display: inline-block;
+		margin: 0 0.15rem 0.15rem 0;
+		padding: 0.14rem 0.46rem;
+		border-radius: 999px;
+		border: 1px solid rgba(31, 36, 48, 0.12);
+		background: var(--chip, #fffdf8);
+		color: var(--chip-ink, #1f2430);
+		font-family: 'SFMono-Regular', ui-monospace, monospace;
+		font-size: 0.9em;
+		line-height: 1.25;
+		white-space: nowrap;
 	}
 
 	.writeup-linkback a:hover {
