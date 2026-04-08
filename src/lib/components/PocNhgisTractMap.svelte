@@ -2347,7 +2347,7 @@
 	.poc-scrolly-shell {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
-		gap: 28px;
+		gap: 22px;
 		align-items: start;
 	}
 
@@ -2364,9 +2364,9 @@
 
 	.poc-stepper-side {
 		display: grid;
-		gap: 14px;
+		gap: 12px;
 		align-content: start;
-		padding-top: 4px;
+		padding-top: 2px;
 		min-width: 0;
 		position: relative;
 		z-index: 1;
@@ -2378,7 +2378,7 @@
 		z-index: 3;
 		display: grid;
 		gap: 4px;
-		padding: 12px 14px;
+		padding: 10px 12px;
 		border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
 		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--bg-card) 96%, white);
@@ -2404,10 +2404,10 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 16vh;
-		padding-top: 12px;
+		gap: 14vh;
+		padding-top: 8px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: calc(32vh + 68px);
+		padding-bottom: calc(30vh + 56px);
 		isolation: isolate;
 	}
 
@@ -2640,13 +2640,13 @@
 	}
 
 	.poc-methods--lead {
-		margin-bottom: 8px;
-		padding: 12px 14px;
+		margin-bottom: 6px;
+		padding: 10px 12px;
 	}
 
 	.poc-methods--encoding {
-		margin-bottom: 8px;
-		padding: 12px 14px;
+		margin-bottom: 6px;
+		padding: 10px 12px;
 		border-color: color-mix(in srgb, var(--border) 92%, var(--text-muted));
 	}
 
@@ -2659,8 +2659,8 @@
 	}
 
 	.poc-methods--assumptions {
-		margin-bottom: 10px;
-		padding: 12px 14px;
+		margin-bottom: 8px;
+		padding: 10px 12px;
 		border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
 		background: color-mix(in srgb, var(--accent) 4%, var(--bg-card));
 	}
@@ -2675,8 +2675,8 @@
 
 	.poc-methods__text {
 		margin: 0;
-		font-size: 0.9rem;
-		line-height: 1.6;
+		font-size: 0.84rem;
+		line-height: 1.48;
 		color: var(--text-muted);
 	}
 
@@ -2684,9 +2684,9 @@
 		margin: 0;
 		padding-left: 1.1rem;
 		display: grid;
-		gap: 0.35rem;
-		font-size: 0.82rem;
-		line-height: 1.45;
+		gap: 0.26rem;
+		font-size: 0.76rem;
+		line-height: 1.35;
 		color: var(--text-muted);
 	}
 
@@ -3449,8 +3449,8 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.45rem;
-		font-size: 0.78rem;
-		line-height: 1.35;
+		font-size: 0.72rem;
+		line-height: 1.28;
 		color: var(--text);
 		cursor: pointer;
 		user-select: none;
@@ -3511,7 +3511,7 @@
 	.map-wrap {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 28px;
+		gap: 18px;
 		width: 100%;
 		background: transparent;
 		align-items: start;
@@ -3519,7 +3519,7 @@
 
 	.map-visual-column {
 		display: grid;
-		gap: 8px;
+		gap: 6px;
 		min-width: 0;
 		min-height: 0;
 	}
@@ -3528,7 +3528,7 @@
 	.map-left-column {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 4px;
 		min-width: 0;
 		position: relative;
 		top: auto;
@@ -3543,12 +3543,12 @@
 		z-index: 1;
 		min-width: 0;
 		display: grid;
-		gap: 4px;
-		margin-bottom: clamp(8px, 3vh, 20px);
+		gap: 3px;
+		margin-bottom: clamp(6px, 2vh, 14px);
 	}
 
 	.poc-map-callouts {
-		padding: 5px 7px;
+		padding: 4px 6px;
 	}
 
 	.poc-map-callouts__list {
