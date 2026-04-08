@@ -45,7 +45,7 @@
 	 *     Optional MassBuilds rows for TOD / stock tooltips — use the same window as ``buildTractDevClassMap``
 	 *     (e.g. 1990–2026 on the main POC). When omitted, uses ``buildFilteredData`` (panel period only).
 	 */
-	let { panelState, tractList, nhgisRows, metricsDevelopments = null } = $props();
+	let { panelState, tractList, nhgisRows, metricsDevelopments = null, guidedMode = false } = $props();
 
 	let containerEl = $state(null);
 	let tooltipEl = $state(null);
@@ -69,6 +69,7 @@
 	let focusLowIncomeTracts = $state(false);
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
+	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 3 : focusLowIncomeTracts);
 
 	const tooltipPosition = $derived.by(() => {
 		const offset = 12;
@@ -126,14 +127,17 @@
 	}
 
 	function showCohortOutlines() {
+		if (guidedMode) return false;
 		return revealStage === 1 || revealStage === 3;
 	}
 
 	function showMismatchOutlines() {
+		if (guidedMode) return revealStage === 2 || revealStage === 3;
 		return revealStage === 2;
 	}
 
 	function showDevelopmentDots() {
+		if (guidedMode) return false;
 		return revealStage === 3;
 	}
 
@@ -244,31 +248,46 @@
 		{
 			kicker: 'Step 1',
 			title: 'Transit-rich places',
-			body: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.'
+			body: guidedMode
+				? 'These areas are well-served by transit.'
+				: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.'
 		},
 		{
 			kicker: 'Step 2',
-			title: 'Growth is not only “on the line”',
-			body: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.'
+			title: guidedMode ? 'Housing growth does not simply follow transit' : 'Growth is not only “on the line”',
+			body: guidedMode
+				? 'However, housing growth is not concentrated only in these areas.'
+				: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.'
 		},
 		{
-			kicker: 'Step 3',
+			kicker: guidedMode ? 'Step 3' : 'Step 3',
 			title: 'A measurable mismatch',
-			body: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.'
+			body: guidedMode
+				? 'These highlighted areas reveal where transit access and housing growth do not align.'
+				: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.'
 		},
 		{
 			kicker: 'Step 4',
-			title: 'Bring projects back in',
-			body: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.'
+			title: guidedMode ? 'Income sharpens the mismatch' : 'Bring projects back in',
+			body: guidedMode
+				? 'This misalignment affects where lower-income households (<$125k) can access housing near transit.'
+				: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.'
 		}
 	];
 
-	const keyFindings = [
-		'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
-		'TOD-dominated and non-TOD-dominated tracts both show up across the map, so transit-oriented development is only one part of the bigger pattern.',
-		'Several transit-rich tracts still show relatively weak housing growth, which points to a clear access-growth mismatch.',
-		'Project dots in the final view make it easier to compare tract-level patterns with the developments located there.'
-	];
+	const keyFindings = guidedMode
+		? [
+			'Transit access and housing growth are not aligned evenly across Greater Boston.',
+			'Some transit-rich tracts still show weak housing growth, while some faster-growing tracts sit farther from strong transit access.',
+			'The mismatch layer is the main takeaway: access and growth do not automatically arrive together.',
+			'Lower-income tracts make that mismatch more consequential because access to transit and access to housing are both at stake.'
+		]
+		: [
+			'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
+			'TOD-dominated and non-TOD-dominated tracts both show up across the map, so transit-oriented development is only one part of the bigger pattern.',
+			'Several transit-rich tracts still show relatively weak housing growth, which points to a clear access-growth mismatch.',
+			'Project dots in the final view make it easier to compare tract-level patterns with the developments located there.'
+		];
 
 	function stepRef(node, index) {
 		stepEls[index] = node;
@@ -722,7 +741,10 @@
 				const row = rowByGj.get(id);
 				const li = mismatchFlagsByGj.get(id)?.isLowIncome;
 				const isSelHover = id === panelState.hoveredTract || panelState.selectedTracts.has(id);
-				if (focusLowIncomeTracts && li !== true && !isSelHover) {
+				if (guidedMode && revealStage === 0) {
+					return isSelHover ? '#dbe7f6' : '#f2ede3';
+				}
+				if (lowIncomeFocusOn && li !== true && !isSelHover) {
 					return LOW_INCOME_FOCUS_INACTIVE_FILL;
 				}
 				const v = row ? Number(row.census_hu_pct_change) : NaN;
@@ -760,6 +782,7 @@
 				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
 				}
+				if (guidedMode && revealStage === 0) return 0.35;
 				if (!showCohortOutlines()) return 0.45;
 				if (dc !== 'tod_dominated' && dc !== 'nontod_dominated') return 0.45;
 				if (isSpotlightMatch(row, spotlight)) return 3.2;
@@ -1641,7 +1664,7 @@
 		void dataKey;
 		void revealStage;
 		void activeSpotlight;
-		void focusLowIncomeTracts;
+		void lowIncomeFocusOn;
 		void hoveredMismatchCluster;
 		void mismatchOutlineMode;
 		void panelState.hoveredTract;
@@ -1664,7 +1687,7 @@
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
-		void focusLowIncomeTracts;
+		void lowIncomeFocusOn;
 		void hoveredMismatchCluster;
 		void mismatchOutlineMode;
 		if (!containerEl || !svgRef) return;
@@ -1712,6 +1735,7 @@
 <div class="poc-nhgis-map">
 	<div class="poc-scrolly">
 		<div class="poc-scrolly-map">
+			{#if !guidedMode}
 			<div class="poc-methods poc-methods--lead card-key" role="note" aria-label="TOD definitions">
 				<p class="poc-methods__title">Key definitions</p>
 				<p class="poc-methods__text">
@@ -1770,9 +1794,11 @@
 					</li>
 				</ul>
 			</div>
+			{/if}
 
 			<div class="poc-scrolly-shell">
 				<div class="poc-scrolly-left">
+					{#if !guidedMode}
 					<div class="poc-control-stack">
 				<div class="poc-side-cards">
 
@@ -2063,11 +2089,13 @@
 					</div>
 				{/if}
 					</div>
+					{/if}
 
 					<div class="map-wrap">
 						<div class="map-visual-column">
 							<div class="map-left-column">
 								<div class="poc-legend-row">
+					{#if !guidedMode}
 					<fieldset class="poc-transit-field">
 						<legend class="poc-transit-legend">MBTA Overlays</legend>
 						<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
@@ -2093,6 +2121,7 @@
 							</div>
 						</div>
 					</fieldset>
+					{/if}
 
 					<div class="poc-map-key card-key" role="region" aria-label="Map legend">
 						<div
