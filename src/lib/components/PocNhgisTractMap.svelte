@@ -557,6 +557,22 @@
 			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
 	}
 
+	function zoomToDevelopment(d) {
+		if (!d || !svgRef || !zoomBehaviorRef || !projectionRef) return;
+		const lon = Number(d.longitude);
+		const lat = Number(d.latitude);
+		if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+		const point = projectionRef([lon, lat]);
+		if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
+		const scale = 8;
+		const tx = mapCanvasLeft + mapW / 2 - scale * point[0];
+		const ty = mapH / 2 - scale * point[1];
+		svgRef
+			.transition()
+			.duration(600)
+			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+	}
+
 	function tractFeatureByGeoFilter(filterFn) {
 		return (tractGeo?.features ?? []).filter((f) => {
 			const gj = f.properties?.gisjoin;
@@ -1960,6 +1976,59 @@
 		return picked;
 	});
 
+	const guidedDevelopmentExamples = $derived.by(() => {
+		if (!guidedMode || !tractList?.length) return [];
+		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
+		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const enriched = filteredDevs
+			.map((d) => {
+				const units = Number(d.hu) || 0;
+				const affordableUnits = developmentAffordableUnitsCapped(d);
+				const isTod = isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+				return {
+					...d,
+					units,
+					affordableUnits,
+					isTod,
+					categoryLabel: isTod ? 'TOD development' : 'Non-TOD development',
+					score: affordableUnits * 3 + units + (isTod ? 120 : 0)
+				};
+			})
+			.filter((d) => d.units > 0)
+			.sort((a, b) => b.score - a.score);
+		const tod = enriched.find((d) => d.isTod);
+		const nonTod = enriched.find((d) => !d.isTod);
+		const affordability = enriched.find((d) => d.affordableUnits > 0 && d !== tod && d !== nonTod) ?? enriched.find((d) => d.affordableUnits > 0);
+		return [tod, nonTod, affordability].filter(Boolean).slice(0, 3);
+	});
+
+	const guidedClusterDevelopmentExamples = $derived.by(() => {
+		if (!guidedMode || !tractList?.length) return [];
+		const { filteredDevs } = buildFilteredData(tractList, developments, panelState);
+		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		return filteredDevs
+			.map((d) => {
+				const lon = Number(d.longitude);
+				const lat = Number(d.latitude);
+				const units = Number(d.hu) || 0;
+				if (!Number.isFinite(lon) || !Number.isFinite(lat) || units <= 0) return null;
+				if (!(lon <= -71.15 && lon >= -72.1 && lat >= 42.1 && lat <= 42.55)) return null;
+				const affordableUnits = developmentAffordableUnitsCapped(d);
+				const isTod = isDevelopmentTransitAccessible(d, transitM) && meetsTodMultifamilyFloor(d, panelState);
+				return {
+					...d,
+					units,
+					affordableUnits,
+					isTod,
+					categoryLabel: isTod ? 'TOD development' : 'Non-TOD development',
+					score: units + affordableUnits * 3
+				};
+			})
+			.filter(Boolean)
+			.sort((a, b) => b.score - a.score)
+			.slice(0, 3);
+	});
+
 	function inspectGuidedExample(id) {
 		if (!id) return;
 		zoomToTract(id);
@@ -1967,6 +2036,11 @@
 			panelState.toggleTract(id);
 		}
 		panelState.setLastInteracted(id);
+	}
+
+	function inspectGuidedDevelopment(d) {
+		if (!d) return;
+		zoomToDevelopment(d);
 	}
 
 	$effect(() => {
@@ -2750,7 +2824,51 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && step.prompt && i !== 2 && i !== 3}
+								{#if guidedMode && i === 7 && guidedDevelopmentExamples.length}
+									<div class="poc-stepper-examples" aria-label="Notable TOD and non-TOD developments">
+										<p class="poc-stepper-examples-title">Scroll down and we will unpack projects like these</p>
+										{#each guidedDevelopmentExamples as dev (dev.id)}
+											<button
+												type="button"
+												class="poc-stepper-example"
+												onclick={() => inspectGuidedDevelopment(dev)}
+											>
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
+													<span class="poc-stepper-example__cta">{dev.categoryLabel}</span>
+												</div>
+												<p class="poc-stepper-example__note">{dev.municipal ? `${dev.municipal}. ` : ''}{dev.isTod ? 'This project sits within the TOD-access threshold used in the map.' : 'This project adds housing outside that TOD-access threshold.'}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Total units:</strong> {d3.format(',.0f')(dev.units)}</span>
+													<span><strong>Affordable units:</strong> {d3.format(',.0f')(dev.affordableUnits || 0)}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#if guidedMode && i === 8 && guidedClusterDevelopmentExamples.length}
+									<div class="poc-stepper-examples" aria-label="Development examples in the zoomed cluster">
+										<p class="poc-stepper-examples-title">A few notable projects in this weaker-transit growth cluster</p>
+										{#each guidedClusterDevelopmentExamples as dev (dev.id)}
+											<button
+												type="button"
+												class="poc-stepper-example"
+												onclick={() => inspectGuidedDevelopment(dev)}
+											>
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
+													<span class="poc-stepper-example__cta">{dev.categoryLabel}</span>
+												</div>
+												<p class="poc-stepper-example__note">{dev.municipal ? `${dev.municipal}. ` : ''}{dev.affordableUnits > 0 ? 'This project includes some income-restricted units.' : 'This project does not show affordable-unit counts in the filtered data.'}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Total units:</strong> {d3.format(',.0f')(dev.units)}</span>
+													<span><strong>Affordable units:</strong> {d3.format(',.0f')(dev.affordableUnits || 0)}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#if guidedMode && step.prompt && i !== 2 && i !== 3 && i !== 7 && i !== 8}
 									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
 								{/if}
 							</section>
