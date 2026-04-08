@@ -1291,12 +1291,14 @@
 					: null;
 			})
 			.filter(Boolean)
-			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-			.slice(0, 4);
+			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+		const topHaLg = candidates.filter((d) => d.type === HIGH_ACCESS_LOW_GROWTH).slice(0, 2);
+		const topHgLa = candidates.filter((d) => d.type === HIGH_GROWTH_LOW_ACCESS).slice(0, 2);
+		const markerRows = [...topHaLg, ...topHgLa];
 
 		const markers = layer
 			.selectAll('g.insight-marker')
-			.data(candidates, (d) => d.id)
+			.data(markerRows, (d) => d.id)
 			.join(
 				(enter) => {
 					const g = enter
@@ -1979,7 +1981,7 @@
 		if (!guidedMode) return [];
 		const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
 		const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
-		return (tractGeo?.features ?? [])
+		const candidates = (tractGeo?.features ?? [])
 			.map((f) => {
 				const id = f?.properties?.gisjoin;
 				if (!id || !effectiveMismatchIds.has(id)) return null;
@@ -2019,8 +2021,10 @@
 			.sort((a, b) => {
 				if (a.kindRank !== b.kindRank) return a.kindRank - b.kindRank;
 				return b.score - a.score;
-			})
-			.slice(0, 4);
+			});
+		const haLg = candidates.filter((d) => d.kindRank === 0).slice(0, 2);
+		const hgLa = candidates.filter((d) => d.kindRank === 1).slice(0, 2);
+		return [...haLg, ...hgLa];
 	});
 
 	const guidedDevelopmentExamples = $derived.by(() => {
