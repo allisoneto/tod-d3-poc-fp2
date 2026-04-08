@@ -2241,14 +2241,7 @@
 						</button>
 					</div>
 					<p class="poc-detail__summary">
-						Use these buttons to show both mismatch types, focus on one pattern, or turn mismatch outlines off.
-					</p>
-					<p class="poc-detail__summary">
-						The lower-income toggle drops growth color to a neutral fill for tracts at or above the $125k median—exploratory;
-						it does not replace the choropleth legend for those tracts.
-					</p>
-					<p class="poc-detail__summary">
-						Markers flag notable examples within the visible mismatch set. Click a marker to zoom to that tract.
+						Choose mismatch pattern, optionally focus lower-income tracts, and click red markers to zoom to notable tracts.
 					</p>
 				</div>
 
@@ -2354,6 +2347,8 @@
 		min-width: 0;
 		position: relative;
 		z-index: 1;
+		grid-column: 2;
+		grid-row: 1 / span 3;
 	}
 
 	.poc-stepper-head {
@@ -2493,7 +2488,9 @@
 	.poc-control-stack {
 		display: grid;
 		gap: 8px;
-		order: 2;
+		order: 1;
+		grid-column: 1;
+		grid-row: 2;
 	}
 
 	.poc-side-cards {
@@ -2541,17 +2538,23 @@
 		}
 
 		.poc-control-stack {
-			order: 2;
+			order: 1;
+			grid-column: auto;
+			grid-row: auto;
 		}
 
 		.map-left-column {
 			position: relative;
 			top: auto;
+			grid-column: auto;
+			grid-row: auto;
 		}
 
 		.map-main {
 			position: relative;
 			top: auto;
+			grid-column: auto;
+			grid-row: auto;
 		}
 
 		.map-widget__controls {
@@ -2562,6 +2565,11 @@
 		.poc-stepper-head {
 			position: relative;
 			top: auto;
+		}
+
+		.poc-stepper-side {
+			grid-column: auto;
+			grid-row: auto;
 		}
 
 		.poc-stepper-inline-rail {
@@ -3482,6 +3490,8 @@
 		top: 18px;
 		align-self: start;
 		z-index: 2;
+		grid-column: 1;
+		grid-row: 1;
 	}
 
 	.map-main {
@@ -3489,7 +3499,9 @@
 		min-width: 0;
 		display: grid;
 		gap: 8px;
-		order: 1;
+		order: 2;
+		grid-column: 1;
+		grid-row: 3;
 		margin-bottom: clamp(20px, 6vh, 44px);
 	}
 
