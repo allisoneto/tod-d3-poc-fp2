@@ -94,6 +94,32 @@
 			is not the main visual baseline.
 		</p>
 
+		<h3>Why these demographic proxies are used in the prototype</h3>
+		<p>
+			The completed version of this project is meant to say more than where development happened. It is also meant to ask what
+			kinds of neighborhood change appear alongside that development. For that reason, we are treating several demographic
+			measures as <strong>proxy indicators</strong> of gentrification pressure rather than as definitive proof of displacement on
+			their own.
+		</p>
+		<ul class="writeup-list">
+			<li>Sharp increases in median income, which are often read as one warning sign of rising housing costs.</li>
+			<li>Rapid increases in the share of residents with bachelor’s degrees or higher.</li>
+			<li>Potential shifts from owner-occupied housing toward more turnover-prone rental conditions, which we would like to analyze further in the completed version.</li>
+		</ul>
+		<p>
+			We use these measures because they help us compare tract categories in a way that connects built change to social change.
+			In the full dashboard, we expect to compare income and education change across TOD-dominated, non-TOD-dominated, and
+			minimal-development tracts, as well as across different levels of development intensity and affordability. These measures
+			are useful because they are interpretable at the tract level and because they help move the project toward the broader
+			question of who seems most affected by these growth patterns.
+		</p>
+		<p>
+			At the same time, we want to be careful about what those proxies can and cannot show. They are descriptive comparisons, not
+			causal estimates. A tract can experience income growth or educational change for many reasons, including broader labor
+			market shifts, urban form, pre-existing neighborhood trends, or regional demand unrelated to TOD. We therefore treat them
+			as warning signals and comparison tools, not as stand-alone proof that TOD caused demographic change.
+		</p>
+
 		<h3>What we deliberately preprocess instead of computing on the fly</h3>
 		<p>
 			Some values are lightweight enough to derive in the browser, but others are clearly better treated as prepared inputs. We
@@ -210,10 +236,8 @@
 			Our goal is to move the reader from seeing patterns, to comparing tract types, to thinking more carefully about how growth
 			and transit access line up across the region.
 		</p>
-	</section>
 
-	<section class="writeup-section card">
-		<h2>Critique of Our Design Decisions</h2>
+		<h3>Critique of these design decisions</h3>
 		<p>
 			Even though we think the current design is much stronger than earlier versions, it still has real tradeoffs. The
 			choropleth works well as a base map, but it also means the viewer has to hold two different ideas in mind at once:
@@ -222,23 +246,39 @@
 			same source.
 		</p>
 		<p>
-			The scrollytelling structure also helps a lot with pacing, but it introduces its own challenge. When the map changes by
-			scroll step, readers can miss a transition if they scroll quickly or jump around the page. Persistent controls help offset
-			that problem, but they also make the interface denser. In other words, the same design choice that makes the page more
-			explorable also makes it a little harder to make the first screen feel calm and simple.
+			The scrollytelling structure helps a lot with pacing, but it introduces its own challenge. When the map changes by scroll
+			step, readers can miss a transition if they scroll quickly or jump around the page. Persistent controls help offset that
+			problem, but they also make the interface denser. In other words, the same design choice that makes the page more
+			explorable also makes it harder to make the first screen feel calm and simple.
 		</p>
 		<p>
 			The linked-view design has a similar tradeoff. Keeping detail off the map protects readability, but it means some of the
 			most important supporting evidence sits in side cards and comparison panels instead of directly in the main visual field.
 			That is usually the right choice for clarity, but it does demand more active reading from the user. Someone who only looks
-			at the map and ignores the linked views will miss part of the argument.
+			at the map and ignores the linked views will miss part of the argument. We also think the color system is successful
+			overall, but not perfect. Once several outline systems and dot layers are visible together, the map still becomes visually
+			busy in dense areas where outlines overlap and project dots cluster.
+		</p>
+
+		<h3>Other design options we considered</h3>
+		<p>
+			We considered several other directions and decided against them for now. One option was to make the map more free-form and
+			exploratory, with no strong walkthrough at all. We did not go that route because the project has too many layers for that
+			to work well as a first reading experience. Another option was to put more information directly onto the map through labels,
+			persistent callouts, or heavier annotations. We moved away from that approach because it quickly crowded the figure and
+			competed with the choropleth.
 		</p>
 		<p>
-			We also think the color system is successful overall, but not perfect. The MBTA-based palette gives the project a strong
-			identity and keeps the transit framing consistent, yet once several outline systems and dot layers are visible together,
-			the map still becomes visually busy. That is especially true in dense areas where outlines overlap and project dots cluster.
-			If we extend this project further, one of the biggest improvements would be finding ways to preserve the same analytical
-			depth while reducing visual crowding in the most information-dense parts of the map.
+			We also considered using a scatter plot or another comparison chart as the main organizing view rather than the map. That
+			would have made some analytic comparisons easier, but it would have weakened the project’s core spatial question, which is
+			fundamentally about where growth and transit align or fail to align across Greater Boston. We chose to keep the map as the
+			main anchor and let supporting charts work as linked views instead.
+		</p>
+		<p>
+			On the encoding side, we considered showing more variables through fill color, including direct TOD categories or income
+			groupings. We chose not to do that because the base choropleth already carries the most important continuous pattern. Once
+			more categories are pushed into fill color, the map stops reading quickly. Using outlines and symbols is not perfect, but
+			it gave us a better balance between expressive power and legibility.
 		</p>
 	</section>
 
