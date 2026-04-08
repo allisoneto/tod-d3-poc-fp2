@@ -1758,6 +1758,8 @@
 		align-content: start;
 		padding-top: 12px;
 		min-width: 0;
+		position: relative;
+		z-index: 1;
 	}
 
 	.poc-stepper-head {
@@ -1794,6 +1796,7 @@
 		gap: 16vh;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
 		padding-bottom: 32vh;
+		isolation: isolate;
 	}
 
 	.poc-stepper-card {
@@ -1806,8 +1809,10 @@
 		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		padding-left: 18px;
 		border-radius: var(--radius-sm);
-		border: 0;
-		background: transparent;
+		border-top: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+		border-right: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+		border-bottom: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border));
+		background: color-mix(in srgb, var(--bg-card) 97%, white 3%);
 		text-align: left;
 		color: var(--text);
 		opacity: 0.48;
@@ -1820,6 +1825,9 @@
 
 	.poc-stepper-card--active {
 		border-left-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+		border-top-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+		border-right-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+		border-bottom-color: color-mix(in srgb, var(--accent) 24%, var(--border));
 		opacity: 1;
 		transform: translateY(0);
 	}
@@ -2659,8 +2667,7 @@
 
 	.map-wrap {
 		display: grid;
-		/* Narrative column ~30% narrower than the prior 260–320px band → more width for the map */
-		grid-template-columns: minmax(0, 1fr) minmax(182px, 224px);
+		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
 		gap: 28px;
 		width: 100%;
 		background: transparent;
