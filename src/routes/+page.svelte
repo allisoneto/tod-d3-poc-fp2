@@ -341,6 +341,34 @@
 	     PART 2 — TRACT ANALYSIS
 	     ═══════════════════════════════════════════════════════ -->
 	<section class="tract-section">
+		<section class="story card full-width story--framing">
+			<div class="framing-grid">
+				<div class="framing-block">
+					<h2>Key definitions</h2>
+					<p>
+						<strong>TOD developments</strong> are projects within <strong>0.5 miles</strong> of an MBTA stop; all others are treated as
+						<strong> non-TOD developments</strong>.
+					</p>
+					<p>
+						<strong>TOD-dominated tracts</strong> are tracts where at least <strong>50%</strong> of filtered new units come from TOD developments and
+						housing stock increases by at least <strong>2.0%</strong>. <strong>Non-TOD-dominated tracts</strong> meet the same growth threshold but fall
+						below that TOD share cutoff. <strong>Minimal-development tracts</strong> stay below the stock-growth threshold.
+					</p>
+				</div>
+				<div class="framing-block">
+					<h2>Key assumptions</h2>
+					<p>
+						This walkthrough uses a fixed <strong>0.5-mile MBTA access threshold</strong> and compares tract-level housing growth, TOD share, and
+						transit access descriptively rather than causally.
+					</p>
+					<p>
+						Mismatch categories are based on how transit access and housing growth compare within the tract set, and the averages shown in the
+						walkthrough treat each tract equally rather than weighting by population or total units.
+					</p>
+				</div>
+			</div>
+		</section>
+
 		<section class="story card full-width">
 			<h2>Guided walkthrough: where the mismatch appears</h2>
 			<p>
@@ -1645,6 +1673,39 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	.story--framing {
+		padding-top: 18px;
+		padding-bottom: 18px;
+	}
+
+	.framing-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 18px;
+	}
+
+	.framing-block {
+		padding: 16px 18px;
+		border: 1px solid var(--line);
+		border-radius: 18px;
+		background: rgba(248, 249, 245, 0.78);
+	}
+
+	.framing-block h2 {
+		margin: 0 0 10px;
+		font-size: 1.05rem;
+	}
+
+	.framing-block p {
+		margin: 0;
+		color: var(--muted);
+		line-height: 1.6;
+	}
+
+	.framing-block p + p {
+		margin-top: 10px;
+	}
+
 	/* ── Conclusion ───────────────────────────────────── */
 	.conclusion {
 		border-left: 4px solid var(--accent);
@@ -1676,7 +1737,7 @@
 
 	/* ── Responsive ───────────────────────────────────── */
 	@media (max-width: 1060px) {
-		.dashboard, .small-grid, .summary-grid {
+		.dashboard, .small-grid, .summary-grid, .framing-grid {
 			grid-template-columns: 1fr;
 		}
 	}
