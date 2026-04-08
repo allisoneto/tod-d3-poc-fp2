@@ -1113,36 +1113,52 @@
 		};
 	});
 
-	const cohortChartRows = $derived.by(() => {
-		/** @type {Array<'tod_dominated' | 'nontod_dominated' | 'minimal'>} */
-		const order = ['tod_dominated', 'nontod_dominated', 'minimal'];
-		const rows = order.map((devClass) => {
-			const cohortRows = (nhgisRows ?? []).filter((row) => row?.devClass === devClass && passesGrowthFilter(row));
-			const huVals = cohortRows
-				.map((row) => Number(row.census_hu_pct_change))
-				.filter(Number.isFinite);
-			const metricVals = cohortRows
-				.map((row) => tractTodMetricsMap?.get(row.gisjoin))
-				.filter(Boolean);
-			const todShares = metricVals
-				.map((m) => Number(m.todFraction) * 100)
-				.filter(Number.isFinite);
-			const stockIncreases = metricVals
-				.map((m) => Number(m.pctStockIncrease))
-				.filter(Number.isFinite);
-			const value =
-				comparisonMetric === 'hu_growth'
-					? (huVals.length ? d3.mean(huVals) : null)
-					: comparisonMetric === 'tod_share'
-						? (todShares.length ? d3.mean(todShares) : null)
-						: (stockIncreases.length ? d3.mean(stockIncreases) : null);
-			return {
-				key: devClass,
-				label: cohortLabel(devClass),
-				value,
+	const selectionComparisonRows = $derived.by(() => {
+		const selectedIds = [...panelState.selectedTracts];
+		if (!selectedIds.length) return [];
+		const selectedRows = (nhgisRows ?? []).filter(
+			(row) => selectedIds.includes(row.gisjoin) && passesGrowthFilter(row)
+		);
+		if (!selectedRows.length) return [];
+		const focusedRow = focusedSelection
+			? (nhgisRows ?? []).find((row) => row.gisjoin === focusedSelection) ?? null
+			: null;
+		const focusedClass = focusedRow?.devClass ?? selectedRows[0]?.devClass ?? null;
+		const cohortRows = (nhgisRows ?? []).filter(
+			(row) => row?.devClass === focusedClass && passesGrowthFilter(row)
+		);
+		const allRows = (nhgisRows ?? []).filter((row) => passesGrowthFilter(row));
+		const metricValue = (rows) => {
+			const huVals = rows.map((row) => Number(row.census_hu_pct_change)).filter(Number.isFinite);
+			const metricVals = rows.map((row) => tractTodMetricsMap?.get(row.gisjoin)).filter(Boolean);
+			const todShares = metricVals.map((m) => Number(m.todFraction) * 100).filter(Number.isFinite);
+			const stockIncreases = metricVals.map((m) => Number(m.pctStockIncrease)).filter(Number.isFinite);
+			return comparisonMetric === 'hu_growth'
+				? (huVals.length ? d3.mean(huVals) : null)
+				: comparisonMetric === 'tod_share'
+					? (todShares.length ? d3.mean(todShares) : null)
+					: (stockIncreases.length ? d3.mean(stockIncreases) : null);
+		};
+		const rows = [
+			{
+				key: 'selected',
+				label: `Selected tracts`,
+				value: metricValue(selectedRows),
+				count: selectedRows.length
+			},
+			{
+				key: 'cohort',
+				label: `${cohortLabel(focusedClass)} avg.`,
+				value: metricValue(cohortRows),
 				count: cohortRows.length
-			};
-		});
+			},
+			{
+				key: 'all',
+				label: 'All filtered tracts',
+				value: metricValue(allRows),
+				count: allRows.length
+			}
+		];
 		const maxValue = d3.max(rows, (row) => Math.abs(Number(row.value) || 0)) || 1;
 		return rows.map((row) => ({
 			...row,
@@ -1536,11 +1552,11 @@
 					</div>
 				{/if}
 
-				<div class="poc-compare card-key" role="region" aria-label="Linked cohort comparison chart">
+				<div class="poc-compare card-key" role="region" aria-label="Selected tract comparison chart">
 					<div class="poc-compare__head">
 						<div>
-							<p class="poc-detail__kicker">Linked cohort chart</p>
-							<p class="poc-detail__title">Compare the three tract groups</p>
+							<p class="poc-detail__kicker">Selected tract chart</p>
+							<p class="poc-detail__title">Compare your selection to its cohort</p>
 						</div>
 						<div class="poc-compare__metric-tabs">
 							<button
@@ -1570,21 +1586,12 @@
 						</div>
 					</div>
 					<p class="poc-detail__summary">
-						Hover a bar to highlight that cohort on the map, or click to pin it.
+						Click tracts on the map, then use this chart to compare the selected set against its cohort average and all filtered tracts.
 					</p>
 					<div class="poc-compare__bars" aria-label={comparisonMetricMeta.label}>
-						{#each cohortChartRows as row (row.key)}
-							<button
-								type="button"
-								class="poc-compare__row"
-								class:poc-compare__row--active={activeSpotlight === row.key}
-								data-tone={row.key}
-								onmouseenter={() => (hoveredSpotlight = row.key)}
-								onmouseleave={() => (hoveredSpotlight = null)}
-								onfocus={() => (hoveredSpotlight = row.key)}
-								onblur={() => (hoveredSpotlight = null)}
-								onclick={() => (pinnedSpotlight = pinnedSpotlight === row.key ? null : row.key)}
-							>
+						{#if selectionComparisonRows.length}
+							{#each selectionComparisonRows as row (row.key)}
+								<div class="poc-compare__row" data-tone={row.key}>
 								<span class="poc-compare__label">{row.label}</span>
 								<span class="poc-compare__track">
 									<span class="poc-compare__bar" style:width={`${row.widthPct}%`}></span>
@@ -1592,10 +1599,13 @@
 								<span class="poc-compare__value">
 									{row.value == null ? '—' : `${comparisonMetricMeta.formatter(row.value)}${comparisonMetricMeta.suffix}`}
 								</span>
-							</button>
-						{/each}
+								</div>
+							{/each}
+						{:else}
+							<p class="poc-compare__empty">Select one or more tracts on the map to populate this chart.</p>
+						{/if}
 					</div>
-					</div>
+				</div>
 				</div>
 
 					<div
@@ -2260,25 +2270,16 @@
 		background: color-mix(in srgb, var(--accent) 74%, white 26%);
 	}
 
-	.poc-compare__row[data-tone='nontod_dominated'] .poc-compare__bar {
+	.poc-compare__row[data-tone='selected'] .poc-compare__bar {
+		background: color-mix(in srgb, var(--accent) 82%, white 18%);
+	}
+
+	.poc-compare__row[data-tone='cohort'] .poc-compare__bar {
 		background: color-mix(in srgb, var(--warning) 78%, white 22%);
 	}
 
-	.poc-compare__row[data-tone='minimal'] .poc-compare__bar {
+	.poc-compare__row[data-tone='all'] .poc-compare__bar {
 		background: #94a3b8;
-	}
-
-	.poc-compare__row--active .poc-compare__track,
-	.poc-compare__row:hover .poc-compare__track,
-	.poc-compare__row:focus-visible .poc-compare__track {
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
-	}
-
-	.poc-compare__row--active,
-	.poc-compare__row:hover,
-	.poc-compare__row:focus-visible {
-		border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
 	}
 
 	.poc-compare__value {
@@ -2286,6 +2287,13 @@
 		font-weight: 700;
 		color: var(--text);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.poc-compare__empty {
+		margin: 0;
+		font-size: 0.74rem;
+		line-height: 1.5;
+		color: var(--text-muted);
 	}
 
 	.poc-transit-legend {
