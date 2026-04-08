@@ -1411,10 +1411,10 @@
 						visualization implementation and narrative/design framing so that interaction and interpretation could be developed in parallel.
 					</p>
 					<ul class="story-list plan-list">
-						<li><strong>Krishna (about 20 hours):</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
-						<li><strong>Allison (about 20 hours):</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
-						<li><strong>Hannah (about 7 hours):</strong> narrative structure, framing revisions, and design-decision articulation.</li>
-						<li><strong>Supriya (about 7 hours):</strong> narrative structure, framing revisions, and design-decision articulation.</li>
+						<li><strong>Krishna:</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
+						<li><strong>Allison:</strong> iterative dashboard implementation, chart/map refinement, and testing of candidate visualization directions.</li>
+						<li><strong>Hanna:</strong> narrative structure, framing/implementing revisions, design-decision articulation, and team plan.</li>
+						<li><strong>Supriya:</strong> narrative structure, framing/implementing revisions, and design-decision articulation.</li>
 					</ul>
 					<p>
 						The most time-intensive work was integration: keeping map encodings, interaction logic, legends, and narrative text aligned while preserving non-causal claims.
