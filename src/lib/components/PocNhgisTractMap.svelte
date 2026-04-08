@@ -2415,10 +2415,10 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 18vh;
+		gap: 22vh;
 		padding-top: 8px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: calc(34vh + 64px);
+		padding-bottom: calc(38vh + 72px);
 		isolation: isolate;
 	}
 
@@ -2427,7 +2427,7 @@
 		align-content: center;
 		gap: 12px;
 		width: 100%;
-		min-height: 62vh;
+		min-height: 68vh;
 		padding: 10px 0 0;
 		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		padding-left: 18px;
@@ -2519,13 +2519,13 @@
 
 	.poc-control-stack {
 		display: grid;
-		gap: 6px;
-		margin-bottom: 6px;
+		gap: 5px;
+		margin-bottom: 4px;
 	}
 
 	.poc-side-cards {
 		display: grid;
-		gap: 6px;
+		gap: 5px;
 		align-content: start;
 	}
 
@@ -2634,13 +2634,13 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		background: var(--bg-card);
-		padding: 1px 4px 3px;
+		padding: 1px 3px 2px;
 		margin: 0;
 	}
 
 	.poc-spotlight {
 		display: grid;
-		gap: 6px;
+		gap: 5px;
 		align-content: start;
 		min-height: 100%;
 	}
@@ -2735,7 +2735,7 @@
 	.poc-spotlight__buttons {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 5px;
+		gap: 4px;
 	}
 
 	.poc-spotlight__button {
@@ -2743,12 +2743,12 @@
 		border-radius: 12px;
 		background: var(--bg-card);
 		color: var(--text);
-		padding: 0.46rem 0.52rem;
-		font-size: 0.71rem;
+		padding: 0.38rem 0.44rem;
+		font-size: 0.67rem;
 		font-weight: 700;
 		line-height: 1.2;
 		text-align: left;
-		min-height: 56px;
+		min-height: 48px;
 		transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
 	}
 
@@ -2782,7 +2782,7 @@
 	.poc-spotlight__summary {
 		display: grid;
 		gap: 5px;
-		padding: 7px 9px;
+		padding: 6px 8px;
 		border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		border-radius: 12px;
 		background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
@@ -2797,15 +2797,15 @@
 
 	.poc-spotlight__summary-copy {
 		margin: 0;
-		font-size: 0.68rem;
-		line-height: 1.35;
+		font-size: 0.64rem;
+		line-height: 1.25;
 		color: var(--text-muted);
 	}
 
 	.poc-spotlight__stats {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 6px 10px;
+		gap: 5px 8px;
 	}
 
 	.poc-spotlight__stat-label {
@@ -2820,14 +2820,14 @@
 	.poc-spotlight__stat-value {
 		display: block;
 		margin-top: 2px;
-		font-size: 0.76rem;
+		font-size: 0.72rem;
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.poc-detail {
 		display: grid;
-		gap: 5px;
+		gap: 4px;
 		align-content: start;
 	}
 
@@ -2878,8 +2878,8 @@
 
 	.poc-detail__summary {
 		margin: 0;
-		font-size: 0.67rem;
-		line-height: 1.3;
+		font-size: 0.63rem;
+		line-height: 1.22;
 		color: var(--text-muted);
 	}
 
@@ -2947,7 +2947,7 @@
 
 	.poc-compare {
 		display: grid;
-		gap: 8px;
+		gap: 6px;
 		align-content: start;
 		height: 100%;
 	}
@@ -3019,7 +3019,7 @@
 	.poc-compare__metric-tabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 5px;
+		gap: 4px;
 	}
 
 	.poc-compare__tab {
@@ -3027,8 +3027,8 @@
 		border-radius: 999px;
 		background: var(--bg-card);
 		color: var(--text);
-		padding: 0.28rem 0.54rem;
-		font-size: 0.66rem;
+		padding: 0.24rem 0.48rem;
+		font-size: 0.62rem;
 		font-weight: 700;
 	}
 
@@ -3046,17 +3046,17 @@
 		display: grid;
 		grid-template-columns: minmax(0, 156px) minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 7px;
+		gap: 6px;
 		border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--border));
 		border-radius: 12px;
-		padding: 0.34rem 0.48rem;
+		padding: 0.28rem 0.42rem;
 		background: color-mix(in srgb, var(--bg-card) 96%, white 4%);
 		color: inherit;
 		text-align: left;
 	}
 
 	.poc-compare__label {
-		font-size: 0.7rem;
+		font-size: 0.66rem;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -3102,7 +3102,7 @@
 	}
 
 	.poc-compare__value {
-		font-size: 0.71rem;
+		font-size: 0.67rem;
 		font-weight: 700;
 		color: var(--text);
 		font-variant-numeric: tabular-nums;
@@ -3172,15 +3172,15 @@
 		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
 		background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
 		border-radius: var(--radius-sm);
-		padding: 4px 7px;
+		padding: 3px 6px;
 	}
 
 	.poc-map-key-compact {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		font-size: 0.65rem;
-		line-height: 1.35;
+		gap: 3px;
+		font-size: 0.61rem;
+		line-height: 1.28;
 		color: var(--text-muted);
 	}
 
@@ -3260,10 +3260,10 @@
 	.poc-key-no-data {
 		display: flex;
 		align-items: flex-start;
-		gap: 6px;
+		gap: 5px;
 		margin: 0;
-		font-size: 0.6rem;
-		line-height: 1.35;
+		font-size: 0.56rem;
+		line-height: 1.25;
 		color: var(--text-muted);
 	}
 
@@ -3298,7 +3298,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 4px;
+		gap: 3px;
 		min-width: 0;
 		flex: 1 1 12rem;
 	}
@@ -3310,7 +3310,7 @@
 	.poc-key-tract-bar {
 		display: block;
 		width: 100%;
-		max-width: 9rem;
+		max-width: 8rem;
 		height: 5px;
 		border-radius: 2px;
 		border: 1px solid var(--border);
@@ -3321,9 +3321,9 @@
 		display: flex;
 		justify-content: space-between;
 		width: 100%;
-		max-width: 9rem;
+		max-width: 8rem;
 		gap: 8px;
-		font-size: 0.62rem;
+		font-size: 0.58rem;
 		font-weight: 700;
 		line-height: 1.2;
 		color: var(--text-muted);
@@ -3405,11 +3405,11 @@
 	.poc-key-rings {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 3px 10px;
+		gap: 2px 8px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
-		font-size: 0.62rem;
+		font-size: 0.58rem;
 	}
 
 	.poc-key-rings li {
@@ -3460,8 +3460,8 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.45rem;
-		font-size: 0.69rem;
-		line-height: 1.22;
+		font-size: 0.66rem;
+		line-height: 1.16;
 		color: var(--text);
 		cursor: pointer;
 		user-select: none;
@@ -3475,7 +3475,7 @@
 	.poc-mismatch-mode {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 5px;
+		gap: 4px;
 		margin: 0 0 4px;
 	}
 
@@ -3483,9 +3483,9 @@
 		border: 1px solid var(--border);
 		background: color-mix(in srgb, var(--bg-card) 92%, transparent);
 		color: var(--text);
-		font-size: 0.64rem;
+		font-size: 0.6rem;
 		line-height: 1.25;
-		padding: 4px 7px;
+		padding: 3px 6px;
 		border-radius: 6px;
 		cursor: pointer;
 		text-align: left;
