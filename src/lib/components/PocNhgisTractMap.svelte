@@ -1694,25 +1694,31 @@
 
 	$effect(() => {
 		if (stepEls.filter(Boolean).length !== stepContent.length) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				const visible = entries
-					.filter((entry) => entry.isIntersecting)
-					.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-				if (!visible.length) return;
-				const next = Number(visible[0].target.getAttribute('data-step-index'));
-				if (Number.isFinite(next)) revealStage = next;
-			},
-			{
-				root: null,
-				threshold: [0.05, 0.2, 0.4],
-				rootMargin: '25% 0px -10% 0px'
+		let frame = 0;
+		const updateStageFromScroll = () => {
+			frame = 0;
+			const triggerY = window.innerHeight * 0.42;
+			let next = 0;
+			for (let i = 0; i < stepEls.length; i += 1) {
+				const el = stepEls[i];
+				if (!el) continue;
+				const rect = el.getBoundingClientRect();
+				if (rect.top <= triggerY) next = i;
 			}
-		);
-		for (const el of stepEls) {
-			if (el) observer.observe(el);
-		}
-		return () => observer.disconnect();
+			revealStage = next;
+		};
+		const scheduleUpdate = () => {
+			if (frame) return;
+			frame = window.requestAnimationFrame(updateStageFromScroll);
+		};
+		scheduleUpdate();
+		window.addEventListener('scroll', scheduleUpdate, { passive: true });
+		window.addEventListener('resize', scheduleUpdate);
+		return () => {
+			if (frame) window.cancelAnimationFrame(frame);
+			window.removeEventListener('scroll', scheduleUpdate);
+			window.removeEventListener('resize', scheduleUpdate);
+		};
 	});
 
 	onDestroy(() => {
