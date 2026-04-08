@@ -54,7 +54,51 @@ function assertDevelopmentsHaveNearestStopDist(devs) {
 }
 
 /** @type {Promise<void> | null} */
+let loadStoryDataPromise = null;
+/** @type {Promise<void> | null} */
 let loadAllDataPromise = null;
+
+/**
+ * Fetch the smaller data bundle needed for the guided home-page tract story.
+ *
+ * This avoids blocking the initial narrative on the full explorer dataset.
+ */
+export async function loadStoryData() {
+	if (loadStoryDataPromise) return loadStoryDataPromise;
+	loadStoryDataPromise = (async () => {
+		const p = (/** @type {string} */ path) => `${base}${path}`;
+		const [tractDataRes, tractGeoRes, devsRes, mbtaStopsRes, mbtaLinesRes] = await Promise.all([
+			fetch(p('/data/tract_data.json')),
+			fetch(p('/data/tracts.geojson')),
+			fetch(p('/data/developments.json')),
+			fetch(p('/data/mbta_story_stops.json')),
+			fetch(p('/data/mbta_story_lines.geojson'))
+		]);
+
+		const [tractDataJson, tractGeoJson, devsJson, mbtaStopsJson, mbtaLinesJson] = await Promise.all([
+			tractDataRes.json(),
+			tractGeoRes.json(),
+			devsRes.json(),
+			mbtaStopsRes.json(),
+			mbtaLinesRes.json()
+		]);
+
+		assertDevelopmentsHaveNearestStopDist(devsJson);
+
+		tractData.length = 0;
+		tractData.push(...tractDataJson);
+		replaceObjectProps(tractGeo, tractGeoJson);
+		developments.length = 0;
+		developments.push(...devsJson);
+		mbtaStops.length = 0;
+		mbtaStops.push(...mbtaStopsJson);
+		replaceObjectProps(mbtaLines, mbtaLinesJson);
+	})().catch((e) => {
+		loadStoryDataPromise = null;
+		throw e;
+	});
+	return loadStoryDataPromise;
+}
 
 /**
  * Fetch all dashboard JSON assets in parallel and assign module state.
@@ -68,34 +112,20 @@ let loadAllDataPromise = null;
 export async function loadAllData() {
 	if (loadAllDataPromise) return loadAllDataPromise;
 	loadAllDataPromise = (async () => {
+		await loadStoryData();
 		const p = (/** @type {string} */ path) => `${base}${path}`;
-		const [tractDataRes, tractGeoRes, devsRes, mbtaStopsRes, mbtaLinesRes, metaRes] =
-			await Promise.all([
-				fetch(p('/data/tract_data.json')),
-				fetch(p('/data/tracts.geojson')),
-				fetch(p('/data/developments.json')),
-				fetch(p('/data/mbta_stops.json')),
-				fetch(p('/data/mbta_lines.geojson')),
-				fetch(p('/data/meta.json')),
-			]);
+		const [mbtaStopsRes, mbtaLinesRes, metaRes] = await Promise.all([
+			fetch(p('/data/mbta_stops.json')),
+			fetch(p('/data/mbta_lines.geojson')),
+			fetch(p('/data/meta.json'))
+		]);
 
-		const [tractDataJson, tractGeoJson, devsJson, mbtaStopsJson, mbtaLinesJson, metaJson] =
-			await Promise.all([
-				tractDataRes.json(),
-				tractGeoRes.json(),
-				devsRes.json(),
-				mbtaStopsRes.json(),
-				mbtaLinesRes.json(),
-				metaRes.json()
-			]);
+		const [mbtaStopsJson, mbtaLinesJson, metaJson] = await Promise.all([
+			mbtaStopsRes.json(),
+			mbtaLinesRes.json(),
+			metaRes.json()
+		]);
 
-		assertDevelopmentsHaveNearestStopDist(devsJson);
-
-		tractData.length = 0;
-		tractData.push(...tractDataJson);
-		replaceObjectProps(tractGeo, tractGeoJson);
-		developments.length = 0;
-		developments.push(...devsJson);
 		mbtaStops.length = 0;
 		mbtaStops.push(...mbtaStopsJson);
 		replaceObjectProps(mbtaLines, mbtaLinesJson);

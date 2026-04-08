@@ -13,7 +13,7 @@
 		renderMuniGrowthCapture,
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments } from '$lib/stores/data.svelte.js';
-	import { loadAllData } from '$lib/stores/data.svelte.js';
+	import { loadAllData, loadStoryData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
@@ -145,6 +145,9 @@
 	let tractLoading = $state(true);
 	let tractError = $state(/** @type {string | null} */ (null));
 	let tractReady = $state(false);
+	let exploreLoading = $state(false);
+	let exploreReady = $state(false);
+	let exploreError = $state(/** @type {string | null} */ (null));
 
 	// Tract analysis defaults (sensible, no user controls)
 	const tractTimePeriod = '00_20';
@@ -177,7 +180,7 @@
 	});
 
 	$effect(() => {
-		loadAllData()
+		loadStoryData()
 			.then(() => {
 				tractReady = true;
 				tractError = null;
@@ -187,6 +190,22 @@
 			})
 			.finally(() => {
 				tractLoading = false;
+			});
+	});
+
+	$effect(() => {
+		if (!tractReady || exploreReady || exploreLoading) return;
+		exploreLoading = true;
+		loadAllData()
+			.then(() => {
+				exploreReady = true;
+				exploreError = null;
+			})
+			.catch((e) => {
+				exploreError = e instanceof Error ? e.message : String(e);
+			})
+			.finally(() => {
+				exploreLoading = false;
 			});
 	});
 
@@ -451,7 +470,19 @@
 					lower-income context interact across the region.
 				</p>
 			</section>
-			<ExploreTractSection />
+			{#if exploreError}
+				<section class="loading-status loading-status--error">
+					<h3>Full explorer data failed to load</h3>
+					<p>{exploreError}</p>
+				</section>
+			{:else if !exploreReady}
+				<section class="loading-status">
+					<div class="spinner" aria-hidden="true"></div>
+					<p>Loading the full explorer…</p>
+				</section>
+			{:else}
+				<ExploreTractSection />
+			{/if}
 
 			<section class="story card full-width sources-card">
 				<h2>Data sources and acknowledgments</h2>
