@@ -947,9 +947,6 @@
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				if (id === panelState.hoveredTract || panelState.selectedTracts.has(id)) return 1;
-				if (guidedMode && guidedFocusIds.size > 0) {
-					return guidedFocusIds.has(id) ? 1 : 0.28;
-				}
 				if (spotlight && !isSpotlightMatch(row, spotlight)) return 0.2;
 				if (revealStage === 0) return 1;
 				if (!mismatchLayerOn) return 1;
