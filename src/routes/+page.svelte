@@ -1406,7 +1406,7 @@
 				<section class="plan-contingency">
 					<h3>Development process, team split, and opportunities to improve</h3>
 					<p>
-						This proof-of-concept required approximately <strong>54 people-hours</strong> across the team. Work was split between
+						This proof-of-concept required approximately <strong>80–90 people-hours</strong> across the team. Work was split between
 						visualization implementation and narrative/design framing so that interaction and interpretation could be developed in parallel.
 					</p>
 					<ul class="story-list plan-list">
