@@ -266,8 +266,22 @@
 	<section class="writeup-section card">
 		<h2>Final Project Plan</h2>
 		<p>
-			This plan lays out how we expect to move from the current proof of concept to the final project. It captures both the weekly
-			pacing and the team split so the final deliverable is not just visually polished, but also methodologically and narratively coherent.
+			This plan lays out how we expect to move from the current proof of concept to the final project. The main shift is that we
+			do not want the final submission to be only a polished interactive map. We want it to make a clearer claim about how
+			TOD-affected tracts differ from other tracts and what those differences look like demographically.
+		</p>
+		<p>
+			Right now, the two demographic lenses we most expect to investigate are <strong>income</strong> and
+			<strong>race</strong>. We think those two measures are especially important because they can help us ask whether tracts
+			with stronger TOD-related development or stronger mismatch patterns also show a distinct social profile. The plan below is
+			therefore not just a production schedule. It is a roadmap for moving from the current tract-growth story to a fuller
+			account of who seems most affected by these patterns.
+		</p>
+		<p>
+			We also wanted the plan to be honest about sequencing. Earlier weeks are focused on narrowing the question and testing what
+			the data can support. Middle weeks are focused on building the minimum viable narrative and interaction structure. Final
+			weeks are focused on presentation, critique, and cleanup so the final deliverable feels coherent rather than pieced
+			together.
 		</p>
 
 		<div class="plan-grid">
