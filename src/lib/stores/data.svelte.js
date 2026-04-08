@@ -68,8 +68,8 @@ export async function loadStoryData() {
 	loadStoryDataPromise = (async () => {
 		const p = (/** @type {string} */ path) => `${base}${path}`;
 		const [tractDataRes, tractGeoRes, devsRes, mbtaStopsRes, mbtaLinesRes] = await Promise.all([
-			fetch(p('/data/tract_data.json')),
-			fetch(p('/data/tracts.geojson')),
+			fetch(p('/data/tract_story_list.json')),
+			fetch(p('/data/tract_story_geo.json')),
 			fetch(p('/data/developments.json')),
 			fetch(p('/data/mbta_story_stops.json')),
 			fetch(p('/data/mbta_story_lines.geojson'))
@@ -114,18 +114,25 @@ export async function loadAllData() {
 	loadAllDataPromise = (async () => {
 		await loadStoryData();
 		const p = (/** @type {string} */ path) => `${base}${path}`;
-		const [mbtaStopsRes, mbtaLinesRes, metaRes] = await Promise.all([
+		const [tractDataRes, tractGeoRes, mbtaStopsRes, mbtaLinesRes, metaRes] = await Promise.all([
+			fetch(p('/data/tract_data.json')),
+			fetch(p('/data/tracts.geojson')),
 			fetch(p('/data/mbta_stops.json')),
 			fetch(p('/data/mbta_lines.geojson')),
 			fetch(p('/data/meta.json'))
 		]);
 
-		const [mbtaStopsJson, mbtaLinesJson, metaJson] = await Promise.all([
+		const [tractDataJson, tractGeoJson, mbtaStopsJson, mbtaLinesJson, metaJson] = await Promise.all([
+			tractDataRes.json(),
+			tractGeoRes.json(),
 			mbtaStopsRes.json(),
 			mbtaLinesRes.json(),
 			metaRes.json()
 		]);
 
+		tractData.length = 0;
+		tractData.push(...tractDataJson);
+		replaceObjectProps(tractGeo, tractGeoJson);
 		mbtaStops.length = 0;
 		mbtaStops.push(...mbtaStopsJson);
 		replaceObjectProps(mbtaLines, mbtaLinesJson);
