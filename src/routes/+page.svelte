@@ -1144,90 +1144,101 @@
 			</section>
 
 			<section class="story card">
-				<h2>Design decisions</h2>
+				<h2>Design Decisions</h2>
 				<p>
-					We built this prototype to answer a layered question: where housing growth happened, how that growth relates to transit,
-					and where those patterns do not line up neatly. Because that is a lot to ask from one view, we tried to keep one
-					clear base map in place and then add the other ideas in ways that do not hide it.
+					We designed this prototype to answer a layered question: <strong>where housing growth has occurred, how that growth relates to transit access, and where those patterns do not align</strong>.
+					Because this involves multiple variables and comparisons, our primary goal was to <strong>maintain clarity while progressively introducing complexity</strong>.
+					Rather than showing everything at once, we structured the visualization so that each layer adds meaning without obscuring what came before.
 				</p>
 
-				<h3>Start with one readable base map</h3>
+				<hr />
+
+				<h3>Establishing a clear and interpretable base map</h3>
 				<p>
-					We made the tract choropleth the foundation of the whole page. We use <strong>census percent housing growth</strong> as the
-					fill because it gives one comparable measure across all tracts and immediately shows where the housing stock changed more
-					or less over time. The red-to-blue diverging scale works well here because the middle can represent little change, with one
-					side showing weaker or negative growth and the other showing stronger growth. We wanted the first read of the map to be simple:
-					before the reader learns anything else, they can already see the geography of growth.
+					We began with a <strong>tract-level choropleth of housing growth</strong> as the foundation of the visualization. We chose percent housing growth as the primary encoding because it provides a <strong>consistent, comparable metric across all tracts</strong> and allows the reader to quickly understand where change has occurred geographically.
+				</p>
+				<p>
+					We use a <strong>diverging red-blue color scale</strong> so that the midpoint represents little or no change, one side captures weaker or negative growth, and the other captures stronger growth. This supports <strong>pre-attentive interpretation</strong>: before interacting or reading any annotations, the viewer can already identify spatial patterns in growth. Establishing this immediate readability was critical for meeting the goal of expressive visual encoding.
 				</p>
 
-				<h3>Keep later layers separate from the fill</h3>
+				<hr />
+
+				<h3>Preserving clarity through channel separation</h3>
 				<p>
-					Once the choropleth is established, we show the later categories mostly as <strong>outlines</strong> rather than another set
-					of filled colors. That choice matters. If tract groups, mismatch areas, and income emphasis all tried to use the fill
-					channel, the map would become hard to parse very quickly. Outlines let the project add more information while still letting
-					the reader hold on to the original growth map underneath.
+					As additional concepts are introduced, like transit access, mismatch patterns, and development projects, we intentionally <strong>avoid overloading the choropleth fill</strong>. Instead, we use <strong>separate visual channels</strong>, mainly outlines and symbols, to encode new information.
+				</p>
+				<p>
+					This reflects a basic design principle: each encoding channel should communicate one idea clearly. On this page, <strong>fill color shows housing growth</strong>, <strong>outline color shows TOD grouping</strong>, <strong>purple outlines show mismatch categories</strong>, and <strong>point symbols show development projects</strong>. By separating these encodings, we let multiple layers of information coexist <strong>without competing for attention</strong>, which helps preserve both clarity and interpretability.
 				</p>
 
-				<h3>Use the choropleth for one thing, and only one thing</h3>
+				<hr />
+
+				<h3>Grounding the visualization in context through color</h3>
 				<p>
-					We are careful not to ask the fill color to mean too many things at once. On this page, the fill is always about housing
-					growth. TOD groupings are shown by outline color, mismatch by purple outline styles, and development projects by dots. That
-					separation of visual channels is one of the main reasons the page stays readable even after the map becomes more complex.
+					The outline colors for TOD groupings, green, orange, and gray, are drawn from <strong>MBTA-associated colors</strong>, which helps situate the visualization within the Greater Boston transit context. This choice is both aesthetic and functional. It creates <strong>visual consistency with familiar transit systems</strong>, keeps the outlines distinct from the red-blue growth scale, and reinforces the <strong>transit-oriented framing</strong> of the analysis.
+				</p>
+				<p>
+					Gray is used for minimal-development tracts to keep them <strong>visually present but de-emphasized</strong>, which supports a clear hierarchy.
 				</p>
 
-				<h3>Why the tract groups use green, orange, and gray</h3>
+				<hr />
+
+				<h3>Highlighting mismatch as a key insight</h3>
 				<p>
-					We did not choose these colors arbitrarily. The palette is based on MBTA colors, which helps the map feel grounded in the
-					Greater Boston transit context from the start. Green and orange give the two main tract groups clear outlines that stand apart
-					from the red-blue choropleth, while gray gives minimal-development tracts a quieter background role. Using MBTA-linked colors
-					also helps the transit framing feel consistent across the whole page.
+					We identified mismatch areas, where transit access and housing growth do not align, as a central analytical insight. To emphasize this, we introduced a <strong>distinct purple outline encoding</strong>.
+				</p>
+				<p>
+					We use <strong>solid purple lines</strong> for one mismatch type and <strong>lighter, dashed purple lines</strong> for the other. This creates a <strong>cohesive visual family</strong> while still allowing the two categories to be distinguished. Importantly, purple is not used elsewhere in the visualization, which helps mismatch areas stand out as <strong>analytically significant rather than decorative</strong>.
 				</p>
 
-				<h3>Why mismatch uses purple</h3>
+				<hr />
+
+				<h3>Using scrollytelling to manage complexity</h3>
 				<p>
-					We wanted the mismatch layer to feel different from both the choropleth and the tract-group outlines. Purple helps create that
-					separation. A solid purple line for one mismatch type and a dashed lighter purple line for the other gives two categories that
-					are still part of the same family. That makes it easier to read them as two versions of the same idea rather than as two fully
-					unrelated layers.
+					Because the visualization introduces multiple layers, we use a <strong>scrollytelling structure</strong> to manage cognitive load and guide interpretation.
+				</p>
+				<p>
+					The progression is intentional: first <strong>housing growth</strong>, then <strong>transit-related tract groupings</strong>, then <strong>mismatch patterns</strong>, and finally <strong>development projects and supporting context</strong>. Each step introduces <strong>one new concept</strong>, allowing the reader to build understanding incrementally. This helps avoid overwhelming the user and supports a <strong>clear narrative arc from observation to insight</strong>.
 				</p>
 
-				<h3>Why we used a scrollytelling structure</h3>
+				<hr />
+
+				<h3>Supporting both guided and exploratory interaction</h3>
 				<p>
-					We knew this map was doing more than one job, so showing every layer at once would make the first read overwhelming. The scrollytelling
-					structure lets us introduce the story step by step: first growth, then tract groups, then mismatch, then projects. That
-					order is deliberate. Each new step gives the reader one new question to focus on instead of forcing them to decode the whole
-					system immediately.
+					We designed the interface to support both <strong>guided storytelling</strong> through scrolling and <strong>user-driven exploration</strong> through persistent controls.
+				</p>
+				<p>
+					Keeping controls visible allows users to toggle layers, focus on specific mismatch categories, and select and compare tracts. This reflects interaction ideas from the Interaction Zoo, especially <strong>filtering and reconfiguration</strong>, and helps make the interaction feel useful for analysis rather than decorative.
 				</p>
 
-				<h3>Why the controls stay visible</h3>
+				<hr />
+
+				<h3>Linking detail views without cluttering the map</h3>
 				<p>
-					We wanted the map to support both guided reading and open exploration. Keeping the controls visible next to the walkthrough
-					means the reader does not have to choose between following the story and trying things on their own. The walkthrough gives a
-					clear path, but the controls let the reader test what they are seeing by changing overlays, focusing mismatch types, or
-					selecting tracts directly on the map.
+					While income, tract summaries, and comparisons are important to the story, placing all of that information directly on the map would reduce readability. Instead, we use a <strong>linked-view design</strong>: the map provides the <strong>spatial overview</strong>, while side panels provide <strong>detail-on-demand</strong>.
+				</p>
+				<p>
+					When users hover or select a tract, the linked panels update to show income context, comparison metrics, and supporting charts. This follows the <strong>overview + detail</strong> interaction pattern and lets us add depth without sacrificing clarity.
 				</p>
 
-				<h3>Why linked details live off the map</h3>
+				<hr />
+
+				<h3>Maintaining a clean and consistent visual design</h3>
 				<p>
-					We think income information, tract summaries, and comparison charts are important, but putting all of that directly onto the map would
-					make the main view crowded fast. Instead, we use a linked layout: the map gives the spatial overview, and the side
-					panels provide details when the reader hovers, clicks, or selects a tract. That keeps the map readable while still making the
-					supporting evidence easy to inspect.
+					We intentionally kept typography simple, using <strong>Helvetica and Inter</strong>, to support readability in a dense analytical layout. This avoids unnecessary stylistic distraction while still aligning subtly with the MBTA's visual language, especially because Helvetica is also used by the MBTA.
+				</p>
+				<p>
+					Across the visualization, we aim for a clear hierarchy, consistent color meaning, and restrained use of emphasis. Together, those choices help the interface feel <strong>coherent, navigable, and purposeful</strong>.
 				</p>
 
-				<h3>Why the typography stays simple</h3>
-				<p>
-					We kept the typography simple on purpose. The page uses standard Helvetica and Inter, which makes the text feel familiar and
-					easy to read in a dense analytic layout. Helvetica also connects back to MBTA's visual language, so the type quietly supports
-					the transit framing without turning the page into a branding exercise.
-				</p>
+				<hr />
 
-				<h3>What this adds up to</h3>
+				<h3>Bringing the system together</h3>
 				<p>
-					Taken together, these design decisions are our attempt to make a complicated planning question feel readable without flattening it too much.
-					The choropleth gives a stable base, outlines and dots add context in separate channels, and the scroll structure controls how
-					much appears at once. We want the reader to move from a broad spatial pattern to more specific tract-level
-					examples and comparisons without getting lost.
+					Taken together, these design decisions aim to balance <strong>expressiveness, clarity, and interaction</strong>. The choropleth provides a stable foundation, additional encodings introduce context without interference, and interaction enables deeper exploration.
+				</p>
+				<p>
+					Most importantly, we designed the system to move the reader from <strong>seeing patterns</strong>, to <strong>understanding relationships</strong>, to <strong>interpreting their implications</strong>. By structuring the visualization this way, we aim to make a complex planning question <strong>both accessible and analytically meaningful</strong>.
 				</p>
 			</section>
 
