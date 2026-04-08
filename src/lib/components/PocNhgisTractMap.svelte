@@ -623,8 +623,8 @@
 
 	function zoomToDevelopment(d) {
 		if (!d || !svgRef || !zoomBehaviorRef || !projectionRef) return;
-		const lon = Number(d.longitude);
-		const lat = Number(d.latitude);
+		const lon = Number(d.longitude ?? d.lon);
+		const lat = Number(d.latitude ?? d.lat);
 		if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
 		const point = projectionRef([lon, lat]);
 		if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
@@ -1689,7 +1689,7 @@
 		const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
 		primaryRows.push({
 			label: 'Affordable units',
-			value: affCap > 0 ? `${affCap}${src}` : 'No affordable units listed'
+			value: affCap > 0 ? `${affCap}${src}` : (d.manualAffordableLabel || 'No affordable units listed')
 		});
 		const affPct = Number(d.affrd_percent);
 		secondaryRows.push({
@@ -1698,7 +1698,7 @@
 				? `${fmtPct(affPct)}% income-restricted`
 				: affCap > 0
 					? 'Some affordable units listed'
-					: 'No affordability share listed'
+					: (d.manualAffordabilityNote || 'No affordability share listed')
 		});
 		secondaryRows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
 		if (d.rdv) secondaryRows.push({ label: 'Redevelopment', value: 'Yes' });
@@ -2239,43 +2239,54 @@
 		return guidedDevelopmentExamples ?? [];
 	});
 
-	function normalizeDevelopmentName(value) {
-		return String(value || '')
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, ' ')
-			.trim();
-	}
-
-	const guidedStepTenExamples = $derived.by(() => {
-		const specs = [
-			{
-				id: 'assembly-row-block-2',
-				label: 'Assembly Row: Block 2',
-				categoryLabel: 'Strong TOD example',
-				note:
-					'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
-				match: (name) => name === 'assembly row block 2' || (name.includes('assembly row') && name.includes('block 2'))
+	const guidedStepTenExamples = $derived.by(() => [
+		{
+			id: 'assembly-row-block-2',
+			label: 'Assembly Row: Block 2',
+			categoryLabel: 'Strong TOD example',
+			note:
+				'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
+			dev: {
+				id: 'manual-assembly-row-block-2',
+				name: 'Assembly Row: Block 2',
+				municipal: 'Somerville',
+				hu: 123,
+				lon: -71.07819,
+				lat: 42.39287,
+				nearest_stop_dist_m: 89,
+				mixed_use: true,
+				rdv: true,
+				manualAffordableLabel: 'No affordable units listed',
+				manualAffordabilityNote: 'This filtered MassBuilds record does not list an affordable-unit count for the project.'
 			},
-			{
-				id: 'amaya-suffolk-downs',
-				label: 'Amaya Suffolk Downs',
-				categoryLabel: 'Large-scale TOD example',
-				note:
-					'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
-				match: (name) => name === 'amaya suffolk downs' || name.includes('suffolk downs')
-			}
-		];
-		return specs.map((spec) => {
-			const dev = (developments ?? []).find((d) => spec.match(normalizeDevelopmentName(d.name || d.project_name))) ?? null;
-			return {
-				...spec,
-				dev,
-				units: dev ? Number(dev.hu) || 0 : null,
-				affordableUnits: dev ? developmentAffordableUnitsCapped(dev) : null,
-				showOnMapDisabled: !dev
-			};
-		});
-	});
+			units: 123,
+			affordableUnits: null,
+			showOnMapDisabled: false
+		},
+		{
+			id: 'amaya-suffolk-downs',
+			label: 'Amaya Suffolk Downs',
+			categoryLabel: 'Large-scale TOD example',
+			note:
+				'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
+			dev: {
+				id: 'manual-amaya-suffolk-downs',
+				name: 'Amaya Suffolk Downs',
+				municipal: 'Revere',
+				hu: 475,
+				lon: -70.99348,
+				lat: 42.39752,
+				nearest_stop_dist_m: 76.3,
+				mixed_use: false,
+				rdv: false,
+				manualAffordableLabel: 'Not listed in this record',
+				manualAffordabilityNote: 'Affordability commitments exist in the larger Suffolk Downs redevelopment, but this project-level record does not list a unit count here.'
+			},
+			units: 475,
+			affordableUnits: null,
+			showOnMapDisabled: false
+		}
+	]);
 
 	function inspectGuidedExample(id) {
 		if (!id) return;
@@ -3147,8 +3158,8 @@
 												</div>
 												<p class="poc-stepper-example__note">{item.note}</p>
 												<div class="poc-stepper-example__metrics">
-													<span><strong>Total units:</strong> {item.units == null ? 'Loading…' : d3.format(',.0f')(item.units)}</span>
-													<span><strong>Affordable units:</strong> {item.affordableUnits == null ? 'Loading…' : d3.format(',.0f')(item.affordableUnits || 0)}</span>
+													<span><strong>Total units:</strong> {item.units == null ? '—' : d3.format(',.0f')(item.units)}</span>
+													<span><strong>Affordable units:</strong> {item.affordableUnits == null ? 'Not listed' : d3.format(',.0f')(item.affordableUnits || 0)}</span>
 												</div>
 												<div class="poc-stepper-example__actions">
 													<button
