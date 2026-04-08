@@ -1837,6 +1837,66 @@
 		});
 	});
 
+	const guidedContrastExamples = $derived.by(() => {
+		if (!guidedMode) return [];
+		const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
+		const seenCounties = new Set();
+		return (nhgisRows ?? [])
+			.map((row) => {
+				const id = row?.gisjoin;
+				if (!id) return null;
+				const tract = tractByGj.get(id);
+				const growth = Number(row?.census_hu_pct_change);
+				const stops = Number(tract?.transit_stops);
+				if (!Number.isFinite(growth) || !Number.isFinite(stops)) return null;
+				const mismatch = mismatchFlagsByGj.get(id);
+				const county =
+					tract?.county && String(tract.county) !== 'County Name'
+						? String(tract.county)
+						: null;
+				const incomeRaw =
+					row?.median_household_income ??
+					mismatch?.medianHouseholdIncome ??
+					tract?.median_income_2020 ??
+					null;
+				const income = Number(incomeRaw);
+				return {
+					id,
+					county,
+					label: county ? `Tract in ${county}` : `Tract ${id}`,
+					growth,
+					stops,
+					income: Number.isFinite(income) ? income : null,
+					note:
+						stops === 0
+							? 'Strong growth appears here even without nearby MBTA stops counted in the tract.'
+							: `Strong growth appears here with only limited transit access nearby.`,
+					score:
+						(mismatch?.isHighGrowthLowAccess ? 100 : 0) +
+						growth * 2.5 -
+						stops * 8
+				};
+			})
+			.filter(Boolean)
+			.sort((a, b) => b.score - a.score)
+			.filter((item) => {
+				const key = item.county ?? item.id;
+				if (seenCounties.has(key)) return false;
+				seenCounties.add(key);
+				return true;
+			})
+			.slice(0, 2);
+	});
+
+	function inspectGuidedExample(id) {
+		if (!id) return;
+		zoomToTract(id);
+		if (!panelState.selectedTracts.has(id)) {
+			panelState.toggleTract(id);
+		}
+		panelState.setLastInteracted(id);
+	}
+
 	$effect(() => {
 		void structuralKey;
 		void containerEl;
@@ -2571,7 +2631,32 @@
 								{#if guidedMode && step.why}
 									<p class="poc-stepper-card-note"><strong>Why it matters:</strong> {step.why}</p>
 								{/if}
-								{#if guidedMode && step.prompt}
+								{#if guidedMode && i === 2 && guidedContrastExamples.length}
+									<div class="poc-stepper-examples" aria-label="Example tracts that show the contrast">
+										<p class="poc-stepper-examples-title">Example tracts that already show this contrast</p>
+										{#each guidedContrastExamples as example (example.id)}
+											<button
+												type="button"
+												class="poc-stepper-example"
+												onclick={() => inspectGuidedExample(example.id)}
+											>
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{example.label}</span>
+													<span class="poc-stepper-example__cta">Zoom to tract</span>
+												</div>
+												<p class="poc-stepper-example__note">{example.note}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Growth:</strong> {d3.format('.1f')(example.growth)}%</span>
+													<span><strong>Transit access:</strong> {example.stops === 0 ? '0 stops' : `${d3.format(',.0f')(example.stops)} stops`}</span>
+													{#if example.income != null}
+														<span><strong>Median income:</strong> {d3.format('$,.0f')(example.income)}</span>
+													{/if}
+												</div>
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#if guidedMode && step.prompt && i !== 2}
 									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
 								{/if}
 							</section>
@@ -2774,6 +2859,84 @@
 
 	.poc-stepper-card-note strong {
 		color: var(--text);
+	}
+
+	.poc-stepper-examples {
+		display: grid;
+		gap: 0.7rem;
+		margin-top: 0.8rem;
+	}
+
+	.poc-stepper-examples-title {
+		margin: 0;
+		max-width: 24ch;
+		font-size: 0.82rem;
+		font-weight: 700;
+		line-height: 1.45;
+		color: var(--text);
+	}
+
+	.poc-stepper-example {
+		display: grid;
+		gap: 0.42rem;
+		width: 100%;
+		padding: 0.78rem 0.84rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--bg-card) 94%, white 6%);
+		text-align: left;
+		cursor: pointer;
+		transition:
+			border-color 120ms ease,
+			box-shadow 120ms ease,
+			transform 120ms ease;
+	}
+
+	.poc-stepper-example:hover,
+	.poc-stepper-example:focus-visible {
+		border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+		box-shadow: 0 8px 18px rgba(18, 30, 51, 0.08);
+		transform: translateY(-1px);
+	}
+
+	.poc-stepper-example__head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.6rem;
+	}
+
+	.poc-stepper-example__label {
+		font-size: 0.84rem;
+		font-weight: 700;
+		line-height: 1.35;
+		color: var(--text);
+	}
+
+	.poc-stepper-example__cta {
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	.poc-stepper-example__note {
+		margin: 0;
+		max-width: 24ch;
+		font-size: 0.77rem;
+		line-height: 1.45;
+		color: var(--text-muted);
+	}
+
+	.poc-stepper-example__metrics {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 0.7rem;
+		max-width: 25ch;
+		font-size: 0.72rem;
+		line-height: 1.45;
+		color: var(--text-muted);
 	}
 
 	/* Transit toggles ~1/4 width; text legend ~3/4 on wide viewports */
