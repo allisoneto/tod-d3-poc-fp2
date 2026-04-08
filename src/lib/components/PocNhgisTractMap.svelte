@@ -227,7 +227,7 @@
 		{
 			kicker: 'Step 4',
 			title: 'Who can live near transit?',
-			body: 'In some high-access areas, limited development reduces opportunities for lower-income households (<$125k median) to live near transit. Dashed lavender adds high growth + low access; optional project dots layer on.'
+			body: 'In some high-access areas, limited development reduces opportunities for lower-income households (<$125k median) to live near transit. Dashed lavender adds high growth + low access while keeping the same choropleth baseline.'
 		}
 	];
 
@@ -241,19 +241,19 @@
 		if (revealStage === 1) {
 			return [
 				'Outlines encode MassBuilds-based cohorts; fill still shows census growth.',
-				'Next steps add access–growth “mismatch” tracts—use toggles to focus when the map gets busier.'
+				'Project dots are shown here so developments are read against cohort outlines (orange/green/gray), before mismatch overlays appear.'
 			];
 		}
 		if (revealStage === 2) {
 			return [
 				'Solid violet tracts = high access + low growth. The map pushes everything else back (dimmer fill, lighter cohort outlines) so the mismatch layer stays in front.',
-				'If it still feels busy: turn on “Show mismatch areas only,” or hover any highlighted tract to spotlight its whole cluster.',
+				'If it still feels busy, hover any highlighted tract to spotlight its whole cluster.',
 				'Optional: “Show lower-income tracts” replaces growth color with neutral fill for tracts at/above the $125k median (no second choropleth).'
 			];
 		}
 		return [
 			'Dashed lavender = high growth + low access. Same hierarchy: background tracts fade; violet / lavender stay the focus.',
-			'Project dots (step 4) add site-level detail—tract fill and outlines still carry the regional story.',
+			'Development dots stay tied to the cohort stage, so the mismatch step remains focused on the violet/lavender tract comparison.',
 			'Income detail stays in tooltips and the charts below; hover or select a tract to link map → charts.'
 		];
 	});
@@ -922,7 +922,7 @@
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		const t = d3.transition().duration(350);
 
-		if (revealStage < 3) {
+		if (revealStage !== 1) {
 			devSizeLegendTicks = null;
 			devLayer
 				.selectAll('circle.dev-dot')
@@ -1862,7 +1862,7 @@
 				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
 					<div
 						class="poc-map-key-compact"
-						class:poc-map-key-compact--split={revealStage >= 3}
+						class:poc-map-key-compact--split={revealStage === 1}
 					>
 						<div class="poc-map-key-col poc-map-key-col--tract">
 							<p class="poc-key-one poc-key-tract-fill">
@@ -1913,7 +1913,7 @@
 								</ul>
 							{/if}
 						</div>
-						{#if revealStage >= 3}
+						{#if revealStage === 1}
 							<div class="poc-map-key-col poc-map-key-col--dev">
 								<p class="poc-key-one poc-key-dev">
 									<strong>Developments</strong>
@@ -3905,14 +3905,14 @@
 	}
 
 	:global(.insight-marker__halo) {
-		fill: color-mix(in srgb, var(--warning) 26%, white 74%);
-		stroke: color-mix(in srgb, var(--warning) 58%, #1f2937);
+		fill: color-mix(in srgb, #ef4444 20%, white 80%);
+		stroke: color-mix(in srgb, #dc2626 62%, #1f2937);
 		stroke-width: 1.1;
 		vector-effect: non-scaling-stroke;
 	}
 
 	:global(.insight-marker__dot) {
-		fill: color-mix(in srgb, var(--warning) 86%, #7c2d12);
+		fill: color-mix(in srgb, #dc2626 88%, #7f1d1d);
 		stroke: #fff;
 		stroke-width: 1;
 		vector-effect: non-scaling-stroke;
