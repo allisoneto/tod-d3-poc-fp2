@@ -303,7 +303,9 @@
 					Here the point is comparison. Municipalities with larger lower-income shares do not map neatly onto the places with
 					the strongest TOD share or the largest amount of new growth. That is why we do not stop at a regional summary. The
 					map is needed next, because the tract scale shows where transit access, housing growth, and lower-income context
-					line up, and where they begin to pull apart.
+					line up, and where they begin to pull apart. The dashed gray lines mark the regional averages on each axis, so they
+					help the reader see which municipalities sit above or below the typical lower-income share and above or below the
+					typical level of housing growth.
 				</figcaption>
 			</figure>
 		</div>
