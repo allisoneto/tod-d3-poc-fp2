@@ -1336,6 +1336,10 @@
 										role="img"
 										aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
 									></span>
+									<span class="poc-key-tract-bar-labels" aria-hidden="true">
+										<span class="poc-key-tract-bar-label">- lower growth</span>
+										<span class="poc-key-tract-bar-label">+ higher growth</span>
+									</span>
 								</span>
 							</p>
 							<p class="poc-key-no-data">
@@ -2628,6 +2632,22 @@
 		border-radius: 2px;
 		border: 1px solid var(--border);
 		flex-shrink: 0;
+	}
+
+	.poc-key-tract-bar-labels {
+		display: flex;
+		justify-content: space-between;
+		width: 100%;
+		max-width: 9rem;
+		gap: 8px;
+		font-size: 0.62rem;
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--text-muted);
+	}
+
+	.poc-key-tract-bar-label:last-child {
+		text-align: right;
 	}
 
 	.poc-key-one strong {
