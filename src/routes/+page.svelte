@@ -600,9 +600,9 @@
 		</div>
 	{:else}
 	<section class="story card">
-		<h2>Three quick figures before the map</h2>
+		<h2>Three figures before the map</h2>
 		<p class="chart-note">
-			These figures establish the problem first, so the map can focus on where the mismatch appears rather than making you infer the whole story from scratch.
+			Read these one at a time. Each figure introduces one idea so the mismatch on the map is easier to understand when you get there.
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
@@ -1651,16 +1651,17 @@
 
 	.guide-figures {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-		gap: 14px;
+		grid-template-columns: 1fr;
+		gap: 18px;
 		margin-top: 14px;
+		max-width: 860px;
 	}
 
 	.guide-figure {
 		margin: 0;
-		padding: 14px;
+		padding: 16px;
 		display: grid;
-		gap: 10px;
+		gap: 12px;
 	}
 
 	.guide-figure h3 {

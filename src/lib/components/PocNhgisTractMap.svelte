@@ -132,12 +132,12 @@
 	}
 
 	function showMismatchOutlines() {
-		if (guidedMode) return revealStage === 2 || revealStage === 3;
+		if (guidedMode) return revealStage >= 3;
 		return revealStage === 2;
 	}
 
 	function showDevelopmentDots() {
-		if (guidedMode) return false;
+		if (guidedMode) return revealStage >= 7;
 		return revealStage === 3;
 	}
 
@@ -244,72 +244,111 @@
 		return null;
 	}
 
-	const stepContent = [
-		{
-			kicker: 'Step 1',
-			title: 'Transit-rich places',
-			body: guidedMode
-				? 'These areas are well-served by transit.'
-				: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.',
-			legend: guidedMode
-				? 'At this step, focus on the MBTA network itself. You are locating access before asking where growth happened.'
-				: '',
-			why: guidedMode
-				? 'For the gentrification argument, this establishes the geography of opportunity: where people could plausibly live with stronger transit access.'
-				: '',
-			prompt: guidedMode
-				? 'Look first at Boston, Cambridge, Quincy, and Revere. These are useful anchor areas for the rest of the walkthrough.'
-				: ''
-		},
-		{
-			kicker: 'Step 2',
-			title: guidedMode ? 'Housing growth does not simply follow transit' : 'Growth is not only “on the line”',
-			body: guidedMode
-				? 'However, housing growth is not concentrated only in these areas.'
-				: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.',
-			legend: guidedMode
-				? 'Now read the tract fill: blue means stronger housing growth, red means weaker or negative growth, and tan marks limited or unreliable growth data.'
-				: '',
-			why: guidedMode
-				? 'This is the first point where the core argument appears. If transit access and housing growth were aligned, the strongest blue areas would cluster mainly in transit-rich places.'
-				: '',
-			prompt: guidedMode
-				? 'Compare a blue tract near strong transit with a blue tract farther from strong transit. The difference matters more than any single tract.'
-				: ''
-		},
-		{
-			kicker: guidedMode ? 'Step 3' : 'Step 3',
-			title: 'A measurable mismatch',
-			body: guidedMode
-				? 'These highlighted areas reveal where transit access and housing growth do not align.'
-				: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.',
-			legend: guidedMode
-				? 'Purple outlines are the key layer. They isolate tracts where access and growth pull apart instead of moving together.'
-				: '',
-			why: guidedMode
-				? 'This is the central takeaway of the whole story. The map is no longer just showing where transit exists or where growth exists; it is showing where those two patterns fail to match.'
-				: '',
-			prompt: guidedMode
-				? 'Click one highlighted tract and compare it to a nearby non-highlighted tract. The summary cards will help you see how unusual the mismatch tract is.'
-				: ''
-		},
-		{
-			kicker: 'Step 4',
-			title: guidedMode ? 'Income sharpens the mismatch' : 'Bring projects back in',
-			body: guidedMode
-				? 'This misalignment affects where lower-income households (<$125k) can access housing near transit.'
-				: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.',
-			legend: guidedMode
-				? 'At this step, tracts above the $125k median-income threshold fade back so the lower-income pattern is easier to see.'
-				: '',
-			why: guidedMode
-				? 'This is what ties the spatial mismatch to the gentrification argument. If lower-income tracts are part of the mismatch, the issue is not only planning efficiency; it is also who gets transit access as housing changes.'
-				: '',
-			prompt: guidedMode
-				? 'Click one lower-income highlighted tract and one non-highlighted tract. Use the summary cards to compare growth, TOD share, and housing stock increase.'
-				: ''
-		}
-	];
+	const stepContent = guidedMode
+		? [
+			{
+				kicker: 'Step 1',
+				title: 'Transit-rich places',
+				body: 'These areas are well-served by transit and are often expected to support dense housing.',
+				legend: 'At this step, ignore growth and just locate the MBTA network. This is the regional geography of access.',
+				why: 'For the gentrification argument, this marks the places where transit-linked housing opportunity is most likely to matter.',
+				prompt: 'Start with Boston, Cambridge, Quincy, and Revere. These places anchor the rest of the walkthrough.'
+			},
+			{
+				kicker: 'Step 2',
+				title: 'Housing growth is uneven',
+				body: 'Housing growth is uneven across the region and not limited to transit-rich areas.',
+				legend: 'Blue fill means stronger housing growth, red means weaker or negative growth, and tan marks limited or unreliable growth data.',
+				why: 'If transit access and growth were aligned, the strongest blue tracts would mostly sit in the most transit-rich parts of the region.',
+				prompt: 'Compare the blue tracts near the MBTA core to blue tracts outside that core.'
+			},
+			{
+				kicker: 'Step 3',
+				title: 'Initial contrast',
+				body: 'Some high-growth areas lie far from strong transit access.',
+				legend: 'Stay with the fill here. The point is not only where transit exists, but where growth is happening anyway.',
+				why: 'This begins to show the reverse side of the mismatch story: growth is not consistently being pulled toward the strongest transit network.',
+				prompt: 'Look for blue tracts farther west and south of the core network.'
+			},
+			{
+				kicker: 'Step 4',
+				title: 'A measurable mismatch',
+				body: 'These highlighted tracts reveal a mismatch between transit access and housing growth.',
+				legend: 'Purple outlines isolate the tracts where access and growth pull apart instead of moving together.',
+				why: 'This is the main analytical claim of the map: the region contains both transit-rich, low-growth tracts and higher-growth, weaker-access tracts.',
+				prompt: 'Click one highlighted tract and compare it to a nearby non-highlighted tract.'
+			},
+			{
+				kicker: 'Step 5',
+				title: 'Boston and Cambridge',
+				body: 'These areas show the expected pattern: strong transit access paired with housing growth.',
+				legend: 'The map zooms to the inner core, where the transit-growth link is strongest and easiest to see.',
+				why: 'This matters because it shows the expected case first before we move to more uneven regional patterns.',
+				prompt: 'But even here, not every transit-rich tract grows equally. Click a few neighboring tracts to compare them.'
+			},
+			{
+				kicker: 'Step 6',
+				title: 'Quincy and Revere',
+				body: 'Transit access is present here, but housing growth is uneven.',
+				legend: 'This zoom keeps the same color logic, but moves to a part of the region where similar access does not produce the same outcome everywhere.',
+				why: 'This matters because the mismatch is not only a downtown story; nearby tracts with similar access can still diverge.',
+				prompt: 'Click nearby tracts with similar transit context and compare their growth values.'
+			},
+			{
+				kicker: 'Step 7',
+				title: 'Outer-ring growth',
+				body: 'Some areas farther from strong transit still show substantial housing growth.',
+				legend: 'This zoom shifts attention to the reverse mismatch: growth appearing where transit access is weaker.',
+				why: 'Development is not consistently concentrated in the most transit-accessible places, which is central to the planning argument here.',
+				prompt: 'Compare these blue tracts to the earlier transit-rich areas and ask what kinds of access they do not have.'
+			},
+			{
+				kicker: 'Step 8',
+				title: 'Projects enter the picture',
+				body: 'New housing developments are not consistently located in high-access areas.',
+				legend: 'Project dots now appear. They connect the tract pattern back to actual development locations.',
+				why: 'This matters because the mismatch is not only a tract-level abstraction; it is also visible in where project activity accumulates.',
+				prompt: 'Look for clusters of project dots that sit outside the strongest transit context.'
+			},
+			{
+				kicker: 'Step 9',
+				title: 'A development cluster',
+				body: 'Here, new development occurs in areas with weaker transit access.',
+				legend: 'The zoom focuses on one development-heavy area where project activity and transit access are not especially well matched.',
+				why: 'This makes the mismatch concrete by tying the story to actual housing production rather than only tract averages.',
+				prompt: 'Hover the project dots here and compare them to the tract growth pattern underneath.'
+			},
+			{
+				kicker: 'Step 10',
+				title: 'Lower-income access',
+				body: 'This mismatch affects where lower-income households (<$125k) can access housing near transit.',
+				legend: 'At this step, tracts above the $125k median-income threshold fade back so the lower-income pattern is easier to see.',
+				why: 'This is what connects the spatial mismatch to the broader gentrification argument: who gets access to transit-linked housing as the region grows.',
+				prompt: 'Click one lower-income highlighted tract and compare it to a non-highlighted tract to see how growth, TOD share, and stock increase differ.'
+			}
+		]
+		: [
+			{
+				kicker: 'Step 1',
+				title: 'Transit-rich places',
+				body: 'Start with tract fill only. This is the baseline view of housing growth before any extra layers appear.'
+			},
+			{
+				kicker: 'Step 2',
+				title: 'Growth is not only “on the line”',
+				body: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.'
+			},
+			{
+				kicker: 'Step 3',
+				title: 'A measurable mismatch',
+				body: 'Purple outlines take over here to show where transit access and housing growth pull apart, without the cohort outlines getting in the way.'
+			},
+			{
+				kicker: 'Step 4',
+				title: 'Bring projects back in',
+				body: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.'
+			}
+		];
 
 	const keyFindings = guidedMode
 		? [
@@ -489,6 +528,41 @@
 			.transition()
 			.duration(500)
 			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+	}
+
+	function zoomToFeatureGroup(features, scaleCap = 9) {
+		if (!features?.length || !svgRef || !zoomBehaviorRef || !projectionRef) return;
+		const path = d3.geoPath(projectionRef);
+		let x0 = Infinity;
+		let y0 = Infinity;
+		let x1 = -Infinity;
+		let y1 = -Infinity;
+		for (const feature of features) {
+			const [[fx0, fy0], [fx1, fy1]] = path.bounds(feature);
+			if (!Number.isFinite(fx0) || !Number.isFinite(fy0) || !Number.isFinite(fx1) || !Number.isFinite(fy1)) continue;
+			x0 = Math.min(x0, fx0);
+			y0 = Math.min(y0, fy0);
+			x1 = Math.max(x1, fx1);
+			y1 = Math.max(y1, fy1);
+		}
+		const dx = x1 - x0;
+		const dy = y1 - y0;
+		if (!Number.isFinite(dx) || !Number.isFinite(dy) || dx <= 0 || dy <= 0) return;
+		const scale = Math.max(1, Math.min(scaleCap, 0.84 / Math.max(dx / mapW, dy / mapH)));
+		const tx = mapCanvasLeft + mapW / 2 - scale * (x0 + x1) / 2;
+		const ty = mapH / 2 - scale * (y0 + y1) / 2;
+		svgRef
+			.transition()
+			.duration(650)
+			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+	}
+
+	function tractFeatureByGeoFilter(filterFn) {
+		return (tractGeo?.features ?? []).filter((f) => {
+			const gj = f.properties?.gisjoin;
+			const tract = tractList.find((t) => t.gisjoin === gj);
+			return tract ? filterFn(tract) : false;
+		});
 	}
 
 	function stopRadius(stop) {
@@ -1711,6 +1785,59 @@
 		updateDevelopments();
 		updateInsightMarkers();
 		updateSelection();
+	});
+
+	$effect(() => {
+		void revealStage;
+		void guidedMode;
+		void tractList;
+		void tractGeo;
+		if (!guidedMode || !svgRef || !zoomBehaviorRef || !projectionRef) return;
+		if (revealStage <= 3 || revealStage === 7 || revealStage === 9) {
+			recenterMap();
+			return;
+		}
+		if (revealStage === 4) {
+			const focus = tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.30 && lat <= 42.43 && lon >= -71.17 && lon <= -70.98;
+			});
+			zoomToFeatureGroup(focus, 8.5);
+			return;
+		}
+		if (revealStage === 5) {
+			const focus = tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.20 && lat <= 42.47 && lon >= -71.10 && lon <= -70.90;
+			});
+			zoomToFeatureGroup(focus, 8.2);
+			return;
+		}
+		if (revealStage === 6) {
+			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+			const focus = tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				const row = rowsByGj.get(t.gisjoin);
+				const growth = Number(row?.census_hu_pct_change);
+				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.2 && lat >= 42.1 && lat <= 42.55 && growth >= 15;
+			});
+			zoomToFeatureGroup(focus, 7.2);
+			return;
+		}
+		if (revealStage === 8) {
+			const rowsByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+			const focus = tractFeatureByGeoFilter((t) => {
+				const lat = Number(t.centlat);
+				const lon = Number(t.centlon);
+				const row = rowsByGj.get(t.gisjoin);
+				const growth = Number(row?.census_hu_pct_change);
+				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.1 && lat >= 42.1 && lat <= 42.55 && growth >= 10;
+			});
+			zoomToFeatureGroup(focus, 8.2);
+		}
 	});
 
 	$effect(() => {
