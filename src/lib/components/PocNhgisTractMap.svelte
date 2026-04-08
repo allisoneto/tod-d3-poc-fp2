@@ -2217,7 +2217,6 @@
 						aria-label="Interactive census tract map"
 						onmouseleave={handleOverlayLeave}
 					>
-						<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
 						<div class="map-widget">
 							<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
 								<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
@@ -2343,18 +2342,6 @@
 		min-height: 0;
 	}
 
-	.poc-stage-chip {
-		align-self: flex-start;
-		padding: 5px 9px;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
-		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.03em;
-		color: var(--text);
-	}
-
 	.poc-scrolly-shell {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
@@ -2364,7 +2351,7 @@
 
 	.poc-scrolly-left {
 		display: grid;
-		gap: 8px;
+		gap: 6px;
 		min-width: 0;
 		min-height: 0;
 		position: sticky;
@@ -2415,10 +2402,10 @@
 
 	.poc-stepper-inline-rail {
 		display: grid;
-		gap: 22vh;
+		gap: 33vh;
 		padding-top: 8px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
-		padding-bottom: calc(38vh + 72px);
+		padding-bottom: calc(57vh + 108px);
 		isolation: isolate;
 	}
 
@@ -2427,7 +2414,7 @@
 		align-content: center;
 		gap: 12px;
 		width: 100%;
-		min-height: 68vh;
+		min-height: 84vh;
 		padding: 10px 0 0;
 		border-left: 2px solid color-mix(in srgb, var(--accent) 16%, var(--border));
 		padding-left: 18px;
@@ -2520,7 +2507,7 @@
 	.poc-control-stack {
 		display: grid;
 		gap: 5px;
-		margin-bottom: 4px;
+		margin-bottom: 0;
 	}
 
 	.poc-side-cards {
@@ -3522,7 +3509,7 @@
 	.map-wrap {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 18px;
+		gap: 10px;
 		width: 100%;
 		background: transparent;
 		align-items: start;
@@ -3530,7 +3517,7 @@
 
 	.map-visual-column {
 		display: grid;
-		gap: 6px;
+		gap: 4px;
 		min-width: 0;
 		min-height: 0;
 	}
@@ -3539,7 +3526,7 @@
 	.map-left-column {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 3px;
 		min-width: 0;
 		position: relative;
 		top: auto;
@@ -3555,7 +3542,7 @@
 		min-width: 0;
 		display: grid;
 		gap: 3px;
-		margin-bottom: clamp(6px, 2vh, 14px);
+		margin-bottom: clamp(4px, 1.25vh, 10px);
 	}
 
 	.poc-map-callouts {
