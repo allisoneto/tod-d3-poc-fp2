@@ -12,7 +12,7 @@
 		renderMuniComposition,
 		renderMuniGrowthCapture,
 	} from '$lib/utils/municipalCharts.js';
-	import { tractData, developments } from '$lib/stores/data.svelte.js';
+	import { tractData, developments, storyNhgisRows } from '$lib/stores/data.svelte.js';
 	import { loadAllData, loadStoryData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
@@ -247,9 +247,10 @@
 		)
 	);
 
-	const nhgisLikeRows = $derived.by(() =>
-		buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod)
-	);
+	const nhgisLikeRows = $derived.by(() => {
+		if (storyNhgisRows.length && !exploreReady) return storyNhgisRows;
+		return buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod);
+	});
 </script>
 
 <div class="poc-root">
