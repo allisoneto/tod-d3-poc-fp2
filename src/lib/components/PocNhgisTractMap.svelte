@@ -28,6 +28,7 @@
 		MBTA_ORANGE,
 		MBTA_RED
 	} from '$lib/utils/mbtaColors.js';
+	import { renderMuniComposition, renderMuniRankedGrowth } from '$lib/utils/municipalCharts.js';
 
 	/**
 	 * Tract-dashboard–style map: census % housing-unit growth choropleth (period from panel), TOD-tier
@@ -319,13 +320,16 @@
 
 	let mapCanvasLeft = 0;
 	let mapW = 520;
-	const mapH = 480;
+	const mapH = 430;
 	/** ViewBox dimensions for anchoring HTML callouts to projection coordinates. */
 	let mapViewBox = $state(/** @type {{ svgW: number; mapW: number; mapH: number }} */ ({
 		svgW: 520 + CHORO_LEGEND_COL_W,
 		mapW: 520,
-		mapH: 480
+		mapH: 430
 	}));
+	let chartResizeTick = $state(0);
+	let elComposition = $state(/** @type {HTMLElement | null} */ (null));
+	let elRanked = $state(/** @type {HTMLElement | null} */ (null));
 
 	let svgRef = $state(null);
 	let zoomBehaviorRef = $state(null);
@@ -344,6 +348,56 @@
 			ms: mbtaStops.length,
 			showDev: panelState.showDevelopments
 		})
+	);
+
+	const supplementalChartState = $derived.by(() => ({
+		yearStart: 1990,
+		yearEnd: 2026,
+		threshold: Number(panelState.transitDistanceMi ?? 0.5)
+	}));
+
+	const supplementalProjectRows = $derived.by(() => {
+		const radiusM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
+		const source =
+			metricsDevelopments && metricsDevelopments.length
+				? metricsDevelopments
+				: buildFilteredData(developments, panelState);
+		return source
+			.map((d) => {
+				const year = Number(d?.year ?? d?.completion_year ?? d?.year_compl ?? d?.yrcomp_est);
+				const units = Number(d?.hu ?? d?.units);
+				const affordableUnits = Number(d?.affrd_unit ?? d?.affordableUnits);
+				const municipality = String(d?.municipal ?? d?.municipality ?? '').trim();
+				const prox = developmentMbtaProximity(d, mbtaStops, radiusM);
+				const distM = Number(prox?.nearestDistM);
+				return {
+					year,
+					units,
+					affordableUnits: Number.isFinite(affordableUnits) ? affordableUnits : 0,
+					municipality,
+					distance: Number.isFinite(distM) ? distM / 1609.344 : NaN,
+					hasDistance: Number.isFinite(distM)
+				};
+			})
+			.filter((d) => d.municipality && d.year >= 1990 && d.year <= 2026 && d.units > 0);
+	});
+
+	const supplementalMuniRows = $derived.by(() =>
+		d3
+			.rollups(
+				supplementalProjectRows,
+				(values) => {
+					const units = d3.sum(values, (d) => d.units);
+					const affordableUnits = d3.sum(values, (d) => d.affordableUnits);
+					return {
+						municipality: values[0].municipality,
+						units,
+						affordableShare: units > 0 ? affordableUnits / units : 0
+					};
+				},
+				(d) => d.municipality
+			)
+			.map(([, row]) => row)
 	);
 
 	const dataKey = $derived(
@@ -1691,6 +1745,29 @@
 		return () => observer.disconnect();
 	});
 
+	$effect(() => {
+		if (typeof window === 'undefined') return;
+		let raf = 0;
+		const onResize = () => {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => {
+				chartResizeTick += 1;
+			});
+		};
+		window.addEventListener('resize', onResize);
+		return () => {
+			window.removeEventListener('resize', onResize);
+			cancelAnimationFrame(raf);
+		};
+	});
+
+	$effect(() => {
+		void chartResizeTick;
+		const state = supplementalChartState;
+		if (elComposition) renderMuniComposition(elComposition, supplementalProjectRows, state);
+		if (elRanked) renderMuniRankedGrowth(elRanked, supplementalMuniRows);
+	});
+
 	onDestroy(() => {
 		if (containerEl) d3.select(containerEl).selectAll('*').remove();
 		lastStructuralKey = '';
@@ -1891,9 +1968,81 @@
 						{/if}
 					</div>
 				</div>
-			</div>
+				</div>
 
-			<div class="poc-control-stack">
+				<div
+					class="map-main"
+					role="region"
+					aria-label="Interactive census tract map"
+					onmouseleave={handleOverlayLeave}
+				>
+					<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
+					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
+						<p class="poc-detail__kicker">What to notice</p>
+						<ul class="poc-map-callouts__list">
+							{#each mapCallouts as c, i (i)}
+								<li>{c}</li>
+							{/each}
+						</ul>
+					</div>
+					<div class="map-widget">
+						<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
+							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
+							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
+							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
+						</div>
+						<div class="map-root" bind:this={containerEl}></div>
+					</div>
+					{#if tooltip.visible}
+						<div
+							class="map-tooltip"
+							style:left="{tooltip.x + 12}px"
+							style:top="{tooltip.y + 12}px"
+						>
+							<div class="map-tooltip__header">
+								<div class="map-tooltip__header-copy">
+									{#if tooltip.eyebrow}
+										<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
+									{/if}
+									<p class="map-tooltip__title">{tooltip.title}</p>
+								</div>
+								{#if tooltip.badge}
+									<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+								{/if}
+							</div>
+							{#if tooltip.primaryRows.length > 0}
+								<div
+									class="map-tooltip__primary"
+									class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
+									class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
+									class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
+								>
+									{#each tooltip.primaryRows as row, i (i)}
+										<div class="map-tooltip__primary-row">
+											<span class="map-tooltip__primary-label">{row.label}</span>
+											<span class="map-tooltip__primary-value">{row.value}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if tooltip.secondaryRows.length > 0}
+								<div class="map-tooltip__details">
+									<p class="map-tooltip__details-label">Details</p>
+									<div class="map-tooltip__rows">
+										{#each tooltip.secondaryRows as row, i (i)}
+											<div class="map-tooltip__row">
+												<span class="map-tooltip__label">{row.label}</span>
+												<span class="map-tooltip__value">{row.value}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+
+				<div class="poc-control-stack">
 				<div class="poc-side-cards">
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
@@ -2201,79 +2350,18 @@
 							{/each}
 						</div>
 					</div>
-				{/if}
-				</div>
+					{/if}
+					</div>
 
-					<div
-						class="map-main"
-					role="region"
-					aria-label="Interactive census tract map"
-					onmouseleave={handleOverlayLeave}
-				>
-					<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
-					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
-						<p class="poc-detail__kicker">What to notice</p>
-						<ul class="poc-map-callouts__list">
-							{#each mapCallouts as c, i (i)}
-								<li>{c}</li>
-							{/each}
-						</ul>
-					</div>
-					<div class="map-widget">
-						<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
-							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
-							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
-							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
-						</div>
-						<div class="map-root" bind:this={containerEl}></div>
-					</div>
-					{#if tooltip.visible}
-						<div
-							class="map-tooltip"
-							style:left="{tooltip.x + 12}px"
-							style:top="{tooltip.y + 12}px"
-						>
-							<div class="map-tooltip__header">
-								<div class="map-tooltip__header-copy">
-									{#if tooltip.eyebrow}
-										<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
-									{/if}
-									<p class="map-tooltip__title">{tooltip.title}</p>
-								</div>
-								{#if tooltip.badge}
-									<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
-								{/if}
-							</div>
-							{#if tooltip.primaryRows.length > 0}
-								<div
-									class="map-tooltip__primary"
-									class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
-									class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
-									class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
-								>
-									{#each tooltip.primaryRows as row, i (i)}
-										<div class="map-tooltip__primary-row">
-											<span class="map-tooltip__primary-label">{row.label}</span>
-											<span class="map-tooltip__primary-value">{row.value}</span>
-										</div>
-									{/each}
-								</div>
-							{/if}
-							{#if tooltip.secondaryRows.length > 0}
-								<div class="map-tooltip__details">
-									<p class="map-tooltip__details-label">Details</p>
-									<div class="map-tooltip__rows">
-										{#each tooltip.secondaryRows as row, i (i)}
-											<div class="map-tooltip__row">
-												<span class="map-tooltip__label">{row.label}</span>
-												<span class="map-tooltip__value">{row.value}</span>
-											</div>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-						{/if}
+					<div class="poc-supp-grid">
+						<section class="poc-supp-card card-key" aria-label="TOD versus non-TOD composition by year">
+							<h3 class="poc-supp-title">TOD vs non-TOD mix by year</h3>
+							<div class="poc-supp-chart" bind:this={elComposition}></div>
+						</section>
+						<section class="poc-supp-card card-key" aria-label="Ranked municipalities by development volume">
+							<h3 class="poc-supp-title">New development is concentrated in a small set of municipalities</h3>
+							<div class="poc-supp-chart" bind:this={elRanked}></div>
+						</section>
 					</div>
 				</div>
 
@@ -2488,6 +2576,82 @@
 		gap: 8px;
 	}
 
+	.poc-supp-grid {
+		display: grid;
+		gap: 8px;
+		margin-top: 8px;
+	}
+
+	.poc-supp-card {
+		display: grid;
+		gap: 8px;
+		padding: 10px 12px;
+	}
+
+	.poc-supp-title {
+		margin: 0;
+		font-size: 1.05rem;
+		font-weight: 800;
+		color: var(--text);
+	}
+
+	.poc-supp-chart {
+		width: 100%;
+		min-height: 330px;
+	}
+
+	.poc-supp-chart :global(svg) {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.poc-supp-chart :global(.legend) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 0.9rem;
+		align-items: center;
+		color: var(--text-muted);
+	}
+
+	.poc-supp-chart :global(.legend-item) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+	}
+
+	.poc-supp-chart :global(.swatch) {
+		width: 0.85rem;
+		height: 0.85rem;
+		border-radius: 999px;
+		display: inline-block;
+	}
+
+	.poc-supp-chart :global(.legend-scale) {
+		display: inline-flex;
+		gap: 0.6rem;
+		align-items: center;
+	}
+
+	.poc-supp-chart :global(.legend-ramp) {
+		display: inline-flex;
+		gap: 0.25rem;
+	}
+
+	.poc-supp-chart :global(.legend-ramp span) {
+		width: 1.8rem;
+		height: 0.95rem;
+		border-radius: 999px;
+	}
+
+	.poc-supp-chart :global(.chart-note),
+	.poc-supp-chart :global(.empty) {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: 0.86rem;
+		line-height: 1.4;
+	}
+
 	.poc-side-cards {
 		display: grid;
 		gap: 8px;
@@ -2523,6 +2687,10 @@
 
 		.poc-compare {
 			grid-column: 2;
+		}
+
+		.poc-supp-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 
