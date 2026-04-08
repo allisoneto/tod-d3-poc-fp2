@@ -28,7 +28,6 @@
 		MBTA_ORANGE,
 		MBTA_RED
 	} from '$lib/utils/mbtaColors.js';
-	import { renderMuniComposition, renderMuniRankedGrowth } from '$lib/utils/municipalCharts.js';
 
 	/**
 	 * Tract-dashboard–style map: census % housing-unit growth choropleth (period from panel), TOD-tier
@@ -323,9 +322,6 @@
 		mapW: 520,
 		mapH: 430
 	}));
-	let chartResizeTick = $state(0);
-	let elComposition = $state(/** @type {HTMLElement | null} */ (null));
-	let elRanked = $state(/** @type {HTMLElement | null} */ (null));
 
 	let svgRef = $state(null);
 	let zoomBehaviorRef = $state(null);
@@ -346,55 +342,6 @@
 		})
 	);
 
-	const supplementalChartState = $derived.by(() => ({
-		yearStart: 1990,
-		yearEnd: 2026,
-		threshold: Number(panelState.transitDistanceMi ?? 0.5)
-	}));
-
-	const supplementalProjectRows = $derived.by(() => {
-		const radiusM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
-		const source =
-			metricsDevelopments && metricsDevelopments.length
-				? metricsDevelopments
-				: buildFilteredData(developments, panelState);
-		return source
-			.map((d) => {
-				const year = Number(d?.year ?? d?.completion_year ?? d?.year_compl ?? d?.yrcomp_est);
-				const units = Number(d?.hu ?? d?.units);
-				const affordableUnits = Number(d?.affrd_unit ?? d?.affordableUnits);
-				const municipality = String(d?.municipal ?? d?.municipality ?? '').trim();
-				const prox = developmentMbtaProximity(d, mbtaStops, radiusM);
-				const distM = Number(prox?.nearestDistM);
-				return {
-					year,
-					units,
-					affordableUnits: Number.isFinite(affordableUnits) ? affordableUnits : 0,
-					municipality,
-					distance: Number.isFinite(distM) ? distM / 1609.344 : NaN,
-					hasDistance: Number.isFinite(distM)
-				};
-			})
-			.filter((d) => d.municipality && d.year >= 1990 && d.year <= 2026 && d.units > 0);
-	});
-
-	const supplementalMuniRows = $derived.by(() =>
-		d3
-			.rollups(
-				supplementalProjectRows,
-				(values) => {
-					const units = d3.sum(values, (d) => d.units);
-					const affordableUnits = d3.sum(values, (d) => d.affordableUnits);
-					return {
-						municipality: values[0].municipality,
-						units,
-						affordableShare: units > 0 ? affordableUnits / units : 0
-					};
-				},
-				(d) => d.municipality
-			)
-			.map(([, row]) => row)
-	);
 
 	const dataKey = $derived(
 		JSON.stringify({
@@ -1737,29 +1684,6 @@
 		return () => observer.disconnect();
 	});
 
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		let raf = 0;
-		const onResize = () => {
-			cancelAnimationFrame(raf);
-			raf = requestAnimationFrame(() => {
-				chartResizeTick += 1;
-			});
-		};
-		window.addEventListener('resize', onResize);
-		return () => {
-			window.removeEventListener('resize', onResize);
-			cancelAnimationFrame(raf);
-		};
-	});
-
-	$effect(() => {
-		void chartResizeTick;
-		const state = supplementalChartState;
-		if (elComposition) renderMuniComposition(elComposition, supplementalProjectRows, state);
-		if (elRanked) renderMuniRankedGrowth(elRanked, supplementalMuniRows);
-	});
-
 	onDestroy(() => {
 		if (containerEl) d3.select(containerEl).selectAll('*').remove();
 		lastStructuralKey = '';
@@ -2338,16 +2262,6 @@
 					{/if}
 					</div>
 
-					<div class="poc-supp-grid">
-						<section class="poc-supp-card card-key" aria-label="TOD versus non-TOD composition by year">
-							<h3 class="poc-supp-title">TOD vs non-TOD mix by year</h3>
-							<div class="poc-supp-chart" bind:this={elComposition}></div>
-						</section>
-						<section class="poc-supp-card card-key" aria-label="Ranked municipalities by development volume">
-							<h3 class="poc-supp-title">New development is concentrated in a small set of municipalities</h3>
-							<div class="poc-supp-chart" bind:this={elRanked}></div>
-						</section>
-					</div>
 				</div>
 
 						<aside class="poc-stepper-side" aria-label="Map explanation steps">
@@ -2559,82 +2473,7 @@
 	.poc-control-stack {
 		display: grid;
 		gap: 8px;
-	}
-
-	.poc-supp-grid {
-		display: grid;
-		gap: 8px;
-		margin-top: 8px;
-	}
-
-	.poc-supp-card {
-		display: grid;
-		gap: 8px;
-		padding: 10px 12px;
-	}
-
-	.poc-supp-title {
-		margin: 0;
-		font-size: 1.05rem;
-		font-weight: 800;
-		color: var(--text);
-	}
-
-	.poc-supp-chart {
-		width: 100%;
-		min-height: 330px;
-	}
-
-	.poc-supp-chart :global(svg) {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.poc-supp-chart :global(.legend) {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem 0.9rem;
-		align-items: center;
-		color: var(--text-muted);
-	}
-
-	.poc-supp-chart :global(.legend-item) {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45rem;
-	}
-
-	.poc-supp-chart :global(.swatch) {
-		width: 0.85rem;
-		height: 0.85rem;
-		border-radius: 999px;
-		display: inline-block;
-	}
-
-	.poc-supp-chart :global(.legend-scale) {
-		display: inline-flex;
-		gap: 0.6rem;
-		align-items: center;
-	}
-
-	.poc-supp-chart :global(.legend-ramp) {
-		display: inline-flex;
-		gap: 0.25rem;
-	}
-
-	.poc-supp-chart :global(.legend-ramp span) {
-		width: 1.8rem;
-		height: 0.95rem;
-		border-radius: 999px;
-	}
-
-	.poc-supp-chart :global(.chart-note),
-	.poc-supp-chart :global(.empty) {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: 0.86rem;
-		line-height: 1.4;
+		order: 1;
 	}
 
 	.poc-side-cards {
@@ -2674,9 +2513,6 @@
 			grid-column: 2;
 		}
 
-		.poc-supp-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
 	}
 
 	@media (max-width: 900px) {
@@ -3629,6 +3465,8 @@
 		min-width: 0;
 		display: grid;
 		gap: 8px;
+		order: 2;
+		margin-bottom: 16px;
 	}
 
 	.poc-map-callouts {
