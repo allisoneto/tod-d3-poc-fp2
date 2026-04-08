@@ -54,6 +54,8 @@
 		visible: false,
 		x: 0,
 		y: 0,
+		anchorX: null,
+		anchorY: null,
 		eyebrow: '',
 		title: '',
 		badge: '',
@@ -87,6 +89,29 @@
 			left: Math.min(maxLeft, Math.max(margin, rawLeft)),
 			top: Math.min(maxTop, Math.max(margin, rawTop))
 		};
+	});
+
+	const tooltipArrow = $derived.by(() => {
+		if (tooltip.anchorX == null || tooltip.anchorY == null) return null;
+		const width = tooltipEl?.offsetWidth ?? 360;
+		const height = tooltipEl?.offsetHeight ?? 260;
+		const left = tooltipPosition.left;
+		const top = tooltipPosition.top;
+		const right = left + width;
+		const bottom = top + height;
+		const ax = tooltip.anchorX;
+		const ay = tooltip.anchorY;
+		const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+		if (ax < left) {
+			return { side: 'left', top: clamp(ay - top, 18, height - 18) };
+		}
+		if (ax > right) {
+			return { side: 'right', top: clamp(ay - top, 18, height - 18) };
+		}
+		if (ay < top) {
+			return { side: 'top', left: clamp(ax - left, 18, width - 18) };
+		}
+		return { side: 'bottom', left: clamp(ax - left, 18, width - 18) };
 	});
 
 	/** Nice unit ticks + pixel radii for HTML dot-size legend (same sqrt scale as map dots). */
@@ -127,12 +152,12 @@
 	}
 
 	function showCohortOutlines() {
-		if (guidedMode) return false;
+		if (guidedMode) return revealStage >= 4 && revealStage <= 6;
 		return revealStage === 1 || revealStage === 3;
 	}
 
 	function showMismatchOutlines() {
-		if (guidedMode) return revealStage >= 3;
+		if (guidedMode) return revealStage === 3;
 		return revealStage === 2;
 	}
 
@@ -281,26 +306,26 @@
 			{
 				kicker: 'Step 5',
 				title: 'Boston and Cambridge',
-				body: 'This zoom moves into one of the clearest expected cases in the region. Boston and Cambridge contain dense transit access and substantial housing growth, so they help establish what alignment between access and growth can look like.',
-				legend: 'Even here, the pattern is not perfectly uniform. Neighboring transit-rich tracts can still differ in how much housing growth they show.',
-				why: 'That matters because it keeps the argument from becoming too simple. The story is not that the inner core always grows, but that even the most transit-rich places still vary internally.',
-				prompt: 'Use this as the reference case before the walkthrough moves to municipalities where the relationship looks less consistent.'
+				body: 'This zoom shifts from mismatch to tract grouping. The green and orange outlines show whether significant development in each tract has been more TOD-dominated or more non-TOD-dominated, while the choropleth underneath still shows housing growth.',
+				legend: 'Green outlines mark TOD-dominated tracts, and orange outlines mark non-TOD-dominated tracts. This lets the reader compare where growth happened with whether that growth was concentrated near transit.',
+				why: 'Boston and Cambridge work as the clearest reference case because they contain many transit-rich tracts, but even here the pattern is not uniform. Some tracts are more TOD-oriented than others despite sharing strong regional access.',
+				prompt: 'Use this as the reference case before the walkthrough moves to municipalities where the same orange-versus-green comparison looks less consistent.'
 			},
 			{
 				kicker: 'Step 6',
 				title: 'Quincy and Revere',
-				body: 'This zoom shifts to municipalities that still sit within the broader transit system, but where the growth pattern is more uneven. In these places, access is present, yet nearby tracts do not all show the same housing outcome.',
-				legend: 'The same color logic still applies here. What changes is the degree of internal variation across tracts with somewhat similar transit context.',
-				why: 'This matters because it shows that the mismatch story is not only a downtown story. The uneven relationship between access and growth appears across multiple municipal contexts.',
-				prompt: 'Read this step as a reminder that transit access does not by itself explain where growth is concentrated.'
+				body: 'Quincy and Revere keep the same green-versus-orange tract grouping, but the local pattern is more uneven. Transit access is present here too, yet nearby tracts do not all show the same relationship between growth and TOD-oriented development.',
+				legend: 'Read the outlines and the choropleth together: some tracts with similar transit context still land in different cohort categories and show different levels of housing growth.',
+				why: 'This matters because it shows that the TOD story is not only a downtown story. The relationship between transit access, TOD-oriented development, and housing growth varies across municipal contexts.',
+				prompt: 'Read this step as a reminder that transit access alone does not determine whether growth ends up concentrated in more TOD-dominated tracts.'
 			},
 			{
 				kicker: 'Step 7',
 				title: 'Outer-ring growth',
-				body: 'This step turns to the outer-ring part of the story. Some tracts farther from the strongest transit network still show substantial housing growth, which makes the reverse mismatch especially visible.',
-				legend: 'The important point is not that these places have no transit at all, but that they are weaker-access growth cases relative to the strongest MBTA-served areas seen earlier.',
-				why: 'That matters for the planning argument because it suggests housing production is not consistently being concentrated in the places where transit access is strongest.',
-				prompt: 'As you read this step, compare these growth-heavy tracts mentally to the earlier transit-rich places and notice what kinds of access they do not share.'
+				body: 'The outer-ring view shows the reverse side of the cohort pattern. Some tracts farther from the strongest transit geography still show meaningful housing growth, and orange outlines help show where that development is less TOD-oriented.',
+				legend: 'The important point is not that these places have no transit at all, but that they sit farther from the strongest MBTA geography and often land in less TOD-dominated categories.',
+				why: 'That matters for the planning argument because it suggests housing production is not consistently being concentrated in the places where transit access is strongest or where development is most transit-oriented.',
+				prompt: 'Compare these tracts to the earlier Boston and Cambridge case and notice how different the orange-versus-green balance looks.'
 			},
 			{
 				kicker: 'Step 8',
@@ -528,6 +553,20 @@
 			.transition()
 			.duration(500)
 			.call(zoomBehaviorRef.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+	}
+
+	function tractScreenAnchor(gisjoin) {
+		if (!gisjoin || !projectionRef || !svgRef || !containerEl) return null;
+		const feature = (tractGeo?.features ?? []).find((f) => f.properties?.gisjoin === gisjoin);
+		if (!feature) return null;
+		const centroid = d3.geoPath(projectionRef).centroid(feature);
+		if (!Number.isFinite(centroid[0]) || !Number.isFinite(centroid[1])) return null;
+		const transform = d3.zoomTransform(svgRef.node());
+		const rect = containerEl.getBoundingClientRect();
+		return {
+			x: rect.left + transform.applyX(centroid[0]),
+			y: rect.top + transform.applyY(centroid[1])
+		};
 	}
 
 	function zoomToFeatureGroup(features, scaleCap = 9) {
@@ -1387,7 +1426,7 @@
 			});
 	}
 
-	function showTractTooltip(id, x, y) {
+	function showTractTooltip(id, x, y, anchor = null) {
 		if (!id) return;
 		const el = containerEl;
 		if (!el) return;
@@ -1518,6 +1557,8 @@
 			visible: true,
 			x,
 			y,
+			anchorX: anchor?.x ?? null,
+			anchorY: anchor?.y ?? null,
 			eyebrow: mismatchEyebrow ?? 'Census tract',
 			title: county && String(county) !== 'County Name' ? `Tract in ${tractPlace}` : `Tract: ${tractPlace}`,
 			badge: tier,
@@ -2037,12 +2078,14 @@
 		panelState.selectAll([id]);
 		panelState.setLastInteracted(id);
 		panelState.setHovered(id);
-		const rect = containerEl?.getBoundingClientRect();
-		const fallbackX = typeof window !== 'undefined' ? window.innerWidth * 0.68 : 960;
-		const fallbackY = typeof window !== 'undefined' ? window.innerHeight * 0.34 : 360;
-		const x = rect ? rect.left + rect.width * 0.38 : fallbackX;
-		const y = rect ? rect.top + rect.height * 0.24 : fallbackY;
-		showTractTooltip(id, x, y);
+		window.setTimeout(() => {
+			const anchor = tractScreenAnchor(id);
+			const fallbackX = typeof window !== 'undefined' ? window.innerWidth * 0.68 : 960;
+			const fallbackY = typeof window !== 'undefined' ? window.innerHeight * 0.34 : 360;
+			const x = anchor ? anchor.x + 22 : fallbackX;
+			const y = anchor ? anchor.y - 18 : fallbackY;
+			showTractTooltip(id, x, y, anchor);
+		}, 560);
 	}
 
 	function inspectGuidedDevelopment(d) {
@@ -2705,6 +2748,14 @@
 								style:left="{tooltipPosition.left}px"
 								style:top="{tooltipPosition.top}px"
 							>
+								{#if tooltipArrow}
+									<span
+										class="map-tooltip__arrow map-tooltip__arrow--{tooltipArrow.side}"
+										style:left={tooltipArrow.left != null ? `${tooltipArrow.left}px` : undefined}
+										style:top={tooltipArrow.top != null ? `${tooltipArrow.top}px` : undefined}
+										aria-hidden="true"
+									></span>
+								{/if}
 								<div class="map-tooltip__header">
 									<div class="map-tooltip__header-copy">
 										{#if tooltip.eyebrow}
@@ -4329,6 +4380,43 @@
 		border-radius: var(--radius-sm);
 		box-shadow: var(--shadow);
 		pointer-events: none;
+	}
+
+	.map-tooltip__arrow {
+		position: absolute;
+		width: 12px;
+		height: 12px;
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		transform: rotate(45deg);
+	}
+
+	.map-tooltip__arrow--left {
+		left: -7px;
+		margin-top: -6px;
+		border-top: 0;
+		border-right: 0;
+	}
+
+	.map-tooltip__arrow--right {
+		right: -7px;
+		margin-top: -6px;
+		border-bottom: 0;
+		border-left: 0;
+	}
+
+	.map-tooltip__arrow--top {
+		top: -7px;
+		margin-left: -6px;
+		border-right: 0;
+		border-bottom: 0;
+	}
+
+	.map-tooltip__arrow--bottom {
+		bottom: -7px;
+		margin-left: -6px;
+		border-top: 0;
+		border-left: 0;
 	}
 
 	.map-tooltip__header {
