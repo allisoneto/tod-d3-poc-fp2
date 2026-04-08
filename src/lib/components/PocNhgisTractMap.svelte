@@ -1888,6 +1888,55 @@
 			.slice(0, 2);
 	});
 
+	const guidedMismatchExamples = $derived.by(() => {
+		if (!guidedMode) return [];
+		const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
+		const candidates = (nhgisRows ?? [])
+			.map((row) => {
+				const id = row?.gisjoin;
+				if (!id) return null;
+				const mismatch = mismatchFlagsByGj.get(id);
+				if (!mismatch?.isHighAccessLowGrowth && !mismatch?.isHighGrowthLowAccess) return null;
+				const tract = tractByGj.get(id);
+				const growth = Number(row?.census_hu_pct_change);
+				const stops = Number(tract?.transit_stops);
+				if (!Number.isFinite(growth) || !Number.isFinite(stops)) return null;
+				const county =
+					tract?.county && String(tract.county) !== 'County Name'
+						? String(tract.county)
+						: null;
+				const isHaLg = Boolean(mismatch?.isHighAccessLowGrowth);
+				return {
+					id,
+					county,
+					label: county ? `Tract in ${county}` : `Tract ${id}`,
+					kind: isHaLg ? 'High access, low growth' : 'High growth, low access',
+					note: isHaLg
+						? 'Transit access is strong here, but housing growth has remained relatively weak.'
+						: 'Housing growth is stronger here even though transit access is comparatively limited.',
+					growth,
+					stops,
+					score: isHaLg ? stops * 10 - growth * 2 : growth * 2.5 - stops * 8,
+					kindRank: isHaLg ? 0 : 1
+				};
+			})
+			.filter(Boolean)
+			.sort((a, b) => {
+				if (a.kindRank !== b.kindRank) return a.kindRank - b.kindRank;
+				return b.score - a.score;
+			});
+		const picked = [];
+		const seen = new Set();
+		for (const item of candidates) {
+			const key = item.county ?? item.id;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			picked.push(item);
+			if (picked.length === 3) break;
+		}
+		return picked;
+	});
+
 	function inspectGuidedExample(id) {
 		if (!id) return;
 		zoomToTract(id);
@@ -2656,7 +2705,29 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && step.prompt && i !== 2}
+								{#if guidedMode && i === 3 && guidedMismatchExamples.length}
+									<div class="poc-stepper-examples" aria-label="Mismatch examples highlighted on the map">
+										<p class="poc-stepper-examples-title">Keep scrolling: the next steps unpack tracts like these</p>
+										{#each guidedMismatchExamples as example (example.id)}
+											<button
+												type="button"
+												class="poc-stepper-example"
+												onclick={() => inspectGuidedExample(example.id)}
+											>
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{example.label}</span>
+													<span class="poc-stepper-example__cta">{example.kind}</span>
+												</div>
+												<p class="poc-stepper-example__note">{example.note}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Growth:</strong> {d3.format('.1f')(example.growth)}%</span>
+													<span><strong>Transit access:</strong> {example.stops === 0 ? '0 stops' : `${d3.format(',.0f')(example.stops)} stops`}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								{/if}
+								{#if guidedMode && step.prompt && i !== 2 && i !== 3}
 									<p class="poc-stepper-card-note"><strong>Try this:</strong> {step.prompt}</p>
 								{/if}
 							</section>
