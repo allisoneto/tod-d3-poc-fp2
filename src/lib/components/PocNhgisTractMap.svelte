@@ -2091,6 +2091,7 @@
 				match: (name, municipal) =>
 					municipal === 'somerville' &&
 					includesAny(name, ['assembly row', 'assembly', 'xmbly', 'alloy assembly', 'montaje']),
+				preferred: (name) => includesAny(name, ['assembly row: block 2', 'block 2']),
 				sortBoost: 420,
 				importanceNote:
 					'Assembly Row is one of the clearest alignment cases in the region: dense housing delivered right on top of rapid transit, which is the TOD pattern planners often hope to reproduce.'
@@ -2099,6 +2100,7 @@
 				match: (name, municipal) =>
 					municipal === 'cambridge' &&
 					includesAny(name, ['cambridge crossing', 'north point', 'northpoint', 'earhart', 'park 151']),
+				preferred: (name) => includesAny(name, ['park 151', 'building i']),
 				sortBoost: 360,
 				importanceNote:
 					'Cambridge Crossing shows that strong TOD can still lean heavily market-rate, which matters because transit access alone does not guarantee affordability.'
@@ -2107,30 +2109,35 @@
 				match: (name, municipal) =>
 					includesAny(name, ['suffolk downs', 'suffolk']) ||
 					(municipal === 'revere' && includesAny(name, ['amaya'])),
+				preferred: (name) => includesAny(name, ['amaya suffolk downs', 'amaya']),
 				sortBoost: 380,
 				importanceNote:
 					'Suffolk Downs matters because it represents TOD at very large future scale, but the affordability story is phased over time rather than arriving all at once.'
 			},
 			{
 				match: (name) => includesAny(name, ['south bay', 'dorchester avenue', 'dorchester ave']),
+				preferred: (name) => includesAny(name, ['south bay town center']),
 				sortBoost: 260,
 				importanceNote:
 					'South Bay helps show a weaker TOD case: substantial housing growth near transit infrastructure, but not with the same direct, subway-oriented accessibility as the strongest core examples.'
 			},
 			{
 				match: (name, municipal) => municipal === 'boston' && includesAny(name, ['seaport', 'echelon']),
+				preferred: (name) => includesAny(name, ['echelon seaport']),
 				sortBoost: 300,
 				importanceNote:
 					'Seaport growth is important because it shows how a large share of housing and jobs can still accumulate outside the strongest rapid-transit geography.'
 			},
 			{
 				match: (_name, municipal) => municipal === 'quincy',
+				preferred: (name) => includesAny(name, ['avalon bay on quarry street', 'neponset landing apartments']),
 				sortBoost: 180,
 				importanceNote:
 					'A Quincy example helps show that even in a transit-served city, development is uneven and not every major project lands in the strongest TOD setting.'
 			},
 			{
 				match: (_name, municipal) => municipal === 'weymouth',
+				preferred: (name) => includesAny(name, ['fulton school', 'tirrell', 'commercial street']),
 				sortBoost: 170,
 				importanceNote:
 					'A Weymouth example shows the reverse case: meaningful multifamily growth can still occur in places that depend more on weaker or less frequent transit access.'
@@ -2147,6 +2154,7 @@
 				const normalizedName = String(d.name || d.project_name || '').toLowerCase();
 				const normalizedMunicipal = String(d.municipal || '').toLowerCase();
 				const curated = curatedTargets.find((t) => t.match(normalizedName, normalizedMunicipal));
+				const preferredMatch = curated?.preferred?.(normalizedName) ?? false;
 				return {
 					...d,
 					units,
@@ -2164,7 +2172,8 @@
 						affordableUnits * 3 +
 						(affordableUnits > 0 ? 120 : 0) +
 						(isTod ? 40 : 0) +
-						(curated?.sortBoost ?? 0)
+						(curated?.sortBoost ?? 0) +
+						(preferredMatch ? 900 : 0)
 				};
 			})
 			.filter(Boolean)
