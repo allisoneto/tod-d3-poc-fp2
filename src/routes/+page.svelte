@@ -1146,24 +1146,24 @@
 			<section class="story card">
 				<h2>Design decisions</h2>
 				<p>
-					This prototype is built to answer a layered question: where housing growth happened, how that growth relates to transit,
-					and where those patterns do not line up neatly. Because that is a lot to ask from one view, the design tries to keep one
+					We built this prototype to answer a layered question: where housing growth happened, how that growth relates to transit,
+					and where those patterns do not line up neatly. Because that is a lot to ask from one view, we tried to keep one
 					clear base map in place and then add the other ideas in ways that do not hide it.
 				</p>
 
 				<h3>Start with one readable base map</h3>
 				<p>
-					The tract choropleth is the foundation of the whole page. We use <strong>census percent housing growth</strong> as the
+					We made the tract choropleth the foundation of the whole page. We use <strong>census percent housing growth</strong> as the
 					fill because it gives one comparable measure across all tracts and immediately shows where the housing stock changed more
 					or less over time. The red-to-blue diverging scale works well here because the middle can represent little change, with one
-					side showing weaker or negative growth and the other showing stronger growth. That makes the first read of the map simple:
-					before the user learns anything else, they can already see the geography of growth.
+					side showing weaker or negative growth and the other showing stronger growth. We wanted the first read of the map to be simple:
+					before the reader learns anything else, they can already see the geography of growth.
 				</p>
 
 				<h3>Keep later layers separate from the fill</h3>
 				<p>
-					Once the choropleth is established, the later categories appear mostly as <strong>outlines</strong> rather than another set
-					of filled colors. That choice is important. If tract groups, mismatch areas, and income emphasis all tried to use the fill
+					Once the choropleth is established, we show the later categories mostly as <strong>outlines</strong> rather than another set
+					of filled colors. That choice matters. If tract groups, mismatch areas, and income emphasis all tried to use the fill
 					channel, the map would become hard to parse very quickly. Outlines let the project add more information while still letting
 					the reader hold on to the original growth map underneath.
 				</p>
@@ -1177,16 +1177,16 @@
 
 				<h3>Why the tract groups use green, orange, and gray</h3>
 				<p>
-					The tract groups need colors that are easy to tell apart, but they also need to sit on top of the red-blue choropleth without
+					We wanted the tract groups to use colors that are easy to tell apart, but that also sit on top of the red-blue choropleth without
 					looking like they belong to the same scale. Green and orange work well for the two main development groups because they are
 					distinct from the base fill and easy to notice as outlines. Gray is used for minimal-development tracts because it signals a
-					more neutral background role. The point is not that those colors have deep intrinsic meaning on their own; it is that they stay
+					more neutral background role. The point is not that those colors have deep meaning on their own; it is that they stay
 					clear when layered over the map and stay consistent through the whole walkthrough.
 				</p>
 
 				<h3>Why mismatch uses purple</h3>
 				<p>
-					The mismatch layer needs to feel different from both the choropleth and the tract-group outlines. Purple helps create that
+					We wanted the mismatch layer to feel different from both the choropleth and the tract-group outlines. Purple helps create that
 					separation. A solid purple line for one mismatch type and a dashed lighter purple line for the other gives two categories that
 					are still part of the same family. That makes it easier to read them as two versions of the same idea rather than as two fully
 					unrelated layers.
@@ -1194,40 +1194,40 @@
 
 				<h3>Why we used a scrollytelling structure</h3>
 				<p>
-					This map is doing more than one job, so showing every layer at once would make the first read overwhelming. The scrollytelling
-					structure lets the page introduce the story step by step: first growth, then tract groups, then mismatch, then projects. That
+					We knew this map was doing more than one job, so showing every layer at once would make the first read overwhelming. The scrollytelling
+					structure lets us introduce the story step by step: first growth, then tract groups, then mismatch, then projects. That
 					order is deliberate. Each new step gives the reader one new question to focus on instead of forcing them to decode the whole
 					system immediately.
 				</p>
 
 				<h3>Why the controls stay visible</h3>
 				<p>
-					The map is meant to support both guided reading and open exploration. Keeping the controls visible next to the walkthrough
-					means the user does not have to choose between following the story and trying things on their own. The walkthrough gives a
+					We wanted the map to support both guided reading and open exploration. Keeping the controls visible next to the walkthrough
+					means the reader does not have to choose between following the story and trying things on their own. The walkthrough gives a
 					clear path, but the controls let the reader test what they are seeing by changing overlays, focusing mismatch types, or
 					selecting tracts directly on the map.
 				</p>
 
 				<h3>Why linked details live off the map</h3>
 				<p>
-					Income information, tract summaries, and comparison charts are important, but putting all of that directly onto the map would
-					make the main view crowded fast. Instead, the page uses a linked layout: the map gives the spatial overview, and the side
-					panels provide details when the user hovers, clicks, or selects a tract. That keeps the map readable while still making the
+					We think income information, tract summaries, and comparison charts are important, but putting all of that directly onto the map would
+					make the main view crowded fast. Instead, we use a linked layout: the map gives the spatial overview, and the side
+					panels provide details when the reader hovers, clicks, or selects a tract. That keeps the map readable while still making the
 					supporting evidence easy to inspect.
 				</p>
 
 				<h3>Why the typography stays simple</h3>
 				<p>
-					The type choices here are intentionally plain. This is a dense analytic page, not a branding exercise, so the goal is to make
+					We kept the type choices intentionally plain. This is a dense analytic page, not a branding exercise, so the goal is to make
 					headings easy to scan and supporting text easy to read for a long stretch. A clean sans-serif system keeps the page from
 					feeling overdesigned and lets the visual hierarchy come from weight, spacing, and layout instead of decorative typography.
 				</p>
 
 				<h3>What this adds up to</h3>
 				<p>
-					Taken together, these design decisions aim to make a complicated planning question feel readable without flattening it too much.
+					Taken together, these design decisions are our attempt to make a complicated planning question feel readable without flattening it too much.
 					The choropleth gives a stable base, outlines and dots add context in separate channels, and the scroll structure controls how
-					much appears at once. The result is meant to help the reader move from a broad spatial pattern to more specific tract-level
+					much appears at once. We want the reader to move from a broad spatial pattern to more specific tract-level
 					examples and comparisons without getting lost.
 				</p>
 			</section>
