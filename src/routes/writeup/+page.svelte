@@ -134,151 +134,107 @@
 	<section class="writeup-section card">
 		<h2>Design Decisions</h2>
 		<p>
-			We designed this prototype to answer a layered question: <strong>where housing growth has occurred, how that growth
-			relates to transit access, and where those patterns do not align</strong>. Because the page combines census change,
-			project-level development, transit infrastructure, tract groupings, and selected-tract detail, our main design goal was
-			to <strong>keep the reading path clear while adding complexity gradually</strong>. We did not want the viewer’s first
-			experience to be a wall of overlapping encodings.
+			We ended up redesigning the proof of concept around a <strong>guided narrative first, exploration second</strong> model.
+			Early versions behaved much more like a dashboard: the user saw many layers at once, had to decide what mattered, and
+			often had to do the interpretive work themselves. The current version is closer to a martini-glass structure. We first
+			show a few simpler views that explain what patterns to look for, then we walk the viewer through the map step by step,
+			and only after that do we open up a fuller exploration mode.
 		</p>
 
-		<h3>Why the choropleth is the base layer</h3>
+		<h3>How did we choose our particular visual encodings and interaction techniques?</h3>
 		<p>
-			We chose a <strong>tract-level choropleth of census housing growth</strong> as the visual foundation because it gives one
-			clear, comparable measure across the full geography. Percent housing growth works better than raw unit change for this page
-			because it lets small and large tracts share the same visual logic. A raw-count map would have tilted too much toward
-			larger tracts with larger housing stocks. By starting with percent change, we make it easier to ask where growth has been
-			relatively strong or weak before asking why.
+			We chose a <strong>tract-level choropleth of census housing growth</strong> as the base layer because it gives one clear,
+			comparable regional measure that can stay stable throughout the entire story. We use percent housing growth rather than raw
+			unit change so large tracts do not dominate just because they start with larger housing stocks. We encode that growth with
+			a diverging red-blue scale: weaker or negative growth moves toward red, stronger growth moves toward blue, and tan marks
+			tracts with limited or unreliable growth data. That gives readers a quick first read before they interact with anything.
 		</p>
 		<p>
-			We also keep the growth fill stable as later layers appear. That was an important design decision. Once readers form a
-			first impression of the map, we do not want the main color meaning to change when outlines or project dots are added. The
-			base layer stays the same, and everything else is read against it.
+			After that, we deliberately separate the other ideas into different channels rather than asking fill color to do
+			everything. <strong>Green and orange outlines</strong> encode TOD-dominated and non-TOD-dominated tract groupings,
+			<strong>purple outlines</strong> encode mismatch categories, and <strong>project dots</strong> encode individual
+			MassBuilds developments. We also keep income out of the main fill because adding it as another choropleth would have made
+			the map much harder to read. Instead, income appears through a lower-income emphasis step, linked detail panels, and
+			supporting explanation.
 		</p>
-
-		<h3>Why we separate visual channels</h3>
 		<p>
-			As we add transit grouping, mismatch, and development projects, we intentionally avoid asking one visual channel to carry
-			too many meanings. In the current interface, <strong>fill color shows housing growth</strong>, <strong>outline color shows
-			tract grouping</strong>, <strong>purple outlines show mismatch</strong>, and <strong>dots show project locations</strong>.
-			We made that split because it preserves legibility. If we had tried to encode growth, TOD grouping, and mismatch all
-			through fill color, the map would have become much harder to read and the user would have spent more time decoding the
-			legend than understanding the patterns.
-		</p>
-
-		<h3>Why the color system looks the way it does</h3>
-		<p>
-			The palette is grounded in <strong>MBTA colors</strong>, not chosen arbitrarily. Green, orange, blue, red, and purple all
-			come from that broader transit visual language. We liked that for contextual reasons, because the whole project is about
-			transit-oriented development in Greater Boston, but it also helped functionally. The TOD-related outlines can sit beside
-			the red-blue growth scale without blending into it, and the purple mismatch layer reads as a distinct analytical signal
-			while still feeling like part of the same system. Tan and black are the main neutral exceptions, and we use them mostly
-			for background or low-emphasis elements.
+			On the interaction side, we chose techniques that support explanation instead of distracting from it. The walkthrough uses
+			progressive disclosure, place-based zooming, and annotations to guide attention. Hover tooltips and click-to-select
+			provide detail-on-demand. Linked charts update from map selections so the user can compare tracts without losing the
+			spatial overview. We also kept a mismatch filter and a full exploration section because once the main claim is clear, we
+			want planners and policymakers to inspect the system themselves rather than only passively watch a story.
 		</p>
 
-		<h3>Why mismatch gets its own purple family</h3>
+		<h3>What alternatives did we consider, and how did we arrive at the final design?</h3>
 		<p>
-			We wanted mismatch to feel important without overwhelming the rest of the map, so we gave it its own
-			<strong>purple outline family</strong>. One mismatch type uses a stronger solid stroke and the other uses a lighter dashed
-			stroke. That creates a family resemblance between the two categories while still keeping them separable. Using outlines
-			rather than another fill scheme was especially important here. A second choropleth would have competed with the base growth
-			map and made the figure much harder to parse.
+			We considered several alternatives before arriving at the current design. One option was to keep the page as a
+			dashboard-style interface with many controls visible from the start. We moved away from that because it made the page feel
+			analytically rich but narratively weak. The user could technically inspect a lot, but the main takeaway about mismatch was
+			not guided clearly enough.
+		</p>
+		<p>
+			We also considered making the project almost entirely chart-driven, with the map acting as supporting context. That would
+			have made some comparisons easier, but it would have weakened the geographic argument. The core question here is spatial:
+			where transit access and housing growth align, and where they do not. For that reason, we kept the map as the anchor and
+			let charts and narrative figures prepare the reader for it.
+		</p>
+		<p>
+			Another alternative was to push more information directly into the map itself through heavier labels, permanent callouts,
+			and more simultaneous overlays. We tried versions of that and found that the map quickly became crowded. The design became
+			much stronger when we switched to one stable base layer, then introduced tract examples, region zooms, and notable
+			development examples in the sidebar instead of trying to annotate everything directly on the geography.
+		</p>
+		<p>
+			We also considered putting income directly on the map as another fill layer. We decided against that because the main
+			story is about the relationship between transit access and housing growth. Once income became another choropleth, the page
+			started to ask the reader to decode too many overlapping map logics at once. Moving income into tooltips, contextual
+			highlighting, and linked views gave us a cleaner result.
 		</p>
 
-		<h3>Why we used scrollytelling instead of showing everything at once</h3>
+		<h3>How do these design choices help reach our intended audience?</h3>
 		<p>
-			This map has to introduce several connected ideas, so we chose a <strong>scrollytelling structure</strong> to control the
-			order in which those ideas appear. The progression is intentional:
+			Our intended audience is <strong>policymakers and planners</strong>, so our design choices try to balance clarity with
+			enough evidence to support policy interpretation. We assume this audience cares about spatial patterns, regional
+			comparisons, and whether the story is grounded in tract-level and project-level evidence. The guided introduction helps by
+			stating the key point early: transit access and housing growth are not aligning consistently across Greater Boston. The
+			place-based zoom steps then make that claim concrete in familiar municipalities rather than leaving it at an abstract
+			regional level.
 		</p>
-		<ol class="writeup-list writeup-list--numbered">
-			<li>housing growth as the baseline</li>
-			<li>orange and green tract outlines for development grouping</li>
-			<li>purple mismatch outlines</li>
-			<li>development dots over the grouped map</li>
-		</ol>
 		<p>
-			We wanted each step to add <strong>one main new concept</strong>. That lowers cognitive load and gives the user a clearer
-			sense of why a new layer is appearing. The walkthrough is therefore not just a presentation gimmick; it is part of the
-			visual design strategy.
-		</p>
-
-		<h3>Why controls stay visible alongside the story</h3>
-		<p>
-			We wanted the page to support both a guided reading and open-ended inspection. That is why the controls remain visible even
-			while the walkthrough advances. A reader can follow the story as written, but they can also focus on lower-income tracts,
-			isolate one mismatch type, turn MBTA layers on and off, or click a tract to inspect it more closely. That balance matters
-			for this topic. We are not only telling the reader what to think; we are also giving them ways to test what the map is
-			showing.
+			We also think policymakers and planners benefit from seeing the difference between a guided reading and an open-ended tool.
+			The narrative stem tells them what the core claim is and why it matters for planning. The exploration phase then lets them
+			check specific places, compare tracts, inspect developments, and ask whether the pattern holds in the parts of the region
+			they care most about. That combination is important because a policy audience usually wants both explanation and room to
+			verify.
 		</p>
 
-		<h3>Why detail lives off the map</h3>
+		<h3>What do we think does not work quite as well as we hoped?</h3>
 		<p>
-			Income context, tract summaries, and comparison metrics are all important, but putting them directly on the map would have
-			made the figure much noisier. We therefore use a <strong>linked-view structure</strong>: the map gives the spatial
-			overview, while the selection chart, cohort spotlight, and tract-detail card provide detail on demand. Hover and click
-			interactions let readers inspect a tract without permanently cluttering the visual field. That follows an
-			<strong>overview + detail</strong> pattern and is one of the main reasons the interface can carry this much information
-			without collapsing.
+			The strongest remaining weakness is density. Even after we simplified the walkthrough, the system still carries several
+			related layers and panels. The map is much clearer than it was before, but once outlines, dots, and selection states
+			accumulate in dense areas, the page can still feel visually busy. We also think the relationship between census housing
+			growth and MassBuilds development requires careful explanation. It is analytically useful to compare them, but it is not
+			automatically intuitive for every reader.
+		</p>
+		<p>
+			We also think the narrative is stronger than the open exploration mode. The exploration section is useful, but it still
+			feels a little more like a tool than like a polished second half of the story. That is not a failure exactly, but it is a
+			place where the experience still feels less resolved than the guided walkthrough.
 		</p>
 
-		<h3>Why the typography stays simple</h3>
+		<h3>How might we improve the design in future milestones?</h3>
 		<p>
-			We intentionally use <strong>Helvetica and Inter</strong>. They are standard, readable, and well-suited to a dense
-			analytical layout. Helvetica also connects back to the MBTA’s visual language, so the type supports the transit framing in
-			a quiet way without becoming part of the argument itself. We wanted hierarchy to come from layout, spacing, weight, and
-			color, not from decorative typography.
-		</p>
-
-		<h3>What all of these choices are trying to accomplish</h3>
-		<p>
-			Taken together, these design decisions aim to balance <strong>expressiveness, clarity, and interaction</strong>. The
-			choropleth gives the page a stable foundation. Outlines and points add context without replacing that foundation. The
-			scrollytelling sequence controls when new complexity appears. The linked views carry detail without overloading the map.
-			Our goal is to move the reader from seeing patterns, to comparing tract types, to thinking more carefully about how growth
-			and transit access line up across the region.
-		</p>
-
-		<h3>Critique of these design decisions</h3>
-		<p>
-			Even though we think the current design is much stronger than earlier versions, it still has real tradeoffs. The
-			choropleth works well as a base map, but it also means the viewer has to hold two different ideas in mind at once:
-			census-based housing growth in the fill and MassBuilds-based development patterns in the overlays. That combination is
-			useful, but it is not perfectly intuitive on first read, and some viewers may initially assume every layer comes from the
-			same source.
+			In future milestones, we would improve the project in three main ways. First, we would tighten the exploration mode so it
+			inherits more of the same visual hierarchy as the guided story. Second, we would make the demographic comparisons more
+			fully integrated, especially around income and race, so the transition from spatial mismatch to neighborhood change feels
+			even more direct. Third, we would test the page more deliberately with readers outside the team to see where the narrative
+			still depends too much on our own familiarity with the data.
 		</p>
 		<p>
-			The scrollytelling structure helps a lot with pacing, but it introduces its own challenge. When the map changes by scroll
-			step, readers can miss a transition if they scroll quickly or jump around the page. Persistent controls help offset that
-			problem, but they also make the interface denser. In other words, the same design choice that makes the page more
-			explorable also makes it harder to make the first screen feel calm and simple.
-		</p>
-		<p>
-			The linked-view design has a similar tradeoff. Keeping detail off the map protects readability, but it means some of the
-			most important supporting evidence sits in side cards and comparison panels instead of directly in the main visual field.
-			That is usually the right choice for clarity, but it does demand more active reading from the user. Someone who only looks
-			at the map and ignores the linked views will miss part of the argument. We also think the color system is successful
-			overall, but not perfect. Once several outline systems and dot layers are visible together, the map still becomes visually
-			busy in dense areas where outlines overlap and project dots cluster.
-		</p>
-
-		<h3>Other design options we considered</h3>
-		<p>
-			We considered several other directions and decided against them for now. One option was to make the map more free-form and
-			exploratory, with no strong walkthrough at all. We did not go that route because the project has too many layers for that
-			to work well as a first reading experience. Another option was to put more information directly onto the map through labels,
-			persistent callouts, or heavier annotations. We moved away from that approach because it quickly crowded the figure and
-			competed with the choropleth.
-		</p>
-		<p>
-			We also considered using a scatter plot or another comparison chart as the main organizing view rather than the map. That
-			would have made some analytic comparisons easier, but it would have weakened the project’s core spatial question, which is
-			fundamentally about where growth and transit align or fail to align across Greater Boston. We chose to keep the map as the
-			main anchor and let supporting charts work as linked views instead.
-		</p>
-		<p>
-			On the encoding side, we considered showing more variables through fill color, including direct TOD categories or income
-			groupings. We chose not to do that because the base choropleth already carries the most important continuous pattern. Once
-			more categories are pushed into fill color, the map stops reading quickly. Using outlines and symbols is not perfect, but
-			it gave us a better balance between expressive power and legibility.
+			We would also like to improve the annotation system. The current guided tract and development examples are much better than
+			a generic “try this” prompt, but there is still room to make those examples feel even more editorial and polished. A later
+			version could sequence them more explicitly, tie them to stronger summary charts, and give the exploration section a clearer
+			set of recommended comparisons.
 		</p>
 	</section>
 
@@ -310,26 +266,58 @@
 	<section class="writeup-section card">
 		<h2>Development Process Overview</h2>
 		<p>
-			Our process has been iterative rather than linear. We moved back and forth between narrative goals, map behavior, and
-			layout decisions because each change affected the others. The most time-intensive work was not only building the map
-			graphics themselves, but keeping the encodings, labels, interactions, and explanation aligned as the prototype evolved.
+			Our process has been iterative rather than linear. We moved back and forth between narrative goals, map behavior, data
+			assumptions, and layout decisions because each change affected the others. A large part of the work was not just coding new
+			views, but revising the page repeatedly so the interaction, copy, and visual hierarchy all told the same story.
+		</p>
+
+		<h3>How was the work split among team members?</h3>
+		<p>
+			We split the work across four team members, but not in a completely rigid way. <strong>Allison</strong> and
+			<strong>Krishna</strong> spent the most time on the interactive tract visualization itself, especially the scrollytelling
+			flow, layer logic, layout revisions, map behavior, and the transition from dashboard-style exploration to a guided
+			narrative. <strong>Hanna</strong> focused more on narrative framing, feedback synthesis, and making sure the project’s
+			argument stayed coherent as the interface changed. <strong>Supriya</strong> focused more on demographic framing, audience
+			questions, and helping evaluate which demographic comparisons would most strengthen the final direction.
 		</p>
 		<p>
-			In total, this proof of concept represents roughly <strong>80-90 person-hours</strong> of work across the team. That
-			includes preprocessing and checking the data inputs, developing the tract model and interaction logic, iterating on the
-			scrollytelling layout, debugging deployment and rendering issues, revising the narrative text, and documenting the final
-			design decisions and project plan.
+			In practice, the work overlapped quite a bit. The map design, copy, and planning questions were tightly connected, so most
+			major changes required discussion across more than one person. We think that overlap helped the project because this was
+			not the kind of assignment where one person could finish “their part” independently and hand it off cleanly.
+		</p>
+
+		<h3>How much time did we spend developing the application?</h3>
+		<p>
+			Our estimate is roughly <strong>80-90 person-hours</strong> across the team for this proof of concept. That includes data
+			preparation and checking, development of the tract and development logic, repeated layout and scrollytelling revisions,
+			debugging deployment issues, rewriting explanatory text, and preparing the writeup and project plan.
+		</p>
+
+		<h3>What aspects took the most time?</h3>
+		<p>
+			The most time-consuming work was integration and revision. The page went through many rounds of changes to the scrollytelling
+			structure, sticky layout, map controls, tooltip behavior, and the relationship between the walkthrough and the exploration
+			mode. Rebuilding the project around a guided narrative took much longer than simply adding another chart or another layer,
+			because every change to the story also forced changes to the interface and explanation.
 		</p>
 		<p>
-			A large share of the work went into integration and revision. We tightened the map story, simplified which layers appear at
-			each step, reworked the sticky scrollytelling layout several times, improved tooltip behavior, and adjusted how the
-			controls, charts, and walkthrough share screen space. We also separated the long-form explanation from the interactive
-			page, which made the main visualization cleaner while giving us room to document the reasoning in full here.
+			The other major time sink was debugging behavior that sat between code and presentation: deployment issues, blank-page
+			problems, load failures, awkward sticky behavior, tooltip clipping, and map-state transitions that felt wrong even when the
+			code technically ran. Those were the kinds of problems that required repeated iteration rather than one clean fix.
+		</p>
+
+		<h3>How do we hope to improve our process for future milestones?</h3>
+		<p>
+			The biggest lesson for us is that interaction, writing, and visual design need to be revised together. Earlier in the
+			process, we sometimes improved one part of the system faster than the others, which led to moments where the map behavior
+			changed but the explanation did not, or where the explanation improved but the layout still felt dashboard-like. For future
+			milestones, we want a tighter review rhythm where we check code, copy, and narrative structure together rather than
+			treating them as separate stages.
 		</p>
 		<p>
-			One clear lesson from the process is that interaction and explanation need to be developed together. If the map changes but
-			the text and legends do not, the story becomes confusing very quickly. In later stages, we would want an even tighter
-			review rhythm so that code changes, explanatory copy, and visual hierarchy stay synchronized throughout.
+			We also want to protect time for simplifying earlier. A lot of our iteration came from discovering too late that a feature
+			was technically interesting but narratively weak. In later milestones, we would like to decide sooner which interactions
+			are truly central to the argument and which ones are optional.
 		</p>
 	</section>
 
@@ -384,7 +372,23 @@
 		</div>
 
 		<section class="plan-note">
-			<h3>If things go wrong</h3>
+			<h3>Overall plan</h3>
+			<p>
+				Our overall plan is to move from a proof of concept about transit access and housing growth into a final project that can
+				say more about <strong>who</strong> is affected by those spatial patterns. The two demographic lenses we most expect to
+				develop further are <strong>income</strong> and <strong>race</strong>. We want the final project to preserve the current
+				spatial mismatch argument, then connect it to neighborhood change more directly through linked demographic comparisons and
+				clearer narrative framing.
+			</p>
+			<p>
+				In practical terms, that means the current tract choropleth, tract grouping logic, mismatch analysis, and guided-to-exploratory
+				structure form the base we will build on. The next milestone is not to throw that work away, but to strengthen it with a
+				more complete explanation of demographic change in TOD-affected and non-TOD-affected tracts.
+			</p>
+		</section>
+
+		<section class="plan-note">
+			<h3>Contingency plan</h3>
 			<p>{projectPlanContingency}</p>
 		</section>
 	</section>
