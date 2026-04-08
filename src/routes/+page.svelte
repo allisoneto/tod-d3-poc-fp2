@@ -1045,12 +1045,13 @@
 	}
 
 	.small-chart { min-height: 320px; }
-	.chart-tall { min-height: 520px; }
+	.chart-tall { min-height: 560px; }
 
 	/* Tract overview map: full width of card; map uses wheel capture so zoom stays on the map */
 	.chart-wrap--poc-map {
 		width: 100%;
 		max-width: 100%;
+		min-height: 560px;
 	}
 
 	/* Cohort comparison chart: responsive height, scroll if needed */
