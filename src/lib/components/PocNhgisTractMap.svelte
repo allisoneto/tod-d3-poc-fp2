@@ -249,7 +249,7 @@
 		{
 			kicker: 'Step 2',
 			title: 'Growth is not only “on the line”',
-			body: 'Orange and green outlines show where filtered growth is TOD-dominated versus non-TOD-dominated, while the choropleth still carries the main story.'
+			body: 'Orange and green outlines mark tracts that lean more TOD-dominated or non-TOD-dominated, while the choropleth still carries the main story.'
 		},
 		{
 			kicker: 'Step 3',
@@ -259,7 +259,7 @@
 		{
 			kicker: 'Step 4',
 			title: 'Bring projects back in',
-			body: 'The cohort outlines return with development dots on top, so you can connect tract patterns back to the projects themselves.'
+			body: 'The cohort outlines return with development dots on top, so you can compare tract patterns with the projects that sit inside them.'
 		}
 	];
 
@@ -267,7 +267,7 @@
 		'Housing growth is uneven across the region, and the strongest growth does not simply track the transit network.',
 		'TOD-dominated and non-TOD-dominated tracts both appear across the map, so transit-oriented development is only one part of the broader pattern.',
 		'Several highly transit-accessible tracts still show relatively weak housing growth, revealing a meaningful access-growth mismatch.',
-		'Project dots in the final view help link tract-level patterns back to the developments shaping them.'
+		'Project dots in the final view make it easier to compare tract-level patterns with the developments located there.'
 	];
 
 	function stepRef(node, index) {
