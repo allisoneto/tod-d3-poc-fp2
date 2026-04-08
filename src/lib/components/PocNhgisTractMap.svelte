@@ -1623,7 +1623,7 @@
 								class:poc-compare__tab--active={comparisonMetric === 'stock_increase'}
 								onclick={() => (comparisonMetric = 'stock_increase')}
 							>
-								Stock increase
+								Housing stock increase
 							</button>
 						</div>
 					</div>
