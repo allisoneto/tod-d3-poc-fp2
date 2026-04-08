@@ -3488,7 +3488,10 @@
 	}
 
 	.map-main {
-		position: relative;
+		position: sticky;
+		top: 18px;
+		align-self: start;
+		z-index: 1;
 		min-width: 0;
 		display: grid;
 		gap: 8px;
