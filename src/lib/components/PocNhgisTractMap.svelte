@@ -1905,8 +1905,8 @@
 					</div>
 				</div>
 
-				<div class="poc-insight card-key" role="group" aria-label="Non-obvious pattern reveal">
-					<p class="poc-detail__kicker">Insight reveal</p>
+				<div class="poc-insight card-key" role="group" aria-label="Mismatch tract filters">
+					<p class="poc-detail__kicker">Mismatch tracts</p>
 					<div class="poc-insight__buttons">
 						<button
 							type="button"
@@ -1939,7 +1939,7 @@
 						{:else if insightMode === 'high_growth_low_access'}
 							Highlights tracts in the top quartile of housing growth but bottom quartile of transit access.
 						{:else}
-							Turn on one reveal mode to isolate mismatch tracts and dim the rest of the map.
+							Show one mismatch type at a time while purple outlines remain visible on the full map.
 						{/if}
 					</p>
 				</div>
