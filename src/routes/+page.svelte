@@ -1175,10 +1175,10 @@
 
 				<h3>Grounding the visualization in context through color</h3>
 				<p>
-					The outline colors for TOD groupings, green, orange, and gray, are drawn from <strong>MBTA-associated colors</strong>, which helps situate the visualization within the Greater Boston transit context. This choice is both aesthetic and functional. It creates <strong>visual consistency with familiar transit systems</strong>, keeps the outlines distinct from the red-blue growth scale, and reinforces the <strong>transit-oriented framing</strong> of the analysis.
+					The color system is grounded in <strong>MBTA colors</strong>, which helps situate the visualization within the Greater Boston transit context. Green, orange, red, blue, and purple all come from that visual language, so the palette feels tied to transit rather than arbitrary. This choice is both aesthetic and functional: it creates <strong>visual consistency with a familiar transit system</strong>, keeps the layers distinct from one another, and reinforces the <strong>transit-oriented framing</strong> of the analysis.
 				</p>
 				<p>
-					Gray is used for minimal-development tracts to keep them <strong>visually present but de-emphasized</strong>, which supports a clear hierarchy.
+					Gray is used for minimal-development tracts to keep them <strong>visually present but de-emphasized</strong>, which supports a clear hierarchy. The only colors outside that MBTA-based system are tan and black, which we use more neutrally for background or supporting elements.
 				</p>
 
 				<hr />
@@ -1188,7 +1188,7 @@
 					We identified mismatch areas, where transit access and housing growth do not align, as a central analytical insight. To emphasize this, we introduced a <strong>distinct purple outline encoding</strong>.
 				</p>
 				<p>
-					We use <strong>solid purple lines</strong> for one mismatch type and <strong>lighter, dashed purple lines</strong> for the other. This creates a <strong>cohesive visual family</strong> while still allowing the two categories to be distinguished. Importantly, purple is not used elsewhere in the visualization, which helps mismatch areas stand out as <strong>analytically significant rather than decorative</strong>.
+					We use <strong>solid purple lines</strong> for one mismatch type and <strong>lighter, dashed purple lines</strong> for the other. This creates a <strong>cohesive visual family</strong> while still allowing the two categories to be distinguished. Purple also fits the larger MBTA-based palette, since it echoes commuter rail branding, so the mismatch layer still feels connected to the overall transit framing while remaining easy to pick out.
 				</p>
 
 				<hr />
