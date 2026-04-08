@@ -1768,6 +1768,7 @@
 	.poc-stepper-head {
 		position: sticky;
 		top: 16px;
+		z-index: 3;
 		display: grid;
 		gap: 4px;
 		padding: 12px 14px;
@@ -1797,6 +1798,7 @@
 	.poc-stepper-inline-rail {
 		display: grid;
 		gap: 16vh;
+		padding-top: 132px;
 		/* Extra runway after step 3 so the page does not jump to the next section immediately */
 		padding-bottom: 32vh;
 		isolation: isolate;
