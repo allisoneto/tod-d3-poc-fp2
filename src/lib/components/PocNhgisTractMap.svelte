@@ -2086,7 +2086,7 @@
 			const anchor = tractScreenAnchor(id);
 			const fallbackX = typeof window !== 'undefined' ? window.innerWidth * 0.68 : 960;
 			const fallbackY = typeof window !== 'undefined' ? window.innerHeight * 0.34 : 360;
-			const x = anchor ? anchor.x + 22 : fallbackX;
+			const x = anchor ? anchor.x + 72 : fallbackX;
 			const y = anchor ? anchor.y - 18 : fallbackY;
 			showTractTooltip(id, x, y, anchor);
 		}, 560);
