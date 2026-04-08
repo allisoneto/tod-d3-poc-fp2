@@ -1113,21 +1113,8 @@
 		};
 	});
 
-	const selectionComparisonRows = $derived.by(() => {
+	const selectionComparison = $derived.by(() => {
 		const selectedIds = [...panelState.selectedTracts];
-		if (!selectedIds.length) return [];
-		const selectedRows = (nhgisRows ?? []).filter(
-			(row) => selectedIds.includes(row.gisjoin) && passesGrowthFilter(row)
-		);
-		if (!selectedRows.length) return [];
-		const focusedRow = focusedSelection
-			? (nhgisRows ?? []).find((row) => row.gisjoin === focusedSelection) ?? null
-			: null;
-		const focusedClass = focusedRow?.devClass ?? selectedRows[0]?.devClass ?? null;
-		const cohortRows = (nhgisRows ?? []).filter(
-			(row) => row?.devClass === focusedClass && passesGrowthFilter(row)
-		);
-		const allRows = (nhgisRows ?? []).filter((row) => passesGrowthFilter(row));
 		const metricValue = (rows) => {
 			const huVals = rows.map((row) => Number(row.census_hu_pct_change)).filter(Number.isFinite);
 			const metricVals = rows.map((row) => tractTodMetricsMap?.get(row.gisjoin)).filter(Boolean);
@@ -1139,31 +1126,71 @@
 					? (todShares.length ? d3.mean(todShares) : null)
 					: (stockIncreases.length ? d3.mean(stockIncreases) : null);
 		};
-		const rows = [
-			{
-				key: 'selected',
-				label: `Selected tracts`,
-				value: metricValue(selectedRows),
-				count: selectedRows.length
-			},
-			{
-				key: 'cohort',
-				label: `${cohortLabel(focusedClass)} avg.`,
-				value: metricValue(cohortRows),
-				count: cohortRows.length
-			},
-			{
-				key: 'all',
-				label: 'All filtered tracts',
-				value: metricValue(allRows),
-				count: allRows.length
-			}
-		];
+		/** @type {Array<{ key: string; label: string; value: number | null; count: number }>} */
+		let rows;
+		let title;
+		let copy;
+
+		if (selectedIds.length) {
+			const selectedRows = (nhgisRows ?? []).filter(
+				(row) => selectedIds.includes(row.gisjoin) && passesGrowthFilter(row)
+			);
+			const focusedRow = focusedSelection
+				? (nhgisRows ?? []).find((row) => row.gisjoin === focusedSelection) ?? null
+				: null;
+			const focusedClass = focusedRow?.devClass ?? selectedRows[0]?.devClass ?? null;
+			const cohortRows = (nhgisRows ?? []).filter(
+				(row) => row?.devClass === focusedClass && passesGrowthFilter(row)
+			);
+			const allRows = (nhgisRows ?? []).filter((row) => passesGrowthFilter(row));
+			rows = [
+				{
+					key: 'selected',
+					label: 'Selected tracts',
+					value: metricValue(selectedRows),
+					count: selectedRows.length
+				},
+				{
+					key: 'cohort',
+					label: `${cohortLabel(focusedClass)} avg.`,
+					value: metricValue(cohortRows),
+					count: cohortRows.length
+				},
+				{
+					key: 'all',
+					label: 'All filtered tracts',
+					value: metricValue(allRows),
+					count: allRows.length
+				}
+			];
+			title = 'Compare your map selection';
+			copy = 'The bars update from the tracts you click on the map and compare them to the matching cohort and full filtered set.';
+		} else {
+			/** @type {Array<'tod_dominated' | 'nontod_dominated' | 'minimal'>} */
+			const order = ['tod_dominated', 'nontod_dominated', 'minimal'];
+			rows = order.map((devClass) => {
+				const cohortRows = (nhgisRows ?? []).filter(
+					(row) => row?.devClass === devClass && passesGrowthFilter(row)
+				);
+				return {
+					key: devClass,
+					label: cohortLabel(devClass),
+					value: metricValue(cohortRows),
+					count: cohortRows.length
+				};
+			});
+			title = 'Compare the tract groups';
+			copy = 'Once you click map tracts, this chart will switch to a selection-based comparison.';
+		}
 		const maxValue = d3.max(rows, (row) => Math.abs(Number(row.value) || 0)) || 1;
-		return rows.map((row) => ({
-			...row,
-			widthPct: row.value == null ? 0 : Math.max(6, (Math.abs(row.value) / maxValue) * 100)
-		}));
+		return {
+			title,
+			copy,
+			rows: rows.map((row) => ({
+				...row,
+				widthPct: row.value == null ? 0 : Math.max(6, (Math.abs(row.value) / maxValue) * 100)
+			}))
+		};
 	});
 
 	const comparisonMetricMeta = $derived.by(() => {
@@ -1483,13 +1510,13 @@
 					{/if}
 				</div>
 
-				{#if selectedTractDetail}
-					<div class="poc-detail card-key" role="region" aria-label="Selected tract detail">
-						<div class="poc-detail__head">
-							<div>
-								<p class="poc-detail__kicker">Selected tract detail</p>
-								<p class="poc-detail__title">{selectedTractDetail.title}</p>
-							</div>
+					{#if selectedTractDetail}
+						<div class="poc-detail card-key" role="region" aria-label="Selected tract detail">
+							<div class="poc-detail__head">
+								<div>
+									<p class="poc-detail__kicker">Selected tract detail</p>
+									<p class="poc-detail__title">{selectedTractDetail.title}</p>
+								</div>
 							<div class="poc-detail__actions">
 								<button
 									type="button"
@@ -1504,18 +1531,18 @@
 									onclick={() => panelState.clearSelection()}
 								>
 									Clear
-								</button>
+									</button>
+								</div>
 							</div>
-						</div>
-						<p class="poc-detail__summary">
-							<span class="poc-detail__cohort">{selectedTractDetail.cohortLabel}</span>
-							{#if selectedTractDetail.description}
-								<span>{selectedTractDetail.description}</span>
-							{/if}
-						</p>
-						<div class="poc-detail__stats">
-							<div>
-								<span class="poc-detail__stat-label">Housing growth</span>
+							<div class="poc-detail__topline">
+								<span class="poc-detail__cohort">{selectedTractDetail.cohortLabel}</span>
+								{#if selectedTractDetail.description}
+									<span class="poc-detail__summary">{selectedTractDetail.description}</span>
+								{/if}
+							</div>
+							<div class="poc-detail__stats">
+								<div>
+									<span class="poc-detail__stat-label">Housing growth</span>
 								<span class="poc-detail__stat-value">
 									{selectedTractDetail.huGrowth == null ? '—' : `${d3.format('.1f')(selectedTractDetail.huGrowth)}%`}
 								</span>
@@ -1556,7 +1583,7 @@
 					<div class="poc-compare__head">
 						<div>
 							<p class="poc-detail__kicker">Selected tract chart</p>
-							<p class="poc-detail__title">Compare your selection to its cohort</p>
+							<p class="poc-detail__title">{selectionComparison.title}</p>
 						</div>
 						<div class="poc-compare__metric-tabs">
 							<button
@@ -1586,11 +1613,10 @@
 						</div>
 					</div>
 					<p class="poc-detail__summary">
-						Click tracts on the map, then use this chart to compare the selected set against its cohort average and all filtered tracts.
+						{selectionComparison.copy}
 					</p>
 					<div class="poc-compare__bars" aria-label={comparisonMetricMeta.label}>
-						{#if selectionComparisonRows.length}
-							{#each selectionComparisonRows as row (row.key)}
+						{#each selectionComparison.rows as row (row.key)}
 								<div class="poc-compare__row" data-tone={row.key}>
 								<span class="poc-compare__label">{row.label}</span>
 								<span class="poc-compare__track">
@@ -1600,10 +1626,7 @@
 									{row.value == null ? '—' : `${comparisonMetricMeta.formatter(row.value)}${comparisonMetricMeta.suffix}`}
 								</span>
 								</div>
-							{/each}
-						{:else}
-							<p class="poc-compare__empty">Select one or more tracts on the map to populate this chart.</p>
-						{/if}
+						{/each}
 					</div>
 				</div>
 				</div>
@@ -2134,7 +2157,7 @@
 
 	.poc-detail__title {
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: 0.82rem;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -2151,8 +2174,8 @@
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
 		color: var(--text);
-		padding: 0.38rem 0.68rem;
-		font-size: 0.72rem;
+		padding: 0.3rem 0.6rem;
+		font-size: 0.68rem;
 		font-weight: 700;
 	}
 
@@ -2162,28 +2185,38 @@
 	}
 
 	.poc-detail__summary {
-		display: grid;
-		gap: 2px;
 		margin: 0;
-		font-size: 0.73rem;
-		line-height: 1.45;
+		font-size: 0.7rem;
+		line-height: 1.4;
 		color: var(--text-muted);
 	}
 
 	.poc-detail__cohort {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.18rem 0.5rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
 		font-weight: 700;
 		color: var(--text);
 	}
 
+	.poc-detail__topline {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
 	.poc-detail__stats {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 8px 12px;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 6px 10px;
 	}
 
 	.poc-detail__stat-label {
 		display: block;
-		font-size: 0.62rem;
+		font-size: 0.58rem;
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -2193,7 +2226,7 @@
 	.poc-detail__stat-value {
 		display: block;
 		margin-top: 2px;
-		font-size: 0.82rem;
+		font-size: 0.76rem;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -2289,13 +2322,6 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.poc-compare__empty {
-		margin: 0;
-		font-size: 0.74rem;
-		line-height: 1.5;
-		color: var(--text-muted);
-	}
-
 	.poc-transit-legend {
 		padding: 0 2px;
 		font-size: 0.58rem;
@@ -2388,6 +2414,11 @@
 			flex-direction: column;
 		}
 
+		.poc-detail__topline {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
 		.poc-compare__row {
 			grid-template-columns: 1fr;
 			gap: 4px;
@@ -2402,7 +2433,7 @@
 		}
 
 		.poc-detail__stats {
-			grid-template-columns: 1fr;
+			grid-template-columns: 1fr 1fr;
 		}
 
 		.poc-map-key-compact--split {
