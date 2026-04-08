@@ -2285,6 +2285,52 @@
 			units: 475,
 			affordableUnits: null,
 			showOnMapDisabled: false
+		},
+		{
+			id: 'allston-yards',
+			label: 'Allston Yards',
+			categoryLabel: 'Partial TOD example',
+			note:
+				'Boston. This Allston corridor example stands in for the Allston Yards pattern: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD cases.',
+			dev: {
+				id: 'manual-allston-yards',
+				name: 'Allston Yards',
+				municipal: 'Boston',
+				hu: 325,
+				lon: -71.13039,
+				lat: 42.36346,
+				nearest_stop_dist_m: 420,
+				mixed_use: true,
+				rdv: false,
+				manualAffordableLabel: 'Not listed in this record',
+				manualAffordabilityNote: 'This stand-in Allston project illustrates the corridor pattern, but this record does not list an affordable-unit count.'
+			},
+			units: 325,
+			affordableUnits: null,
+			showOnMapDisabled: false
+		},
+		{
+			id: 'weymouth-landing',
+			label: 'Weymouth Landing',
+			categoryLabel: 'Non-TOD contrast',
+			note:
+				'Weymouth. Weymouth Landing helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter-rail or weaker transit access than on the strongest rapid-transit geography.',
+			dev: {
+				id: 'manual-weymouth-landing',
+				name: 'Weymouth Landing - Weymouth Delagos block',
+				municipal: 'Weymouth',
+				hu: 81,
+				lon: -70.96819,
+				lat: 42.22008,
+				nearest_stop_dist_m: 650,
+				mixed_use: false,
+				rdv: false,
+				manualAffordableLabel: 'Not listed in this record',
+				manualAffordabilityNote: 'This record does not list an affordable-unit count, which is itself part of why project-level affordability can be hard to read consistently.'
+			},
+			units: 81,
+			affordableUnits: null,
+			showOnMapDisabled: false
 		}
 	]);
 
