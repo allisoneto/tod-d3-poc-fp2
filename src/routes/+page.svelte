@@ -1139,14 +1139,47 @@
 
 			<section class="story card">
 				<h2>Design decisions and visual encodings</h2>
-				<ul class="story-list">
-					<li><strong>Color system:</strong> MBTA line colors anchor the palette for transit relevance (green, orange, red, blue), with neutral tones for baselines and missing/limited data.</li>
-					<li><strong>Typography:</strong> Helvetica-family headings and Inter body text prioritize legibility and align with common transit/public-information design conventions.</li>
-					<li><strong>Primary quantitative encoding:</strong> position on common axes is used for comparisons because it supports the most accurate visual estimation.</li>
-					<li><strong>Categorical encoding:</strong> hue distinguishes cohort categories (TOD-dominated, non-TOD-dominated, minimal-development).</li>
-					<li><strong>Continuous encoding:</strong> gradients represent continuous magnitudes (for example, housing growth or TOD share), while symbol size represents scale variables.</li>
-					<li><strong>Interaction encoding:</strong> outlines and emphasis states are reserved for hover/selection so interaction does not conflict with core data semantics.</li>
-				</ul>
+				<p>
+					Several design decisions structure how this narrative is communicated. The goal is to make a complex policy question readable without
+					oversimplifying it, and to let users inspect supporting evidence directly.
+				</p>
+				<h4>Narrative-driven structure with scrollytelling</h4>
+				<p>
+					The tract map uses a stepwise scrollytelling sequence that introduces information in layers: first census housing-change context,
+					then tract category outlines, then project-level overlays. This progression is intended to reduce cognitive load by separating
+					background context from interpretive categories and finally from project detail. The map remains spatially fixed while the narrative
+					steps change, so users can compare encodings within a stable geographic frame rather than re-orienting to a new chart each time.
+				</p>
+				<p>
+					This approach supports the argument structure well, but it also has trade-offs. More intermediate steps could add interpretive context,
+					but could also increase interaction overhead and make the flow feel heavier. The current version prioritizes a shorter sequence for clarity.
+				</p>
+				<h4>Interactive filtering and layered exploration</h4>
+				<p>
+					Filtering and layering are central because TOD policy context is multi-dimensional. Users can selectively view transit lines/stops,
+					project overlays, cohort spotlights, and threshold-based emphasis without replacing the base geography. Zoom and tooltips provide
+					detail-on-demand so the default view stays legible while still supporting close inspection of specific tracts or projects.
+				</p>
+				<p>
+					At this stage, interaction is intentionally bounded: the dashboard supports focused exploration while keeping key controls visible.
+					A future refinement could move more secondary detail into optional drawers/panels to further reduce visual density in the default state.
+				</p>
+				<h4>Accessibility, color choices, and normalization</h4>
+				<p>
+					The color system uses MBTA-referential hues (green, orange, red, blue) so transit-related encodings are semantically grounded in
+					local context. Neutral tones are used for baselines and limited-data states to avoid overstating uncertain values. Categories are not
+					encoded by color alone: outlines, labels, and interaction states provide additional cues for interpretation.
+				</p>
+				<p>
+					Typography combines Helvetica-family headings with Inter body text to maintain hierarchy and readability at dashboard scale.
+					Quantitative comparisons rely primarily on position on common axes (scatter and bars), with color and size as supporting channels.
+					Where needed, values are normalized (for example, percent housing change and share-based measures) so cross-tract comparisons are
+					more interpretable and less driven by absolute tract size alone.
+				</p>
+				<p>
+					These choices are intended to improve accessibility and interpretability; they are design-informed rather than a claim of full formal
+					accessibility certification. Additional usability testing can further validate readability across broader audiences.
+				</p>
 			</section>
 
 			<!-- <div class="story-chart-row story-chart-row--tract full-width">
