@@ -1162,7 +1162,8 @@
 				</p>
 				<p>
 					At this stage, interaction is intentionally bounded: the dashboard supports focused exploration while keeping key controls visible.
-					A future refinement could move more secondary detail into optional drawers/panels to further reduce visual density in the default state.
+					To reduce cognitive overhead, we intentionally kept the map interaction model simple (selection, spotlight, overlays, and tooltips) rather than adding more advanced control surfaces.
+					This keeps the default interpretation path clear for first-time viewers while still supporting targeted exploration.
 				</p>
 				<h4>Accessibility, color choices, and normalization</h4>
 				<p>
