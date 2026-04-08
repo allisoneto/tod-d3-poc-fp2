@@ -334,7 +334,7 @@
 
 	let mapCanvasLeft = 0;
 	let mapW = 520;
-	const mapH = 390;
+	const mapH = 360;
 	/** ViewBox dimensions for anchoring HTML callouts to projection coordinates. */
 	let mapViewBox = $state(/** @type {{ svgW: number; mapW: number; mapH: number }} */ ({
 		svgW: 520 + CHORO_LEGEND_COL_W,
@@ -3489,17 +3489,17 @@
 
 	.map-main {
 		position: sticky;
-		top: 18px;
+		top: 10px;
 		align-self: start;
 		z-index: 1;
 		min-width: 0;
 		display: grid;
-		gap: 6px;
-		margin-bottom: clamp(12px, 4vh, 28px);
+		gap: 4px;
+		margin-bottom: clamp(8px, 3vh, 20px);
 	}
 
 	.poc-map-callouts {
-		padding: 6px 8px;
+		padding: 5px 7px;
 	}
 
 	.poc-map-callouts__list {
@@ -3559,7 +3559,7 @@
 	.map-root {
 		width: 100%;
 		max-width: 100%;
-		min-height: 260px;
+		min-height: 230px;
 	}
 
 	.map-tooltip {
