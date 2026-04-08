@@ -1421,6 +1421,22 @@
 					</p>
 				</div>
 
+				<div class="poc-methods card-key" role="note" aria-label="TOD definitions">
+					<p class="poc-detail__kicker">Definitions</p>
+					<p class="poc-methods__text">
+						<strong>TOD developments</strong> are projects within <strong>{d3.format('.2~f')(panelState.transitDistanceMi ?? 0.5)} miles</strong> of an MBTA stop
+						{#if (panelState.minDevMultifamilyRatioPct ?? 0) > 0}
+							and with at least <strong>{panelState.minDevMultifamilyRatioPct}% multifamily units</strong>
+						{/if}
+						; other projects are treated as <strong>non-TOD developments</strong>.
+						<strong>TOD-dominated tracts</strong> are tracts with at least
+						<strong>{d3.format('.0f')((panelState.todFractionCutoff ?? 0.5) * 100)}%</strong> of filtered new units in TOD developments and at least
+						<strong>{d3.format('.1f')(panelState.sigDevMinPctStockIncrease ?? 2)}%</strong> housing stock increase.
+						<strong>Non-TOD-dominated tracts</strong> meet the same development threshold but fall below that TOD share cutoff.
+						<strong>Minimal development</strong> tracts stay below the stock-increase threshold.
+					</p>
+				</div>
+
 				<div class="poc-side-cards">
 
 				<div class="poc-spotlight card-key" role="group" aria-label="Tract cohort spotlight">
@@ -1937,6 +1953,10 @@
 			grid-column: 1 / -1;
 		}
 
+		.poc-methods {
+			grid-column: 1 / -1;
+		}
+
 		.poc-side-cards {
 			grid-column: 1;
 		}
@@ -1999,6 +2019,18 @@
 	.poc-filter {
 		display: grid;
 		gap: 10px;
+	}
+
+	.poc-methods {
+		display: grid;
+		gap: 6px;
+	}
+
+	.poc-methods__text {
+		margin: 0;
+		font-size: 0.72rem;
+		line-height: 1.5;
+		color: var(--text-muted);
 	}
 
 	.poc-filter__head {
