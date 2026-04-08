@@ -1686,10 +1686,20 @@
 		}
 		secondaryRows.push({ label: `Stops within ${todMi} mi`, value: String(nWithin) });
 		const affCap = developmentAffordableUnitsCapped(d);
-		if (affCap > 0) {
-			const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
-			primaryRows.push({ label: 'Affordable units', value: `${affCap}${src}` });
-		}
+		const src = d.affrd_source === 'lihtc' ? ' (HUD LIHTC)' : '';
+		primaryRows.push({
+			label: 'Affordable units',
+			value: affCap > 0 ? `${affCap}${src}` : 'No affordable units listed'
+		});
+		const affPct = Number(d.affrd_percent);
+		secondaryRows.push({
+			label: 'Affordability',
+			value: Number.isFinite(affPct)
+				? `${fmtPct(affPct)}% income-restricted`
+				: affCap > 0
+					? 'Some affordable units listed'
+					: 'No affordability share listed'
+		});
 		secondaryRows.push({ label: 'Type', value: d.mixed_use ? 'Mixed-use' : 'Residential' });
 		if (d.rdv) secondaryRows.push({ label: 'Redevelopment', value: 'Yes' });
 		tooltip = {
@@ -2227,6 +2237,44 @@
 		if (manualImportantDevelopmentExamples?.length) return manualImportantDevelopmentExamples;
 		if (guidedClusterDevelopmentExamples?.length) return guidedClusterDevelopmentExamples;
 		return guidedDevelopmentExamples ?? [];
+	});
+
+	function normalizeDevelopmentName(value) {
+		return String(value || '')
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, ' ')
+			.trim();
+	}
+
+	const guidedStepTenExamples = $derived.by(() => {
+		const specs = [
+			{
+				id: 'assembly-row-block-2',
+				label: 'Assembly Row: Block 2',
+				categoryLabel: 'Strong TOD example',
+				note:
+					'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
+				match: (name) => name === 'assembly row block 2' || (name.includes('assembly row') && name.includes('block 2'))
+			},
+			{
+				id: 'amaya-suffolk-downs',
+				label: 'Amaya Suffolk Downs',
+				categoryLabel: 'Large-scale TOD example',
+				note:
+					'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
+				match: (name) => name === 'amaya suffolk downs' || name.includes('suffolk downs')
+			}
+		];
+		return specs.map((spec) => {
+			const dev = (developments ?? []).find((d) => spec.match(normalizeDevelopmentName(d.name || d.project_name))) ?? null;
+			return {
+				...spec,
+				dev,
+				units: dev ? Number(dev.hu) || 0 : null,
+				affordableUnits: dev ? developmentAffordableUnitsCapped(dev) : null,
+				showOnMapDisabled: !dev
+			};
+		});
 	});
 
 	function inspectGuidedExample(id) {
@@ -3088,25 +3136,26 @@
 										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && i === 9 && importantDevelopmentExamples.length}
+								{#if guidedMode && i === 9}
 									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
 										<p class="poc-stepper-examples-title">A few developments that help explain the broader pattern</p>
-										{#each importantDevelopmentExamples as dev (dev.id)}
+										{#each guidedStepTenExamples as item (item.id)}
 											<div class="poc-stepper-example">
 												<div class="poc-stepper-example__head">
-													<span class="poc-stepper-example__label">{dev.name || 'Unnamed development'}</span>
-													<span class="poc-stepper-example__cta">{dev.categoryLabel}</span>
+													<span class="poc-stepper-example__label">{item.label}</span>
+													<span class="poc-stepper-example__cta">{item.categoryLabel}</span>
 												</div>
-												<p class="poc-stepper-example__note">{dev.municipal ? `${dev.municipal}. ` : ''}{dev.importanceNote} {dev.affordableUnits > 0 ? 'It also includes some income-restricted units.' : 'It does not show affordable-unit counts in the filtered data.'}</p>
+												<p class="poc-stepper-example__note">{item.note}</p>
 												<div class="poc-stepper-example__metrics">
-													<span><strong>Total units:</strong> {d3.format(',.0f')(dev.units)}</span>
-													<span><strong>Affordable units:</strong> {d3.format(',.0f')(dev.affordableUnits || 0)}</span>
+													<span><strong>Total units:</strong> {item.units == null ? 'Loading…' : d3.format(',.0f')(item.units)}</span>
+													<span><strong>Affordable units:</strong> {item.affordableUnits == null ? 'Loading…' : d3.format(',.0f')(item.affordableUnits || 0)}</span>
 												</div>
 												<div class="poc-stepper-example__actions">
 													<button
 														type="button"
 														class="poc-stepper-example__button"
-														onclick={() => inspectGuidedDevelopment(dev)}
+														disabled={item.showOnMapDisabled}
+														onclick={() => item.dev && inspectGuidedDevelopment(item.dev)}
 													>
 														Show on map
 													</button>
