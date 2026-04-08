@@ -125,6 +125,26 @@
 		return 'rgba(60,64,67,0.22)';
 	}
 
+	function showCohortOutlines() {
+		return revealStage === 1 || revealStage === 3;
+	}
+
+	function showMismatchOutlines() {
+		return revealStage === 2;
+	}
+
+	function showDevelopmentDots() {
+		return revealStage === 3;
+	}
+
+	function visibleCohortStroke(row) {
+		const dc = row?.devClass;
+		if (!showCohortOutlines()) return 'rgba(60,64,67,0.18)';
+		if (dc === 'tod_dominated') return 'var(--accent, #0d9488)';
+		if (dc === 'nontod_dominated') return 'var(--warning, #ea580c)';
+		return 'rgba(60,64,67,0.18)';
+	}
+
 	function cohortLabel(devClass) {
 		if (devClass === 'tod_dominated') return 'TOD-dominated';
 		if (devClass === 'nontod_dominated') return 'Non-TOD-dominated';
@@ -155,16 +175,14 @@
 	}
 
 	function tintFill(baseFill, row) {
-		if (revealStage < 1) return baseFill;
+		if (!showCohortOutlines()) return baseFill;
 		const dc = row?.devClass;
-		if (!dc) return baseFill;
+		if (dc !== 'tod_dominated' && dc !== 'nontod_dominated') return baseFill;
 		const accent =
 			dc === 'tod_dominated'
 				? 'var(--accent, #0d9488)'
-				: dc === 'nontod_dominated'
-					? 'var(--warning, #ea580c)'
-					: MINIMAL_TRACT_STROKE;
-		return d3.interpolateRgb(baseFill, accent)(dc === 'minimal' ? 0.1 : 0.17);
+				: 'var(--warning, #ea580c)';
+		return d3.interpolateRgb(baseFill, accent)(0.17);
 	}
 
 	const mismatchClusters = $derived.by(() =>
@@ -176,11 +194,7 @@
 	const visibleMismatchIds = $derived.by(() => {
 		const s = new Set();
 		const c = mismatchClusters;
-		if (revealStage < 2) return s;
-		if (revealStage === 2) {
-			c.highAccessLowGrowth.forEach((id) => s.add(id));
-			return s;
-		}
+		if (!showMismatchOutlines()) return s;
 		c.highAccessLowGrowth.forEach((id) => s.add(id));
 		c.highGrowthLowAccess.forEach((id) => s.add(id));
 		return s;
@@ -235,17 +249,17 @@
 		{
 			kicker: 'Step 2',
 			title: 'Growth is not only “on the line”',
-			body: 'However, housing development is not concentrated only in these areas. Green, orange, and gray outlines show TOD-dominated, non-TOD-dominated, and minimal-development tracts.'
+			body: 'Orange and green outlines show where filtered tract growth is TOD-dominated versus non-TOD-dominated, while the choropleth still carries the housing-growth story.'
 		},
 		{
 			kicker: 'Step 3',
 			title: 'A measurable mismatch',
-			body: 'These highlighted tracts reveal a mismatch between transit access and housing growth (quartile-based). Solid purple begins with high access + low growth.'
+			body: 'Purple mismatch outlines take over here to show where transit access and housing growth diverge. This step isolates the mismatch pattern without the cohort outlines competing for attention.'
 		},
 		{
 			kicker: 'Step 4',
-			title: 'Who can live near transit?',
-			body: 'In some high-access areas, limited development reduces opportunities for lower-income households (<$125k median) to live near transit. Dashed lavender adds high growth + low access while keeping the same choropleth baseline.'
+			title: 'Bring projects back in',
+			body: 'The orange and green cohort outlines return, now with development dots layered on top so you can connect tract category patterns to the projects themselves.'
 		}
 	];
 
@@ -258,20 +272,20 @@
 		}
 		if (revealStage === 1) {
 			return [
-				'Outlines encode MassBuilds-based cohorts; fill still shows census growth.',
-				'Project dots are shown here so developments are read against cohort outlines (orange/green/gray), before mismatch overlays appear.'
+				'Orange and green outlines encode TOD-dominated versus non-TOD-dominated tracts; fill still shows census growth.',
+				'This is the clean cohort-comparison step before mismatch highlights or project dots are added.'
 			];
 		}
 		if (revealStage === 2) {
 			return [
-				'Solid violet tracts = high access + low growth. The map pushes everything else back (dimmer fill, lighter cohort outlines) so the mismatch layer stays in front.',
+				'Purple mismatch outlines take priority here so the access-vs-growth mismatch is easier to see on its own.',
 				'If it still feels busy, hover any highlighted tract to spotlight its whole cluster.',
 				'Optional: “Show lower-income tracts” replaces growth color with neutral fill for tracts at/above the $125k median (no second choropleth).'
 			];
 		}
 		return [
-			'Dashed lavender = high growth + low access. Same hierarchy: background tracts fade; violet / lavender stay the focus.',
-			'Development dots stay tied to the cohort stage, so the mismatch step remains focused on the violet/lavender tract comparison.',
+			'Orange and green outlines return here, and the project dots join them so you can relate tract patterns back to individual developments.',
+			'Dot color still shows multi-family share, while outline color shows whether the tract is TOD-dominated or non-TOD-dominated.',
 			'Income detail stays in tooltips and the charts below; hover or select a tract to link map → charts.'
 		];
 	});
@@ -749,36 +763,35 @@
 			.attr('stroke', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
-				if (effectiveMismatchIds.has(id)) {
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
 				}
-				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
-				return devClassStroke(row);
+				return visibleCohortStroke(row);
 			})
 			.attr('stroke-dasharray', (d) => {
 				const id = d.properties?.gisjoin;
-				if (!effectiveMismatchIds.has(id)) return 'none';
+				if (!showMismatchOutlines() || !effectiveMismatchIds.has(id)) return 'none';
 				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
 				const id = d.properties?.gisjoin;
 				const row = rowByGj.get(id);
 				const dc = row?.devClass;
-				if (effectiveMismatchIds.has(id)) {
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
 				}
-				if (revealStage < 1) return 0.45;
-				if (!dc) return 0.5;
-				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
-				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
+				if (!showCohortOutlines()) return 0.45;
+				if (dc !== 'tod_dominated' && dc !== 'nontod_dominated') return 0.45;
+				if (isSpotlightMatch(row, spotlight)) return 3.2;
+				return dc === 'tod_dominated' ? 2.8 : 2.1;
 			})
 			.attr('stroke-opacity', (d) => {
 				const id = d.properties?.gisjoin;
-				if (effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
 				if (mismatchLayerOn) {
 					const row = rowByGj.get(id);
 					const dc = row?.devClass;
-					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.38;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated') return 0.38;
 				}
 				return 1;
 			})
@@ -888,7 +901,7 @@
 		const devLayer = d3.select(containerEl).select('.dev-dots-layer');
 		const t = d3.transition().duration(350);
 
-		if (revealStage !== 1) {
+		if (!showDevelopmentDots()) {
 			devSizeLegendTicks = null;
 			devLayer
 				.selectAll('circle.dev-dot')
@@ -979,7 +992,7 @@
 		if (!containerEl || !svgRef || !projectionRef) return;
 		const layer = d3.select(containerEl).select('.insight-layer');
 		const t = d3.transition().duration(250);
-		if (!mismatchLayerOn || effectiveMismatchIds.size === 0) {
+		if (!showMismatchOutlines() || !mismatchLayerOn || effectiveMismatchIds.size === 0) {
 			layer.selectAll('g.insight-marker').transition(t).attr('opacity', 0).remove();
 			return;
 		}
@@ -1006,7 +1019,7 @@
 			})
 			.filter(Boolean)
 			.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-			.slice(0, revealStage >= 3 ? 5 : 4);
+			.slice(0, 4);
 
 		const markers = layer
 			.selectAll('g.insight-marker')
@@ -1086,17 +1099,16 @@
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId) return '#ffffff';
 				if (selectedSet.has(id)) return 'var(--cat-a, #6366f1)';
-				if (effectiveMismatchIds.has(id)) {
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_STROKE_HA : MISMATCH_STROKE_HG;
 				}
 				const row = rowByGj?.get(id);
-				if (revealStage < 1) return 'rgba(60,64,67,0.18)';
-				return devClassStroke(row);
+				return visibleCohortStroke(row);
 			})
 			.attr('stroke-dasharray', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId || selectedSet.has(id)) return 'none';
-				if (!effectiveMismatchIds.has(id)) return 'none';
+				if (!showMismatchOutlines() || !effectiveMismatchIds.has(id)) return 'none';
 				return mismatchKind(id) === 'hg_la' ? '6 5' : 'none';
 			})
 			.attr('stroke-width', (d) => {
@@ -1105,22 +1117,22 @@
 				const dc = row?.devClass;
 				if (id === hoveredId) return dc === 'minimal' ? 2 : 3.6;
 				if (selectedSet.has(id)) return dc === 'minimal' ? 1.7 : 3;
-				if (effectiveMismatchIds.has(id)) {
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) {
 					return mismatchKind(id) === 'ha_lg' ? MISMATCH_W_HA : MISMATCH_W_HG;
 				}
-				if (revealStage < 1) return 0.45;
-				if (!dc) return 0.5;
-				if (isSpotlightMatch(row, spotlight)) return dc === 'minimal' ? 1.8 : 3.2;
-				return dc === 'tod_dominated' ? 2.8 : dc === 'minimal' ? 1.1 : 2.1;
+				if (!showCohortOutlines()) return 0.45;
+				if (dc !== 'tod_dominated' && dc !== 'nontod_dominated') return 0.45;
+				if (isSpotlightMatch(row, spotlight)) return 3.2;
+				return dc === 'tod_dominated' ? 2.8 : 2.1;
 			})
 			.attr('stroke-opacity', (d) => {
 				const id = d.properties?.gisjoin;
 				if (id === hoveredId || selectedSet.has(id)) return 1;
-				if (effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
+				if (showMismatchOutlines() && effectiveMismatchIds.has(id)) return MISMATCH_STROKE_OPACITY;
 				if (mismatchLayerOn) {
 					const row = rowByGj?.get(id);
 					const dc = row?.devClass;
-					if (dc === 'tod_dominated' || dc === 'nontod_dominated' || dc === 'minimal') return 0.38;
+					if (dc === 'tod_dominated' || dc === 'nontod_dominated') return 0.38;
 				}
 				return 1;
 			})
@@ -2129,17 +2141,16 @@
 									></span>
 									<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
 								</p>
-								{#if revealStage >= 1}
-									<ul class="poc-key-rings">
-										<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
-										<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
-										<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
-									</ul>
-								{/if}
-								{#if revealStage >= 2}
-									<p class="poc-key-mismatch-sub">
-										Mismatch outlines (quartiles): transit access vs housing growth are not always aligned—see charts below for income context.
-									</p>
+							{#if showCohortOutlines()}
+								<ul class="poc-key-rings">
+									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
+									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
+								</ul>
+							{/if}
+							{#if showMismatchOutlines()}
+								<p class="poc-key-mismatch-sub">
+									Mismatch outlines (quartiles): transit access vs housing growth are not always aligned—see charts below for income context.
+								</p>
 									<ul class="poc-key-rings">
 										<li>
 											<span class="poc-k-ring poc-k-ring--mismatch-ha"></span> High access, low growth (solid purple)
@@ -2150,7 +2161,7 @@
 									</ul>
 								{/if}
 							</div>
-							{#if revealStage === 1}
+							{#if showDevelopmentDots()}
 								<div class="poc-map-key-col poc-map-key-col--dev">
 									<p class="poc-key-one poc-key-dev">
 										<strong>Developments</strong>
