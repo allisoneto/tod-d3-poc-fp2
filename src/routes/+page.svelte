@@ -1145,9 +1145,9 @@
 				</p>
 				<h4>Narrative-driven structure with scrollytelling</h4>
 				<p>
-					The tract map uses a stepwise scrollytelling sequence that introduces information in layers: first census housing-change context,
+					The tract map uses a stepwise scrollytelling sequence that introduces information in layers: census housing-change context first,
 					then tract category outlines, then project-level overlays. This progression is intended to reduce cognitive load by separating
-					background context from interpretive categories and finally from project detail. The map remains spatially fixed while the narrative
+					each of background context, interpretive categories, and project detail from each other. However, the map remains spatially fixed while the narrative
 					steps change, so users can compare encodings within a stable geographic frame rather than re-orienting to a new chart each time.
 				</p>
 				<p>
@@ -1171,11 +1171,12 @@
 					encoded by color alone: outlines, labels, and interaction states provide additional cues for interpretation.
 				</p>
 				<p>
-					Typography combines Helvetica-family headings with Inter body text to maintain hierarchy and readability at dashboard scale.
+					Typography combines Helvetica-family headings with Inter body text to maintain hierarchy and readability at the dashboard scale.
 					Quantitative comparisons rely primarily on position on common axes (scatter and bars), with color and size as supporting channels.
-					Where needed, values are normalized (for example, percent housing change and share-based measures) so cross-tract comparisons are
+					Where needed, values are normalized (for example, percent housing change and share-based measures) to ensure that cross-tract comparisons are
 					more interpretable and less driven by absolute tract size alone.
 				</p>
+				<h4>Overall and future improvements</h4>
 				<p>
 					These choices are intended to improve accessibility and interpretability; they are design-informed rather than a claim of full formal
 					accessibility certification. Additional usability testing can further validate readability across broader audiences.
