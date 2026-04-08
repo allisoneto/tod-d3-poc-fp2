@@ -600,9 +600,12 @@
 		</div>
 	{:else}
 	<section class="story card">
-		<h2>Three figures before the map</h2>
+		<h2>What to look for before you enter the map</h2>
 		<p class="chart-note">
-			Read these one at a time. Each figure introduces one idea so the mismatch on the map is easier to understand when you get there.
+			Before moving into the interactive visualization, we want to make the core pattern visible in a simpler form. The figures
+			below do not replace the map. They set up what the map is trying to show: housing growth is uneven, transit access does
+			not guarantee that growth, and the stakes are higher in places where lower-income households are already part of the
+			story.
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
@@ -627,6 +630,10 @@
 				</figcaption>
 			</figure>
 		</div>
+		<p class="chart-note chart-note--after-figures">
+			Taken together, these views tell the audience what to watch for once the map begins to zoom in: not just where transit is,
+			but where access, growth, and lower-income vulnerability stop lining up neatly.
+		</p>
 	</section>
 	{/if}
 
