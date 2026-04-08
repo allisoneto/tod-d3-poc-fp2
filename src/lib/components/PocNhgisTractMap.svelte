@@ -65,8 +65,6 @@
 	let hoveredSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let pinnedSpotlight = $state(/** @type {'tod_dominated' | 'nontod_dominated' | 'minimal' | null} */ (null));
 	let comparisonMetric = $state(/** @type {'hu_growth' | 'tod_share' | 'stock_increase'} */ ('hu_growth'));
-	/** When true, dim everything except currently visible mismatch tracts. */
-	let focusMismatchOnly = $state(false);
 	/** Optional: emphasize tracts with median household income below the lower-income threshold. */
 	let focusLowIncomeTracts = $state(false);
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
@@ -95,11 +93,9 @@
 	 * ~0.11 opacity ≈ 89% dimming vs full (≥50% reduction vs the previous 0.22 pass) so violet/lavender outlines read clearly.
 	 */
 	const NON_MISMATCH_DIM = 0.11;
-	/** When “Show mismatch areas only”: hide context almost entirely. */
-	const NON_MISMATCH_FOCUS_ONLY = 0.06;
 	const FILL_DESAT = '#a8a29e';
-	/** When “lower-income tracts” focus is on: hide choropleth for tracts at/above $125k median (not a dimmed blue). */
-	const LOW_INCOME_FOCUS_INACTIVE_FILL = '#e2e8f0';
+	/** When “lower-income tracts” focus is on: use neutral tan for tracts at/above $125k median. */
+	const LOW_INCOME_FOCUS_INACTIVE_FILL = '#e7e0d5';
 	const HIGH_ACCESS_LOW_GROWTH = 'high_access_low_growth';
 	const HIGH_GROWTH_LOW_ACCESS = 'high_growth_low_access';
 
@@ -834,7 +830,6 @@
 					if (mk === hoveredMismatchCluster) return 1;
 					return 0.35;
 				}
-				if (focusMismatchOnly) return vis ? 1 : NON_MISMATCH_FOCUS_ONLY;
 				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 
@@ -1177,7 +1172,6 @@
 					if (mk === hoveredMismatchCluster) return 1;
 					return 0.35;
 				}
-				if (focusMismatchOnly) return vis ? 1 : NON_MISMATCH_FOCUS_ONLY;
 				return vis ? 1 : NON_MISMATCH_DIM;
 			});
 	}
@@ -1689,7 +1683,6 @@
 		void dataKey;
 		void revealStage;
 		void activeSpotlight;
-		void focusMismatchOnly;
 		void focusLowIncomeTracts;
 		void hoveredMismatchCluster;
 		void mismatchOutlineMode;
@@ -1713,7 +1706,6 @@
 		void panelState.hoveredTract;
 		void panelState.selectedTracts;
 		void panelState.selectedTracts.size;
-		void focusMismatchOnly;
 		void focusLowIncomeTracts;
 		void hoveredMismatchCluster;
 		void mismatchOutlineMode;
@@ -2266,23 +2258,11 @@
 				<div class="poc-insight card-key" role="group" aria-label="Mismatch focus">
 					<p class="poc-detail__kicker">Mismatch focus</p>
 					<label class="poc-focus-toggle">
-						<input type="checkbox" bind:checked={focusMismatchOnly} />
-						<span>Show mismatch areas only</span>
-					</label>
-					<label class="poc-focus-toggle">
 						<input type="checkbox" bind:checked={focusLowIncomeTracts} />
 						<span>Show lower-income tracts (&lt;$125k median)</span>
 					</label>
 					<p class="poc-detail__kicker" style="margin-top: 12px">Mismatch outlines</p>
 					<div class="poc-mismatch-mode" role="group" aria-label="Which mismatch categories to outline">
-						<button
-							type="button"
-							class="poc-mismatch-mode__btn"
-							class:poc-mismatch-mode__btn--active={mismatchOutlineMode === 'follow_scroll'}
-							onclick={() => (mismatchOutlineMode = 'follow_scroll')}
-						>
-							Match scroll
-						</button>
 						<button
 							type="button"
 							class="poc-mismatch-mode__btn"
@@ -2317,8 +2297,7 @@
 						</button>
 					</div>
 					<p class="poc-detail__summary">
-						When on, non-mismatch tracts fade so the access–growth patterns are easier to read. Default follows
-						scroll steps; use the buttons above to explore one or both mismatch types anytime.
+						Use these buttons to show both mismatch types, focus on one pattern, or turn mismatch outlines off.
 					</p>
 					<p class="poc-detail__summary">
 						The lower-income toggle drops growth color to a neutral fill for tracts at or above the $125k median—exploratory;
