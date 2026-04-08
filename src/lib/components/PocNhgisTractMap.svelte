@@ -3481,10 +3481,10 @@
 		flex-direction: column;
 		gap: 6px;
 		min-width: 0;
-		position: sticky;
-		top: 18px;
-		align-self: start;
-		z-index: 2;
+		position: relative;
+		top: auto;
+		align-self: stretch;
+		z-index: 1;
 	}
 
 	.map-main {
