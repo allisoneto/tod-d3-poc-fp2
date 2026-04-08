@@ -2065,214 +2065,216 @@
 			</div>
 
 			<div class="map-wrap">
-				<div class="map-left-column">
-					<div class="poc-legend-row">
-				<fieldset class="poc-transit-field">
-					<legend class="poc-transit-legend">MBTA Overlays</legend>
-					<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
-						<div class="poc-t-row">
-							<span class="poc-t-h"></span>
-							<span class="poc-t-h">Lines</span>
-							<span class="poc-t-h">Stops</span>
+				<div class="map-visual-column">
+					<div class="map-left-column">
+						<div class="poc-legend-row">
+					<fieldset class="poc-transit-field">
+						<legend class="poc-transit-legend">MBTA Overlays</legend>
+						<div class="poc-transit-compact" role="group" aria-label="Transit overlays">
+							<div class="poc-t-row">
+								<span class="poc-t-h"></span>
+								<span class="poc-t-h">Lines</span>
+								<span class="poc-t-h">Stops</span>
+							</div>
+							<div class="poc-t-row">
+								<span class="poc-t-l">Bus</span>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusLines} /></label>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusStops} /></label>
+							</div>
+							<div class="poc-t-row">
+								<span class="poc-t-l">Rapid Transit</span>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailLines} /></label>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailStops} /></label>
+							</div>
+							<div class="poc-t-row">
+								<span class="poc-t-l">Commuter Rail</span>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailLines} /></label>
+								<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailStops} /></label>
+							</div>
 						</div>
-						<div class="poc-t-row">
-							<span class="poc-t-l">Bus</span>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusLines} /></label>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showBusStops} /></label>
-						</div>
-						<div class="poc-t-row">
-							<span class="poc-t-l">Rapid Transit</span>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailLines} /></label>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showRailStops} /></label>
-						</div>
-						<div class="poc-t-row">
-							<span class="poc-t-l">Commuter Rail</span>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailLines} /></label>
-							<label class="poc-t-cell"><input type="checkbox" bind:checked={panelState.showCommuterRailStops} /></label>
-						</div>
-					</div>
-				</fieldset>
+					</fieldset>
 
-				<div class="poc-map-key card-key" role="region" aria-label="Map legend">
-					<div
-						class="poc-map-key-compact"
-						class:poc-map-key-compact--split={revealStage === 1}
-					>
-						<div class="poc-map-key-col poc-map-key-col--tract">
-							<p class="poc-key-one poc-key-tract-fill">
-								<strong>Tract fill</strong>
-								<span class="poc-key-tract-fill-body">
-									<span class="poc-key-tract-fill-line">
-										Census % housing growth ({periodDisplayLabel(panelState.timePeriod)}), vs housing stock at period start. Full scale on map colorbar.
-									</span>
-									<span
-										class="poc-key-tract-bar"
-										style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
-										role="img"
-										aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
-									></span>
-									<span class="poc-key-tract-bar-labels" aria-hidden="true">
-										<span class="poc-key-tract-bar-label">- lower growth</span>
-										<span class="poc-key-tract-bar-label">+ higher growth</span>
-									</span>
-								</span>
-							</p>
-							<p class="poc-key-no-data">
-								<span
-									class="poc-key-fill-swatch poc-key-fill-swatch--no-data"
-									style="background: #e7e0d5;"
-									role="img"
-									aria-hidden="true"
-								></span>
-								<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
-							</p>
-							{#if revealStage >= 1}
-								<ul class="poc-key-rings">
-									<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
-									<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
-									<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
-								</ul>
-							{/if}
-							{#if revealStage >= 2}
-								<p class="poc-key-mismatch-sub">
-									Mismatch outlines (quartiles): transit access vs housing growth are not always aligned—see charts below for income context.
-								</p>
-								<ul class="poc-key-rings">
-									<li>
-										<span class="poc-k-ring poc-k-ring--mismatch-ha"></span> High access, low growth (solid purple)
-									</li>
-									<li>
-										<span class="poc-k-ring poc-k-ring--mismatch-hg"></span> High growth, low access (dashed lavender)
-									</li>
-								</ul>
-							{/if}
-						</div>
-						{#if revealStage === 1}
-							<div class="poc-map-key-col poc-map-key-col--dev">
-								<p class="poc-key-one poc-key-dev">
-									<strong>Developments</strong>
+					<div class="poc-map-key card-key" role="region" aria-label="Map legend">
+						<div
+							class="poc-map-key-compact"
+							class:poc-map-key-compact--split={revealStage === 1}
+						>
+							<div class="poc-map-key-col poc-map-key-col--tract">
+								<p class="poc-key-one poc-key-tract-fill">
+									<strong>Tract fill</strong>
 									<span class="poc-key-tract-fill-body">
 										<span class="poc-key-tract-fill-line">
-											Fill = share of new units that are multi-family. Full scale on map colorbar.
+											Census % housing growth ({periodDisplayLabel(panelState.timePeriod)}), vs housing stock at period start. Full scale on map colorbar.
 										</span>
 										<span
 											class="poc-key-tract-bar"
-											style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
+											style="background: linear-gradient(to right, {MBTA_RED}, {MBTA_MAP_NEUTRAL}, {MBTA_BLUE});"
 											role="img"
-											aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
+											aria-label="Percent housing growth scale: more negative toward red, more positive toward blue"
 										></span>
+										<span class="poc-key-tract-bar-labels" aria-hidden="true">
+											<span class="poc-key-tract-bar-label">- lower growth</span>
+											<span class="poc-key-tract-bar-label">+ higher growth</span>
+										</span>
 									</span>
 								</p>
-								{#if devSizeLegendTicks && devSizeLegendTicks.length > 0}
-									<div class="poc-key-dev-sizes" aria-label="Development dot size by unit count">
-										<p class="poc-key-dev-sizes-title">Units (radius ∝ √units, same as map)</p>
-										<ul class="poc-key-dev-sizes-list">
-											{#each devSizeLegendTicks as t, i (i)}
-												<li class="poc-key-dev-size-item">
-													<span class="poc-key-dev-size-dot-wrap">
-														<span
-															class="poc-key-dev-size-dot"
-															style:width="{2 * t.rPx}px"
-															style:height="{2 * t.rPx}px"
-														></span>
-													</span>
-													<span class="poc-key-dev-size-num">{formatDevUnitsLegend(t.units)}</span>
-												</li>
-											{/each}
-										</ul>
-									</div>
+								<p class="poc-key-no-data">
+									<span
+										class="poc-key-fill-swatch poc-key-fill-swatch--no-data"
+										style="background: #e7e0d5;"
+										role="img"
+										aria-hidden="true"
+									></span>
+									<span class="poc-key-no-data-text">Tan fill: excluded due to limited data (missing or unreliable % change).</span>
+								</p>
+								{#if revealStage >= 1}
+									<ul class="poc-key-rings">
+										<li><span class="poc-k-ring poc-k-ring--tod"></span> TOD-dominated (significant development)</li>
+										<li><span class="poc-k-ring poc-k-ring--nontod"></span> Non-TOD-dominated (significant development)</li>
+										<li><span class="poc-k-ring poc-k-ring--min"></span> Minimal development</li>
+									</ul>
 								{/if}
-								<ul class="poc-key-rings" aria-label="Development dot outlines">
-									<li>
-										<span class="poc-k-ring poc-k-ring--dev-access"></span> Transit-accessible
-									</li>
-									<li>
-										<span class="poc-k-ring poc-k-ring--dev-noaccess"></span> Not transit-accessible
-									</li>
-								</ul>
-							</div>
-						{/if}
-					</div>
-				</div>
-				</div>
-				</div>
-
-				<div
-					class="map-main"
-					role="region"
-					aria-label="Interactive census tract map"
-					onmouseleave={handleOverlayLeave}
-				>
-					<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
-					<div class="map-widget">
-						<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
-							<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
-							<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
-							<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
-						</div>
-						<div class="map-root" bind:this={containerEl}></div>
-					</div>
-					{#if tooltip.visible}
-						<div
-							class="map-tooltip"
-							bind:this={tooltipEl}
-							style:left="{tooltipPosition.left}px"
-							style:top="{tooltipPosition.top}px"
-						>
-							<div class="map-tooltip__header">
-								<div class="map-tooltip__header-copy">
-									{#if tooltip.eyebrow}
-										<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
-									{/if}
-									<p class="map-tooltip__title">{tooltip.title}</p>
-								</div>
-								{#if tooltip.badge}
-									<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+								{#if revealStage >= 2}
+									<p class="poc-key-mismatch-sub">
+										Mismatch outlines (quartiles): transit access vs housing growth are not always aligned—see charts below for income context.
+									</p>
+									<ul class="poc-key-rings">
+										<li>
+											<span class="poc-k-ring poc-k-ring--mismatch-ha"></span> High access, low growth (solid purple)
+										</li>
+										<li>
+											<span class="poc-k-ring poc-k-ring--mismatch-hg"></span> High growth, low access (dashed lavender)
+										</li>
+									</ul>
 								{/if}
 							</div>
-							{#if tooltip.primaryRows.length > 0}
-								<div
-									class="map-tooltip__primary"
-									class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
-									class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
-									class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
-								>
-									{#each tooltip.primaryRows as row, i (i)}
-										<div
-											class="map-tooltip__primary-row"
-											class:map-tooltip__primary-row--stack={String(row.value ?? '').length > 20}
-										>
-											<span class="map-tooltip__primary-label">{row.label}</span>
-											<span class="map-tooltip__primary-value">{row.value}</span>
+							{#if revealStage === 1}
+								<div class="poc-map-key-col poc-map-key-col--dev">
+									<p class="poc-key-one poc-key-dev">
+										<strong>Developments</strong>
+										<span class="poc-key-tract-fill-body">
+											<span class="poc-key-tract-fill-line">
+												Fill = share of new units that are multi-family. Full scale on map colorbar.
+											</span>
+											<span
+												class="poc-key-tract-bar"
+												style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
+												role="img"
+												aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
+											></span>
+										</span>
+									</p>
+									{#if devSizeLegendTicks && devSizeLegendTicks.length > 0}
+										<div class="poc-key-dev-sizes" aria-label="Development dot size by unit count">
+											<p class="poc-key-dev-sizes-title">Units (radius ∝ √units, same as map)</p>
+											<ul class="poc-key-dev-sizes-list">
+												{#each devSizeLegendTicks as t, i (i)}
+													<li class="poc-key-dev-size-item">
+														<span class="poc-key-dev-size-dot-wrap">
+															<span
+																class="poc-key-dev-size-dot"
+																style:width="{2 * t.rPx}px"
+																style:height="{2 * t.rPx}px"
+															></span>
+														</span>
+														<span class="poc-key-dev-size-num">{formatDevUnitsLegend(t.units)}</span>
+													</li>
+												{/each}
+											</ul>
 										</div>
-									{/each}
+									{/if}
+									<ul class="poc-key-rings" aria-label="Development dot outlines">
+										<li>
+											<span class="poc-k-ring poc-k-ring--dev-access"></span> Transit-accessible
+										</li>
+										<li>
+											<span class="poc-k-ring poc-k-ring--dev-noaccess"></span> Not transit-accessible
+										</li>
+									</ul>
 								</div>
 							{/if}
-							{#if tooltip.secondaryRows.length > 0}
-								<div class="map-tooltip__details">
-									<p class="map-tooltip__details-label">Details</p>
-									<div class="map-tooltip__rows">
-										{#each tooltip.secondaryRows as row, i (i)}
+						</div>
+					</div>
+					</div>
+					</div>
+
+					<div
+						class="map-main"
+						role="region"
+						aria-label="Interactive census tract map"
+						onmouseleave={handleOverlayLeave}
+					>
+						<div class="poc-stage-chip">Map step {revealStage + 1} of 4</div>
+						<div class="map-widget">
+							<div class="map-widget__controls" role="group" aria-label="Map zoom and reset controls">
+								<button class="poc-map-control" type="button" onclick={zoomInMap} aria-label="Zoom in">+</button>
+								<button class="poc-map-control" type="button" onclick={zoomOutMap} aria-label="Zoom out">−</button>
+								<button class="poc-map-control poc-map-control--wide" type="button" onclick={recenterMap}>Recenter</button>
+							</div>
+							<div class="map-root" bind:this={containerEl}></div>
+						</div>
+						{#if tooltip.visible}
+							<div
+								class="map-tooltip"
+								bind:this={tooltipEl}
+								style:left="{tooltipPosition.left}px"
+								style:top="{tooltipPosition.top}px"
+							>
+								<div class="map-tooltip__header">
+									<div class="map-tooltip__header-copy">
+										{#if tooltip.eyebrow}
+											<p class="map-tooltip__eyebrow">{tooltip.eyebrow}</p>
+										{/if}
+										<p class="map-tooltip__title">{tooltip.title}</p>
+									</div>
+									{#if tooltip.badge}
+										<span class="map-tooltip__badge map-tooltip__badge--{tooltip.badgeTone}">{tooltip.badge}</span>
+									{/if}
+								</div>
+								{#if tooltip.primaryRows.length > 0}
+									<div
+										class="map-tooltip__primary"
+										class:map-tooltip__primary--tod={tooltip.badgeTone === 'tod'}
+										class:map-tooltip__primary--nontod={tooltip.badgeTone === 'nontod'}
+										class:map-tooltip__primary--minimal={tooltip.badgeTone === 'minimal'}
+									>
+										{#each tooltip.primaryRows as row, i (i)}
 											<div
-												class="map-tooltip__row"
-												class:map-tooltip__row--stack={String(row.value ?? '').length > 26}
+												class="map-tooltip__primary-row"
+												class:map-tooltip__primary-row--stack={String(row.value ?? '').length > 20}
 											>
-												<span class="map-tooltip__label">{row.label}</span>
-												<span class="map-tooltip__value">{row.value}</span>
+												<span class="map-tooltip__primary-label">{row.label}</span>
+												<span class="map-tooltip__primary-value">{row.value}</span>
 											</div>
 										{/each}
 									</div>
-								</div>
-							{/if}
+								{/if}
+								{#if tooltip.secondaryRows.length > 0}
+									<div class="map-tooltip__details">
+										<p class="map-tooltip__details-label">Details</p>
+										<div class="map-tooltip__rows">
+											{#each tooltip.secondaryRows as row, i (i)}
+												<div
+													class="map-tooltip__row"
+													class:map-tooltip__row--stack={String(row.value ?? '').length > 26}
+												>
+													<span class="map-tooltip__label">{row.label}</span>
+													<span class="map-tooltip__value">{row.value}</span>
+												</div>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+						<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
+							<p class="poc-detail__kicker">What to look for</p>
+							<ul class="poc-map-callouts__list">
+								{#each mapCallouts as c, i (i)}
+									<li>{c}</li>
+								{/each}
+							</ul>
 						</div>
-					{/if}
-					<div class="poc-map-callouts card-key" role="note" aria-label="What to notice in this step">
-						<p class="poc-detail__kicker">What to look for</p>
-						<ul class="poc-map-callouts__list">
-							{#each mapCallouts as c, i (i)}
-								<li>{c}</li>
-							{/each}
-						</ul>
 					</div>
 				</div>
 
@@ -2347,7 +2349,7 @@
 		position: relative;
 		z-index: 1;
 		grid-column: 2;
-		grid-row: 1 / span 3;
+		grid-row: 1;
 	}
 
 	.poc-stepper-head {
@@ -2530,7 +2532,7 @@
 
 		.poc-stepper-side {
 			grid-column: 2;
-			grid-row: 1 / span 3;
+			grid-row: 1;
 		}
 
 		.poc-insight {
@@ -2543,6 +2545,10 @@
 	@media (max-width: 900px) {
 		.map-wrap {
 			grid-template-columns: 1fr;
+		}
+
+		.map-visual-column {
+			gap: 6px;
 		}
 
 		.poc-control-stack {
@@ -3484,6 +3490,13 @@
 		width: 100%;
 		background: transparent;
 		align-items: start;
+	}
+
+	.map-visual-column {
+		display: grid;
+		gap: 8px;
+		min-width: 0;
+		min-height: 0;
 	}
 
 	/* Legend + MBTA overlays + map move as one sticky stack so they stay visible while steps scroll */
