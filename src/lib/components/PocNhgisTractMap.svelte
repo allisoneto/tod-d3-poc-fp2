@@ -71,6 +71,7 @@
 	let focusLowIncomeTracts = $state(false);
 	/** Hover-linked cluster highlight: all tracts in this category read as one pattern. */
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
+	let pinnedTooltipStage = $state(/** @type {number | null} */ (null));
 	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 3 : focusLowIncomeTracts);
 
 	const tooltipPosition = $derived.by(() => {
@@ -1566,6 +1567,7 @@
 			primaryRows,
 			secondaryRows
 		};
+		pinnedTooltipStage = anchor ? revealStage : null;
 	}
 
 	function handleTractEnter(event, d) {
@@ -1583,6 +1585,7 @@
 	function handleTractLeave() {
 		panelState.setHovered(null);
 		hoveredMismatchCluster = null;
+		pinnedTooltipStage = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -1682,6 +1685,7 @@
 	function handleOverlayLeave() {
 		panelState.setHovered(null);
 		hoveredMismatchCluster = null;
+		pinnedTooltipStage = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -2175,6 +2179,16 @@
 				return Number.isFinite(lat) && Number.isFinite(lon) && Number.isFinite(growth) && lon <= -71.15 && lon >= -72.1 && lat >= 42.1 && lat <= 42.55 && growth >= 10;
 			});
 			zoomToFeatureGroup(focus, 8.2);
+		}
+	});
+
+	$effect(() => {
+		void revealStage;
+		if (!guidedMode) return;
+		if (pinnedTooltipStage != null && revealStage !== pinnedTooltipStage) {
+			tooltip = { ...tooltip, visible: false, anchorX: null, anchorY: null };
+			pinnedTooltipStage = null;
+			panelState.setHovered(null);
 		}
 	});
 
