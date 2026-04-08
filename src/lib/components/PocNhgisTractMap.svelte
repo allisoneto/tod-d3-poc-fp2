@@ -2018,9 +2018,9 @@
 									: ''}
 							>
 								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
+								<div class="poc-annotation__box poc-annotation__box--compact">
 									<strong>High access + low growth cluster</strong>
-									<span>These tracts are well served by transit but show relatively limited housing growth.</span>
+									<span>Strong transit access, weaker housing growth.</span>
 								</div>
 							</div>
 							<div
@@ -2031,9 +2031,9 @@
 									: ''}
 							>
 								<div class="poc-annotation__line"></div>
-								<div class="poc-annotation__box">
+								<div class="poc-annotation__box poc-annotation__box--compact">
 									<strong>High growth + low access cluster</strong>
-									<span>These tracts add housing quickly despite relatively limited transit access.</span>
+									<span>Stronger housing growth, relatively limited transit access.</span>
 								</div>
 							</div>
 						</div>
@@ -3266,13 +3266,13 @@
 	}
 
 	.poc-annotation--bottom {
-		bottom: 38px;
-		left: 34%;
+		bottom: 26px;
+		left: 22%;
 	}
 
 	.poc-annotation--bottom-right {
-		bottom: 62px;
-		left: 58%;
+		bottom: 26px;
+		left: 62%;
 	}
 
 	.poc-annotation__line {
@@ -3292,6 +3292,13 @@
 		box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
 	}
 
+	.poc-annotation__box--compact {
+		max-width: 188px;
+		padding: 5px 7px;
+		gap: 1px;
+		background: color-mix(in srgb, var(--bg-card) 95%, white 5%);
+	}
+
 	.poc-annotation__box strong {
 		font-size: 0.66rem;
 		line-height: 1.2;
@@ -3302,6 +3309,22 @@
 		font-size: 0.62rem;
 		line-height: 1.35;
 		color: var(--text-muted);
+	}
+
+	@media (max-width: 900px) {
+		.poc-annotation--bottom {
+			left: 16%;
+			bottom: 14px;
+		}
+
+		.poc-annotation--bottom-right {
+			left: 54%;
+			bottom: 14px;
+		}
+
+		.poc-annotation__box--compact {
+			max-width: 150px;
+		}
 	}
 
 	.map-widget__controls {
