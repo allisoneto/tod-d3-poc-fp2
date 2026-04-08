@@ -2474,6 +2474,9 @@
 		display: grid;
 		gap: 8px;
 		order: 1;
+		max-height: min(34vh, 340px);
+		overflow: auto;
+		padding-right: 4px;
 	}
 
 	.poc-side-cards {
@@ -2518,6 +2521,12 @@
 	@media (max-width: 900px) {
 		.map-wrap {
 			grid-template-columns: 1fr;
+		}
+
+		.poc-control-stack {
+			max-height: none;
+			overflow: visible;
+			padding-right: 0;
 		}
 
 		.map-left-column {
@@ -3466,7 +3475,7 @@
 		display: grid;
 		gap: 8px;
 		order: 2;
-		margin-bottom: 16px;
+		margin-bottom: clamp(20px, 6vh, 44px);
 	}
 
 	.poc-map-callouts {
