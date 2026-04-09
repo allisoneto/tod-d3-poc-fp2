@@ -325,10 +325,8 @@
 			{
 				kicker: 'Step 7',
 				title: 'Quincy and Revere',
-				body: 'Quincy and Revere keep the same green-versus-orange tract grouping, but the local pattern is more uneven. Transit access is present here too, yet nearby tracts do not all show the same relationship between growth and TOD-oriented development.',
-				legend: 'Read the outlines and the choropleth together: some tracts with similar transit context still land in different cohort categories and show different levels of housing growth.',
-				why: 'This matters because it shows that the TOD story is not only a downtown story. The relationship between transit access, TOD-oriented development, and housing growth varies across municipal contexts.',
-				prompt: 'Read this step as a reminder that transit access alone does not determine whether growth ends up concentrated in more TOD-dominated tracts.'
+				bodyHtml:
+					'Quincy and Revere carry the same green versus orange tract grouping into a different local context, where the pattern becomes more uneven. Transit access is still present, especially along key MBTA lines, but nearby tracts do not all show the same relationship between growth and transit-oriented development. Compared to Boston and Cambridge, there are slightly more non-TOD-dominated tracts, even in areas with similar access.<br><br>Looking across the map, some tracts with comparable transit proximity fall into different categories, with varying levels of housing growth. While there are still TOD-dominated areas, there are also more places where development is either less closely tied to transit or where overall growth remains limited.<br><br>There are also areas with minimal development, with some tracts showing low or even negative housing growth. This reinforces that the presence of transit does not consistently translate into substantial or transit-oriented development.<br><br>This step broadens the story beyond the urban core. The relationship between transit access, TOD-oriented development, and housing growth shifts across municipal contexts, showing that even outside downtown Boston and Cambridge, access alone does not determine how or where housing growth occurs.'
 			},
 			{
 				kicker: 'Step 8',
