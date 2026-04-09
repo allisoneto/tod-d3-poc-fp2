@@ -45,14 +45,6 @@
 			already conceptually dense; once too many things compete for the same channel, the map becomes much harder to read.
 		</p>
 		<p>
-			We also intentionally structured the page so it <strong>guides first and opens up later</strong>. The top of the page
-			simplifies the argument into a few static views. The guided map then introduces one layer at a time: transit access,
-			housing growth, mismatch, TOD grouping, project dots, and finally lower-income context. Only after that do we open the
-			full explorer. We made that choice because it helps readers understand the main pattern before they have to manage a lot
-			of controls at once. For this project, that matters more than giving total freedom immediately.
-		</p>
-		<h3>Alternatives we considered</h3>
-		<p>
 			Color was chosen deliberately rather than just for decoration. We grounded the palette in MBTA colors so the project feels
 			tied to the transit system it is analyzing. The core values are <strong>green</strong>
 			<span class="writeup-color-chip" style="--chip:#00843D; --chip-ink:#ffffff;">#00843D</span>,
@@ -71,6 +63,14 @@
 			information into the background.
 		</p>
 		<p>
+			We also intentionally structured the page so it <strong>guides first and opens up later</strong>. The top of the page
+			simplifies the argument into a few static views. The guided map then introduces one layer at a time: transit access,
+			housing growth, mismatch, TOD grouping, project dots, and finally lower-income context. Only after that do we open the
+			full explorer. We made that choice because it helps readers understand the main pattern before they have to manage a lot
+			of controls at once. For this project, that matters more than giving total freedom immediately.
+		</p>
+		<h3>Alternatives we considered</h3>
+		<p>
 			We considered keeping the page as a more open dashboard, adding more permanent map callouts, and putting income directly
 			into the base map. We moved away from all three. The dashboard version buried the argument. Heavy callouts cluttered the
 			geography. An income choropleth competed too strongly with the housing-growth choropleth. The current design is not
@@ -87,9 +87,10 @@
 		<p>
 			What still does not work quite as well as we want is the sheer density of the system. Even in the improved version, there
 			is still a lot happening once outlines, dots, selections, and tooltips start to accumulate. We also think the guided
-			narrative is stronger than the open exploration section. If we had another milestone, we would spend time making the
-			explorer feel more polished, simplifying the walkthrough even further, and deepening the demographic side of the story,
-			especially around income and race.
+			narrative is stronger than the open exploration section. To improve, we would make the explorer feel more polished,
+			simplify the walkthrough even further, and deepen the demographic side of the story. The clearest next step there is to
+			push beyond income alone and bring race in more directly, so the project can say more about who is affected by these
+			patterns and not just where they appear.
 		</p>
 	</section>
 
