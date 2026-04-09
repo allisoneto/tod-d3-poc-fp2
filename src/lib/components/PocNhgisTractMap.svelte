@@ -288,10 +288,8 @@
 			{
 				kicker: 'Step 1',
 				title: 'Mapping transit access across Greater Boston',
-				body: 'This map shows how transit access across Greater Boston is organized around a dense, radial network anchored in the urban core. The Red, Orange, Blue, and Green lines cluster tightly around Boston and Cambridge, while commuter rail lines stretch outward along longer corridors into surrounding suburbs. Together they form a hub-and-spoke system where the most frequent and reliable transit, and therefore the easiest access to jobs, services, and daily life, is concentrated near the center and becomes more limited farther out.',
-				legend: 'Read this first step as a map of regional opportunity. It establishes where the strongest transit access is before we compare that geography to where housing growth has actually occurred.',
-				why: 'This geography helps frame what we should expect from housing growth. Areas with the strongest transit access are best positioned to support new housing and expand opportunity. When growth in these neighborhoods is not paired with enough affordable housing, they can become harder to stay in for the households that depend on that access most.',
-				prompt: 'Use this as the baseline for the rest of the story: the next steps ask whether new housing is reinforcing access or reshaping who gets to benefit from it.'
+				bodyHtml:
+					'This map shows how transit access across Greater Boston is organized around a dense, radial network anchored in the urban core. The <span class="poc-inline-line poc-inline-line--red">Red Line</span>, <span class="poc-inline-line poc-inline-line--orange">Orange Line</span>, <span class="poc-inline-line poc-inline-line--blue">Blue Line</span>, and <span class="poc-inline-line poc-inline-line--green">Green Line</span> cluster tightly around Boston and Cambridge, while <span class="poc-inline-line poc-inline-line--commuter">commuter rail</span> lines stretch outward along longer corridors into surrounding suburbs. Together they form a hub-and-spoke system where the most frequent and reliable transit, and therefore the easiest access to jobs, services, and daily life, is concentrated near the center and becomes more limited farther out.'
 			},
 			{
 				kicker: 'Step 2',
@@ -3147,7 +3145,13 @@
 										<span class="poc-stepper-pill-title">{step.title}</span>
 									</div>
 								</div>
-								<p class="poc-stepper-card-body">{step.body}</p>
+								<p class="poc-stepper-card-body">
+									{#if step.bodyHtml}
+										{@html step.bodyHtml}
+									{:else}
+										{step.body}
+									{/if}
+								</p>
 								{#if guidedMode && step.legend}
 									<p class="poc-stepper-card-note"><strong>How to read it:</strong> {step.legend}</p>
 								{/if}
@@ -3485,6 +3489,30 @@
 		font-size: 0.9rem;
 		line-height: 1.6;
 		color: var(--text-muted);
+	}
+
+	.poc-inline-line {
+		font-weight: 700;
+	}
+
+	.poc-inline-line--red {
+		color: #da291c;
+	}
+
+	.poc-inline-line--orange {
+		color: #ed8b00;
+	}
+
+	.poc-inline-line--blue {
+		color: #003da5;
+	}
+
+	.poc-inline-line--green {
+		color: #00843d;
+	}
+
+	.poc-inline-line--commuter {
+		color: #7c3f98;
 	}
 
 	.poc-stepper-card-note {
