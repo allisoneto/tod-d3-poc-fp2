@@ -331,10 +331,9 @@
 			{
 				kicker: 'Step 8',
 				title: 'Outer-ring growth',
-				body: 'The outer-ring view shows the reverse side of the cohort pattern. Some tracts farther from the strongest transit geography still show meaningful housing growth, and orange outlines help show where that development is less TOD-oriented.',
-				legend: 'The important point is not that these places have no transit at all, but that they sit farther from the strongest MBTA geography and often land in less TOD-dominated categories.',
-				why: 'That matters for the planning argument because it suggests housing production is not consistently being concentrated in the places where transit access is strongest or where development is most transit-oriented.',
-				prompt: 'Compare these tracts to the earlier Boston and Cambridge case and notice how different the orange-versus-green balance looks.'
+				title: 'Outer-Ring Growth',
+				bodyHtml:
+					'This view shifts outward to the edge of the region, showing the other side of the pattern. Many of these tracts sit farther from the strongest MBTA geography, yet some still show meaningful housing growth. Because these areas are overall farther from high-frequency transit, much of this development clusters into non-TOD-dominated tracts, reflected in the prevalence of orange outlines.<br><br>Transit is not entirely absent, but it is more limited, less frequent, and often more directional. Growth in these places follows a different pattern than in the urban core. Instead of concentrating tightly around strong transit access, development is more dispersed and less consistently tied to it.<br><br>There are still some TOD-dominated tracts, often near commuter rail lines or smaller nodes of access, but they are fewer and more scattered. The overall balance shifts toward non-TOD patterns, even in places experiencing notable growth.<br><br>Seen alongside the earlier steps, this reinforces the broader pattern. Housing production is not consistently concentrating in the areas with the strongest transit access or where development is most transit-oriented. Comparing this to Boston and Cambridge makes the contrast clear, highlighting how differently growth is distributed as you move farther from the core.'
 			},
 			{
 				kicker: 'Step 9',
