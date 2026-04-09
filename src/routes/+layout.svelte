@@ -9,7 +9,7 @@
 	let tractDataReady = $state(false);
 
 	function needsTractData(/** @type {string | null} */ routeId) {
-		return routeId === '/tract' || routeId === '/policy';
+		return routeId === '/tract' || routeId === '/policy' || routeId === '/playground';
 	}
 
 	$effect(() => {
