@@ -312,8 +312,9 @@
 			<div class="story-chart-panel__chart">
 				<h3>Most new housing is still market-rate</h3>
 				<p class="chart-note">
-					This version strips the chart down to the main point: the affordable share of new development
-					stays low over time, even as production continues.
+					The affordable share of new development stays low for most of the timeline, with only a few short
+					spikes upward. Even in years when more housing is being added, most of those units are still
+					market-rate rather than affordable.
 				</p>
 				<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordableTrend}></div>
 			</div>
