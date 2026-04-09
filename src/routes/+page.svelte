@@ -11,6 +11,7 @@
 		renderMuniScatter,
 		renderMuniComposition,
 		renderMuniGrowthCapture,
+		renderMuniAffordableTrend,
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments, storyNhgisRows } from '$lib/stores/data.svelte.js';
 	import { loadAllData, loadStoryData } from '$lib/stores/data.svelte.js';
@@ -105,6 +106,7 @@
 	let elScatter = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elComposition = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
+	let elAffordableTrend = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
 		if (!muniData) return;
@@ -112,6 +114,7 @@
 		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
 		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
 		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
+		if (elAffordableTrend) renderMuniAffordableTrend(elAffordableTrend, projectRows, muniState);
 	}
 
 	// Debounce draw during playback via rAF
@@ -126,6 +129,7 @@
 		void elScatter;
 		void elComposition;
 		void elGrowthCapture;
+		void elAffordableTrend;
 		cancelAnimationFrame(rafId);
 		rafId = requestAnimationFrame(() => draw());
 	});
@@ -328,10 +332,10 @@
 			<div class="story-chart-panel__chart">
 				<h3>Most new housing is still market-rate</h3>
 				<p class="chart-note">
-					The affordable share of new development has decreased significantly in recent years,
-					which likely indicates that lower-income residents are benefitting much less from this new development.
+					This version strips the chart down to the main point: the affordable share of new development
+					stays low over time, even as production continues.
 				</p>
-				<img src={`${base}/afford-mix-chart.png`} alt="Stacked bar chart showing the affordable vs. market-rate share of new housing units per year from 1990 to 2026" class="afford-mix-chart-img" />
+				<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordableTrend}></div>
 			</div>
 		</div>
 	</section>
