@@ -3287,7 +3287,13 @@
 											<div class="poc-stepper-example poc-stepper-example--static">
 												<div class="poc-stepper-example__head">
 													<span class="poc-stepper-example__label">{example.label}</span>
-													<span class="poc-stepper-example__cta">{example.kind}</span>
+													<span
+														class="poc-stepper-example__cta"
+														class:poc-stepper-example__cta--mismatch-ha={example.kindRank === 0}
+														class:poc-stepper-example__cta--mismatch-hg={example.kindRank === 1}
+													>
+														{example.kind}
+													</span>
 												</div>
 												<p class="poc-stepper-example__note">{example.note}</p>
 												<div class="poc-stepper-example__metrics">
@@ -3746,6 +3752,28 @@
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 		color: var(--accent);
+	}
+
+	.poc-stepper-example__cta--mismatch-ha,
+	.poc-stepper-example__cta--mismatch-hg {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.28rem 0.5rem;
+		border-radius: 999px;
+		letter-spacing: 0.02em;
+		white-space: nowrap;
+	}
+
+	.poc-stepper-example__cta--mismatch-ha {
+		color: #5b4bc4;
+		background: color-mix(in srgb, #8a78e0 16%, white);
+		border: 2px solid #8a78e0;
+	}
+
+	.poc-stepper-example__cta--mismatch-hg {
+		color: #7b68cc;
+		background: color-mix(in srgb, #c4b5f0 16%, white);
+		border: 2px dashed #c4b5f0;
 	}
 
 	.poc-stepper-example__cta--tod {
