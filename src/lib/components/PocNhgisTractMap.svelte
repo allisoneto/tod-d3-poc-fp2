@@ -338,10 +338,8 @@
 			{
 				kicker: 'Step 9',
 				title: 'Projects enter the picture',
-				body: 'Project dots now connect the tract pattern back to actual housing developments. The point here is to move from tract-level averages to concrete projects and ask where new housing is being added on the ground.',
-				legend: 'These dots do not replace the tract pattern underneath. They let the reader see whether project activity accumulates in the same places that already looked important at the tract scale.',
-				why: 'This matters because the mismatch is not only a tract-level abstraction. It also appears in where individual developments are actually being built.',
-				prompt: 'The examples below show a few notable TOD and non-TOD projects so the project layer reads as evidence rather than just another set of symbols. Hover over dots and tracts for tooltips with more detail.'
+				bodyHtml:
+					'This step brings the analysis down to the level of individual developments. The map now overlays project-level data on top of the tract patterns, connecting the broader trends in housing growth to the actual places where new units are being built.<br><br>Each dot represents a development. Dot size reflects the number of units, so larger circles indicate larger projects. Color encodes the share of multi-family units, ranging from white to silver, following the T’s bus color palette. A green outline marks projects that are transit-accessible, while a yellow outline marks those that are not.<br><br>Seen together, these points begin to ground the earlier patterns. Project activity clusters in many of the same areas that showed strong growth at the tract level, especially in and around the urban core. At the same time, developments are spread across a wider geography, including places that were identified as less transit-oriented or farther from the strongest MBTA access.<br><br>This makes it clear that the mismatch is not just an artifact of how we summarize data by tract. It also shows up in where individual developments are actually happening on the ground. Some projects align closely with transit, reinforcing TOD patterns, while others contribute to growth in places that are less connected.<br><br>The next step builds on this by focusing on different types of projects, distinguishing between those that are strongly transit-oriented, those that are simply near transit, and those that highlight the contrast in areas with weaker access.'
 			},
 			{
 				kicker: 'Step 10',
