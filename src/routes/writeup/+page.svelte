@@ -21,13 +21,13 @@
 		<h3>How we chose the visual encodings and interactions</h3>
 		<p>
 			We designed this proof of concept around one main question: <strong>where housing growth is happening, how that growth
-			relates to transit access, and who is most affected when those patterns do not line up</strong>. Earlier versions behaved
+			relates to transit access, and what effects this growth is having</strong>. Earlier versions were designed to be
 			more like dashboards. They had a lot of analysis in them, but they asked the reader to do too much interpretive work on
 			their own. The current version is more guided. We first explain the pattern, then walk through the map step by step, and
 			only after that open up the full exploration view.
 		</p>
 		<p>
-			We kept the data side fairly lightweight in the writeup because the important point is simple: the browser loads
+			We tried to keep the data side fairly lightweight, so the browser only loads
 			already-prepared tract data, tract geometry, MBTA stops and lines, and project-level MassBuilds records. We made that
 			choice so the front end could stay focused on comparison, filtering, and storytelling rather than trying to do heavy
 			spatial processing live in the browser.
@@ -35,14 +35,18 @@
 		<p>
 			The visual encoding follows that same logic. We use a <strong>tract choropleth</strong> as the base because it gives one
 			clear regional measure that can stay stable across the whole story. Blue means stronger housing growth, red means weaker
-			or negative growth, and tan marks places where the growth measure is limited or less reliable. That gives the reader a
+			or negative growth (a pattern that matches typical Western design principles),
+			and tan marks places where the growth measure is limited or less reliable, making them blend in to the background. That gives the reader a
 			spatial baseline before any other layer appears.
 		</p>
 		<p>
 			From there, we separate other ideas into different channels instead of asking the fill color to do everything.
-			<strong>Green and orange outlines</strong> show TOD-dominated versus non-TOD-dominated tracts. <strong>Purple outlines</strong>
-			show mismatch. <strong>Project dots</strong> show individual developments. We made that choice because the project is
-			already conceptually dense; once too many things compete for the same channel, the map becomes much harder to read.
+			<strong>Green and orange outlines</strong> show TOD-dominated versus non-TOD-dominated tracts, subtly connecting
+			TOD with a positive sentiment and non-TOD with a less positive sentiment. <strong>Purple outlines</strong>
+			show mismatch--just as purple is a color mismatched with the MBTA palette.
+			<strong>Project dots</strong> show individual developments, helping the reader make connections between the tracts
+			and actual, tangible development, using additional encodings to communicate the hierarchy of importance (i.e. larger,
+			more impactful developments appear larger, and TOD developments are darker on the map). 
 		</p>
 		<p>
 			Color was chosen deliberately rather than just for decoration. We grounded the palette in MBTA colors so the project feels
@@ -65,15 +69,19 @@
 		<p>
 			We also intentionally structured the page so it <strong>guides first and opens up later</strong>. The top of the page
 			simplifies the argument into a few static views. The guided map then introduces one layer at a time: transit access,
-			housing growth, mismatch, TOD grouping, project dots, and finally lower-income context. Only after that do we open the
+			housing growth, mismatch, TOD grouping, project dots, and finally lower-income context to avoid overwhelming the reader
+			with too many things at once. Only after that do we open the
 			full explorer. We made that choice because it helps readers understand the main pattern before they have to manage a lot
 			of controls at once. For this project, that matters more than giving total freedom immediately.
 		</p>
 		<h3>Alternatives we considered</h3>
 		<p>
 			We considered keeping the page as a more open dashboard, adding more permanent map callouts, and putting income directly
-			into the base map. We moved away from all three. The dashboard version buried the argument. Heavy callouts cluttered the
-			geography. An income choropleth competed too strongly with the housing-growth choropleth. The current design is not
+			into the base map. We moved away from all three. The dashboard version decentered the argument and made it more
+			difficult to cleanly explain. Heavy callouts cluttered the
+			geography, making the map harder to read. An income choropleth competed too strongly with the housing-growth choropleth
+			without conferring as much relevant information.
+			The current design is not
 			minimal, but it is much more readable.
 		</p>
 		<h3>How the design fits our intended audience</h3>
@@ -88,9 +96,11 @@
 			What still does not work quite as well as we want is the sheer density of the system. Even in the improved version, there
 			is still a lot happening once outlines, dots, selections, and tooltips start to accumulate. We also think the guided
 			narrative is stronger than the open exploration section. To improve, we would make the explorer feel more polished,
-			simplify the walkthrough even further, and deepen the demographic side of the story. The clearest next step there is to
-			push beyond income alone and bring race in more directly, so the project can say more about who is affected by these
-			patterns and not just where they appear.
+			simplify the walkthrough even further, and deepen the demographic side of the story. The clearest next step is to dig
+			deeper into the demographic analysis, so the project can say more about who is affected and by which development
+			patterns, not just where demographic changes appear. We've also been thinking
+			of adding more annotations on top of the map, to call the reader's attention more clearly and explain
+			some of the encodings in a place they're guaranteed to look at.
 		</p>
 	</section>
 
@@ -106,8 +116,8 @@
 		</p>
 		<h3>Time spent and what took the longest</h3>
 		<p>
-			We estimate having spent roughly <strong>80–90 person-hours</strong> across the team. The biggest time sink was not any one chart
-			or one map layer. It was revision: changing the structure, rewriting the walkthrough, debugging loading and deployment
+			We estimate having spent roughly <strong>80–90 person-hours</strong> across the team. The biggest time sink wasn't any one chart
+			or map layer, it was many iterations of revision: changing the structure, rewriting the walkthrough, debugging loading and deployment
 			issues, fixing tooltips and sticky behavior, and repeatedly simplifying the project so the argument came through more
 			clearly.
 		</p>
@@ -125,8 +135,8 @@
 		<p>
 			Our overall plan is to keep the current spatial mismatch story as the base and make the final project better at explaining
 			<strong>who</strong> is affected by it. The two demographic lenses we most want to deepen are <strong>income</strong> and
-			<strong>race</strong>. The current proof of concept already shows where transit access and housing growth do not line up.
-			The next milestone is to connect that pattern more directly to neighborhood change and access to opportunity.
+			<strong>education</strong>. The current proof of concept already shows where transit access and housing growth do not line up,
+			but the patterns in demographic change could be better articulated and depicted.
 		</p>
 		<div class="plan-grid">
 			{#each finalProjectPlan as week (week.week)}
