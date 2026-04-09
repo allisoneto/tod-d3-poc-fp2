@@ -2288,12 +2288,12 @@
 			},
 			{
 				id: 'allston-yards',
-				label: 'Allston Yards',
+				label: 'Continuum Allston',
 				sourceName: 'Continuum Allston',
 				categoryLabel: 'Partial TOD example',
 				categoryTone: 'partial',
 				note:
-					'Boston. This Allston corridor example stands in for the Allston Yards pattern: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD cases.',
+					'Boston. Continuum Allston is a real Allston corridor project in the dataset. It helps show a partial-TOD case: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD examples.',
 				fallback: {
 					id: 'manual-allston-yards',
 					name: 'Continuum Allston',
@@ -2310,12 +2310,12 @@
 			},
 			{
 				id: 'weymouth-landing',
-				label: 'Weymouth Landing',
+				label: 'Weymouth Landing - Weymouth Delagos block',
 				sourceName: 'Weymouth Landing - Weymouth Delagos block',
 				categoryLabel: 'Non-TOD contrast',
 				categoryTone: 'nontod',
 				note:
-					'Weymouth. Weymouth Landing helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter-rail or weaker transit access than on the strongest rapid-transit geography.',
+					'Weymouth. Weymouth Landing - Weymouth Delagos block is a real record in the dataset and helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter rail or weaker transit access than on the strongest rapid-transit geography.',
 				fallback: {
 					id: 'manual-weymouth-landing',
 					name: 'Weymouth Landing - Weymouth Delagos block',
