@@ -1010,7 +1010,7 @@ export function renderMuniGrowthCapture(el, projectRows, domainRows, state) {
 
 	const width = root.node().clientWidth || 520;
 	const height = 320;
-	const margin = { top: 18, right: 18, bottom: 34, left: 52 };
+	const margin = { top: 18, right: 18, bottom: 40, left: 58 };
 	const innerW = width - margin.left - margin.right;
 	const innerH = height - margin.top - margin.bottom;
 	const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
@@ -1036,54 +1036,55 @@ export function renderMuniGrowthCapture(el, projectRows, domainRows, state) {
 		.attr('stroke', '#b7b0a3')
 		.attr('stroke-dasharray', '4 4');
 
-	const area = d3
-		.area()
-		.x((d) => x(d.year))
-		.y0(innerH)
-		.y1((d) => yScale(d.highShare));
-	const line = d3
-		.line()
-		.x((d) => x(d.year))
-		.y((d) => yScale(d.highShare));
-	const lowLine = d3
-		.line()
-		.x((d) => x(d.year))
-		.y((d) => yScale(d.lowShare));
+	const years = g
+		.selectAll('.growth-capture-year')
+		.data(series.filter((d) => d.total > 0))
+		.join('g')
+		.attr('class', 'growth-capture-year')
+		.attr('transform', (d) => `translate(${x(d.year)},0)`);
 
-	g.append('path')
-		.datum(series)
-		.attr('fill', 'var(--accent-soft)')
-		.attr('fill-opacity', 0.85)
-		.attr('d', area);
-	g.append('path')
-		.datum(series)
-		.attr('fill', 'none')
-		.attr('stroke', 'var(--accent)')
-		.attr('stroke-width', 2.6)
-		.attr('d', line);
-	g.append('path')
-		.datum(series)
-		.attr('fill', 'none')
-		.attr('stroke', 'var(--blue-5)')
-		.attr('stroke-width', 2)
-		.attr('stroke-dasharray', '6 4')
-		.attr('d', lowLine);
+	years
+		.append('line')
+		.attr('y1', (d) => yScale(d.highShare))
+		.attr('y2', (d) => yScale(d.lowShare))
+		.attr('stroke', '#d3cabc')
+		.attr('stroke-width', 3)
+		.attr('stroke-linecap', 'round');
 
-	g.append('text')
-		.attr('x', innerW - 4)
-		.attr('y', yScale(series[series.length - 1].highShare) - 8)
-		.attr('text-anchor', 'end')
+	years
+		.append('circle')
+		.attr('cy', (d) => yScale(d.highShare))
+		.attr('r', 5)
 		.attr('fill', 'var(--accent)')
-		.attr('font-size', 11)
-		.attr('font-weight', 700)
-		.text('Higher vulnerability');
+		.attr('stroke', '#ffffff')
+		.attr('stroke-width', 1.5);
 
-	g.append('text')
-		.attr('x', innerW - 4)
-		.attr('y', yScale(series[series.length - 1].lowShare) + 14)
-		.attr('text-anchor', 'end')
+	years
+		.append('circle')
+		.attr('cy', (d) => yScale(d.lowShare))
+		.attr('r', 5)
 		.attr('fill', 'var(--blue-5)')
-		.attr('font-size', 11)
-		.attr('font-weight', 700)
-		.text('Lower vulnerability');
+		.attr('stroke', '#ffffff')
+		.attr('stroke-width', 1.5);
+
+	const lastWithData = [...series].reverse().find((d) => d.total > 0);
+	if (lastWithData) {
+		g.append('text')
+			.attr('x', x(lastWithData.year) - 8)
+			.attr('y', yScale(lastWithData.highShare) - 10)
+			.attr('text-anchor', 'end')
+			.attr('fill', 'var(--accent)')
+			.attr('font-size', 11)
+			.attr('font-weight', 700)
+			.text('Higher vulnerability');
+
+		g.append('text')
+			.attr('x', x(lastWithData.year) - 8)
+			.attr('y', yScale(lastWithData.lowShare) + 14)
+			.attr('text-anchor', 'end')
+			.attr('fill', 'var(--blue-5)')
+			.attr('font-size', 11)
+			.attr('font-weight', 700)
+			.text('Lower vulnerability');
+	}
 }

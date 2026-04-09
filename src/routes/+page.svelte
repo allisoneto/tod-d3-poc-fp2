@@ -695,8 +695,7 @@
 			<section class="explore-gate card full-width" aria-labelledby="explore-gate-heading">
 				<h2 id="explore-gate-heading">Explore the map for yourself</h2>
 				<p>
-					If you want to keep exploring after the guided story, the full interactive choropleth and toggleable map tools now
-					live on their own page.
+					If you want to keep exploring after the guided story, the full interactive choropleth and toggleable map tools now live on their own page.
 				</p>
 				<p class="explore-gate__cta">
 					<a class="explore-gate__button" href={`${base}/playground`}>Open the playground</a>
@@ -709,30 +708,33 @@
 					This project brings together tract-level census data, tract geometry, MBTA stops and line data, and project-level
 					housing development records. In the current application, those processed assets are loaded as
 					<code>tract_data.json</code>, <code>tracts.geojson</code>, <code>developments.json</code>,
-					<code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>, and <code>meta.json</code>.
+					<code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>, and <code>meta.json</code>. Together, they let us compare
+					housing growth, transit access, TOD-related development, and lower-income context in the same regional frame.
 				</p>
 				<ul class="story-list sources-list">
 					<li>
 						<strong>NHGIS / U.S. Census tract data:</strong> provides tract-level housing-unit counts, housing growth,
-						median household income, income change, and other demographic context used in the choropleth and lower-income
-						views.
+						median household income, income change, and other demographic measures that anchor both the choropleth and the
+						lower-income context in the walkthrough.
 					</li>
 					<li>
-						<strong>Tract geometry:</strong> census tract boundary geometries are used to draw the base choropleth and
-						support tract-level linked selection.
+						<strong>Tract geometry:</strong> census tract boundary geometries are used to draw the base choropleth, support
+						linked tract selection, and make it possible to compare neighboring places directly on the map.
 					</li>
 					<li>
 						<strong>MassBuilds development records:</strong> provide project-level unit counts, affordable-unit fields,
-						multifamily share, completion year, and tract assignment for the TOD / non-TOD tract grouping and project-dot
-						layer.
+						multifamily share, completion year, and tract assignment. Those records drive the TOD / non-TOD tract grouping,
+						the project-dot layer, and the examples used later in the guided story.
 					</li>
 					<li>
 						<strong>HUD LIHTC match where available:</strong> supplements affordability information for some development
-						records when affordable-unit data is not complete in the base project file.
+						records when affordable-unit data is not complete in the base project file, helping us say a little more about
+						who may or may not benefit from new housing.
 					</li>
 					<li>
 						<strong>MBTA stops and line geometry:</strong> provide the transit network used both for display and for
-						calculating project proximity to transit and tract-level stop access.
+						calculating project proximity to transit and tract-level stop access, which is what makes the TOD and mismatch
+						classifications possible.
 					</li>
 				</ul>
 				<p>
@@ -805,6 +807,8 @@
 
 	.explore-after-narrow {
 		margin-top: 14px;
+		display: grid;
+		gap: 18px;
 	}
 
 	.explore-gate {
@@ -844,6 +848,10 @@
 
 	.explore-gate__button:hover {
 		background: #0a6a38;
+	}
+
+	.sources-card {
+		margin-top: 6px;
 	}
 
 	* { box-sizing: border-box; }
