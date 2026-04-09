@@ -2283,25 +2283,25 @@
 			},
 			{
 				id: 'amaya-suffolk-downs',
-				label: 'Amaya Suffolk Downs',
-				sourceName: 'Amaya Suffolk Downs',
-				categoryLabel: 'Large-scale TOD example',
+				label: '16 Boardman St',
+				sourceName: '16 Boardman St',
+				categoryLabel: 'TOD example',
 				categoryTone: 'tod',
 				note:
-					'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
+					'Boston. 16 Boardman St is a real East Boston project in the dataset and works as another TOD case: new housing added very close to rapid transit, which is the kind of alignment transit-oriented policy is meant to encourage.',
 				fallback: {
 					id: 'manual-amaya-suffolk-downs',
-					name: 'Amaya Suffolk Downs',
-					municipal: 'Revere',
-					hu: 475,
-					lon: -70.99348,
-					lat: 42.39752,
-					nearest_stop_dist_m: 76.3,
+					name: '16 Boardman St',
+					municipal: 'Boston',
+					hu: 19,
+					lon: -71.00884,
+					lat: 42.38745,
+					nearest_stop_dist_m: 49.69,
 					mixed_use: false,
 					rdv: false
 				},
 				manualAffordableLabel: 'Not listed in this record',
-				manualAffordabilityNote: 'Affordability commitments exist in the larger Suffolk Downs redevelopment, but this project-level record does not list a unit count here.'
+				manualAffordabilityNote: 'This project-level record does not list an affordable-unit count.'
 			},
 			{
 				id: 'allston-yards',
