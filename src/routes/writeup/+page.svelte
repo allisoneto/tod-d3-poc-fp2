@@ -21,12 +21,14 @@
 		<h2>Data Preprocessing and Data Decisions</h2>
 		<p>
 			The interactive page pulls together several preprocessed assets rather than computing everything directly in the browser.
-			In the current code, the dashboard loads <strong>tract attributes</strong>, <strong>tract geometry</strong>,
-			<strong>development records</strong>, <strong>MBTA stops</strong>, <strong>MBTA lines</strong>, and a small
-			<strong>metadata file</strong>. Those arrive as <code>tract_data.json</code>, <code>tracts.geojson</code>,
-			<code>developments.json</code>, <code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>, and
-			<code>meta.json</code>. We treat those files as the contract between the data pipeline and the front end: the map only
-			works cleanly because the browser receives geometry, census-style tract variables, and MassBuilds-style project rows
+			In the current code, the guided story first loads a smaller <strong>story bundle</strong> for tract attributes, tract
+			geometry, and simplified MBTA lines and stops, while the fuller exploration mode loads the complete tract and development
+			files afterward. Those assets arrive as a combination of <code>tract_story_rows.json</code>,
+			<code>tract_story_geo.json</code>, <code>tract_story_list.json</code>, <code>mbta_story_lines.geojson</code>,
+			<code>mbta_story_stops.json</code>, and then the larger files such as <code>tract_data.json</code>,
+			<code>tracts.geojson</code>, <code>developments.json</code>, <code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>,
+			and <code>meta.json</code>. We treat those files as the contract between the data pipeline and the front end: the map
+			only works cleanly because the browser receives geometry, census-style tract variables, and MassBuilds-style project rows
 			already aligned around tract IDs.
 		</p>
 
@@ -136,9 +138,9 @@
 		<p>
 			We ended up redesigning the proof of concept around a <strong>guided narrative first, exploration second</strong> model.
 			Early versions behaved much more like a dashboard: the user saw many layers at once, had to decide what mattered, and
-			often had to do the interpretive work themselves. The current version is closer to a martini-glass structure. We first
-			show a few simpler views that explain what patterns to look for, then we walk the viewer through the map step by step,
-			and only after that do we open up a fuller exploration mode.
+			often had to do the interpretive work themselves. The current version is much closer to a martini-glass structure. We
+			first show a small set of simpler explanatory figures, then we walk the viewer through the map in eleven steps, and only
+			after that do we open up a fuller exploration mode.
 		</p>
 
 		<h3>How did we choose our particular visual encodings and interaction techniques?</h3>
@@ -147,7 +149,8 @@
 			comparable regional measure that can stay stable throughout the entire story. We use percent housing growth rather than raw
 			unit change so large tracts do not dominate just because they start with larger housing stocks. We encode that growth with
 			a diverging red-blue scale: weaker or negative growth moves toward red, stronger growth moves toward blue, and tan marks
-			tracts with limited or unreliable growth data. That gives readers a quick first read before they interact with anything.
+			tracts with limited or unreliable growth data. That gives readers one consistent map to keep in mind from Step 2 onward,
+			even as new layers are added.
 		</p>
 		<p>
 			After that, we deliberately separate the other ideas into different channels rather than asking fill color to do
@@ -155,14 +158,24 @@
 			<strong>purple outlines</strong> encode mismatch categories, and <strong>project dots</strong> encode individual
 			MassBuilds developments. We also keep income out of the main fill because adding it as another choropleth would have made
 			the map much harder to read. Instead, income appears through a lower-income emphasis step, linked detail panels, and
-			supporting explanation.
+			supporting explanation. This separation became even more important once we turned the page into a guided story: each step
+			needed one main idea, not three overlapping encodings competing at once.
 		</p>
 		<p>
 			On the interaction side, we chose techniques that support explanation instead of distracting from it. The walkthrough uses
-			progressive disclosure, place-based zooming, and annotations to guide attention. Hover tooltips and click-to-select
-			provide detail-on-demand. Linked charts update from map selections so the user can compare tracts without losing the
-			spatial overview. We also kept a mismatch filter and a full exploration section because once the main claim is clear, we
-			want planners and policymakers to inspect the system themselves rather than only passively watch a story.
+			progressive disclosure, place-based zooming, example cards, and pinned tooltips to guide attention. Hover tooltips and
+			click-to-select provide detail-on-demand. Linked charts update from map selections so the user can compare tracts without
+			losing the spatial overview. We also kept a mismatch filter and a full exploration section because once the main claim is
+			clear, we want planners and policymakers to inspect the system themselves rather than only passively watch a story.
+		</p>
+		<p>
+			The final guided sequence now follows a very deliberate arc: Step 1 establishes where transit access is strongest; Step 2
+			introduces where housing growth is actually happening; Steps 3 and 4 show that the two do not line up cleanly; Steps 5
+			through 8 shift from mismatch into TOD versus non-TOD tract classification and then test that pattern in Boston and
+			Cambridge, Quincy and Revere, and the outer ring; Steps 9 and 10 bring in development projects, first as a full field and
+			then as named examples such as Assembly Row, 16 Boardman St, 16 Dyer, Mahoney Farm, and The Pinehills; Step 11 finally
+			re-reads the story through lower-income tracts. We think that sequence works better than the earlier versions because it
+			moves from regional pattern to tract evidence to project evidence to equity.
 		</p>
 
 		<h3>What alternatives did we consider, and how did we arrive at the final design?</h3>
@@ -182,13 +195,21 @@
 			Another alternative was to push more information directly into the map itself through heavier labels, permanent callouts,
 			and more simultaneous overlays. We tried versions of that and found that the map quickly became crowded. The design became
 			much stronger when we switched to one stable base layer, then introduced tract examples, region zooms, and notable
-			development examples in the sidebar instead of trying to annotate everything directly on the geography.
+			development examples in the sidebar instead of trying to annotate everything directly on the geography. We also tried
+			bigger region boxes during the place-based steps, but those obscured the underlying growth information, so we replaced
+			them with zoom plus dimming outside the focus area.
 		</p>
 		<p>
 			We also considered putting income directly on the map as another fill layer. We decided against that because the main
 			story is about the relationship between transit access and housing growth. Once income became another choropleth, the page
 			started to ask the reader to decode too many overlapping map logics at once. Moving income into tooltips, contextual
 			highlighting, and linked views gave us a cleaner result.
+		</p>
+		<p>
+			Even within the project layer, we revised our approach. At one point Step 10 functioned more like a generic development
+			cluster view. We changed that so it now uses a small, named set of real developments with <code>Show on map</code>
+			buttons and pinned tooltips. That made the argument much clearer because readers could move from an abstract project cloud
+			to concrete examples and read units, affordable units, and transit access immediately.
 		</p>
 
 		<h3>How do these design choices help reach our intended audience?</h3>
@@ -247,7 +268,9 @@
 		<p>
 			We also think the narrative is stronger than the open exploration mode. The exploration section is useful, but it still
 			feels a little more like a tool than like a polished second half of the story. That is not a failure exactly, but it is a
-			place where the experience still feels less resolved than the guided walkthrough.
+			place where the experience still feels less resolved than the guided walkthrough. Step 11 is probably the clearest example
+			of this tradeoff: the lower-income emphasis works better now that income is not a full choropleth, but it still asks the
+			reader to compare multiple contextual layers at once.
 		</p>
 
 		<h3>How might we improve the design in future milestones?</h3>
@@ -296,7 +319,9 @@
 		<p>
 			Our process has been iterative rather than linear. We moved back and forth between narrative goals, map behavior, data
 			assumptions, and layout decisions because each change affected the others. A large part of the work was not just coding new
-			views, but revising the page repeatedly so the interaction, copy, and visual hierarchy all told the same story.
+			views, but revising the page repeatedly so the interaction, copy, and visual hierarchy all told the same story. The most
+			recent round of work especially involved tightening the guided steps so they read as one coherent argument rather than a
+			set of independent captions.
 		</p>
 
 		<h3>How was the work split among team members?</h3>
@@ -324,9 +349,10 @@
 		<h3>What aspects took the most time?</h3>
 		<p>
 			The most time-consuming work was integration and revision. The page went through many rounds of changes to the scrollytelling
-			structure, sticky layout, map controls, tooltip behavior, and the relationship between the walkthrough and the exploration
-			mode. Rebuilding the project around a guided narrative took much longer than simply adding another chart or another layer,
-			because every change to the story also forced changes to the interface and explanation.
+			structure, sticky layout, map controls, tooltip behavior, featured tract cards, featured project cards, and the relationship
+			between the walkthrough and the exploration mode. Rebuilding the project around a guided narrative took much longer than
+			simply adding another chart or another layer, because every change to the story also forced changes to the interface and
+			explanation.
 		</p>
 		<p>
 			The other major time sink was debugging behavior that sat between code and presentation: deployment issues, blank-page
