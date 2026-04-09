@@ -312,10 +312,9 @@
 			{
 				kicker: 'Step 5',
 				title: 'TOD and non-TOD tracts',
-				body: 'Before zooming into specific places, the map now switches from mismatch to tract grouping across the full region. Green outlines mark tracts where significant development has been more TOD-dominated, while orange outlines mark tracts where growth has leaned more non-TOD.',
-				legend: 'The choropleth still shows housing growth underneath. The outlines add a second question: was that growth concentrated near transit, or did it happen more outside the TOD threshold?',
-				why: 'This matters because it turns the regional mismatch argument into a tract classification the reader can follow through the rest of the story. It becomes easier to see whether growth happened, and whether it happened in a more transit-oriented way.',
-				prompt: 'Use this as the bridge between the mismatch claim and the place-based examples that come next. Hover over tracts for tooltip details if you want to inspect a specific case more closely.'
+				title: 'How Growth Is Distributed Relative to Transit',
+				bodyHtml:
+					'Before zooming into specific places, the map now shifts from identifying mismatches to grouping tracts across the entire region. Tracts are outlined based on how their development is distributed relative to transit. Green outlines mark places where significant development has been more transit-oriented, while orange outlines mark places where growth has leaned more toward non-TOD patterns.<br><br>The choropleth still shows housing growth underneath, but the outlines introduce a second layer of meaning. They show not just where growth happened, but whether that growth was concentrated near transit or occurred more outside of it. Across the region, a clear pattern emerges. Many of the green, TOD-dominated tracts cluster around the urban core and along major MBTA lines, where access is strongest. In contrast, orange outlines are more widely dispersed, especially in areas farther from frequent transit, where development is happening in a more car-dependent way.<br><br>This view connects the earlier mismatch to a more concrete way of understanding it. Instead of only seeing that growth and transit do not always align, we can now see how growth is actually distributed relative to transit access in each place. The examples that follow in Steps 6 through 8 build on this, using specific cities to show what these patterns look like on the ground.'
 			},
 			{
 				kicker: 'Step 6',
