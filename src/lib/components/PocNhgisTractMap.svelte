@@ -624,7 +624,7 @@
 		if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
 		const point = projectionRef([lon, lat]);
 		if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
-		const scale = 8;
+		const scale = 11.5;
 		const tx = mapCanvasLeft + mapW / 2 - scale * point[0];
 		const ty = mapH / 2 - scale * point[1];
 		svgRef
@@ -1170,7 +1170,7 @@
 
 		devSizeLegendTicks = filteredDevs.length ? computeDevSizeLegendTicks(lo, hi, rScale) : [];
 
-		const mfColor = d3.scaleLinear().domain([0, 1]).range(['#ffffff', '#334155']).clamp(true);
+		const mfColor = d3.scaleLinear().domain([0, 1]).range(['#ffffff', '#7c3f98']).clamp(true);
 
 		const glyphData = filteredDevs.map((d) => {
 			const hu = Number(d.hu) || 0;
@@ -1237,6 +1237,9 @@
 			})
 			.selection()
 			.style('pointer-events', 'auto');
+
+		devLayer.selectAll('circle.dev-dot').filter((d) => d.isFeatured).raise();
+		devLayer.selectAll('circle.dev-dot').filter((d) => d.isActiveGuidedDevelopment).raise();
 	}
 
 	function updateFocusRegion() {
@@ -3008,13 +3011,13 @@
 										<strong>Developments</strong>
 										<span class="poc-key-tract-fill-body">
 											<span class="poc-key-tract-fill-line">
-												Fill = share of new units that are multi-family. Darker fill means a higher multi-family share.
+												Fill = share of new units that are multi-family. Darker purple fill means a higher multi-family share.
 											</span>
 											<span
 												class="poc-key-tract-bar"
-												style="background: linear-gradient(to right, #ffffff, #334155);"
+												style="background: linear-gradient(to right, #ffffff, #7c3f98);"
 												role="img"
-												aria-label="Share of new units that are multi-family: lower toward white, higher toward dark slate"
+												aria-label="Share of new units that are multi-family: lower toward white, higher toward purple"
 											></span>
 										</span>
 									</p>
