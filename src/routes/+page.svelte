@@ -522,12 +522,30 @@
 					<code>tract_data.json</code>, <code>tracts.geojson</code>, <code>developments.json</code>,
 					<code>mbta_stops.json</code>, <code>mbta_lines.geojson</code>, and <code>meta.json</code>.
 				</p>
-				<p>
-					The tract-level housing and demographic measures are derived from NHGIS / census-based inputs. The development layer
-					draws from MassBuilds project records, with some affordable-unit fields supplemented through matched HUD LIHTC
-					information where available. The transit layer is based on MBTA stop and line geometry used to calculate project
-					proximity to transit and tract-level stop access.
-				</p>
+				<ul class="story-list sources-list">
+					<li>
+						<strong>NHGIS / U.S. Census tract data:</strong> provides tract-level housing-unit counts, housing growth,
+						median household income, income change, and other demographic context used in the choropleth and lower-income
+						views.
+					</li>
+					<li>
+						<strong>Tract geometry:</strong> census tract boundary geometries are used to draw the base choropleth and
+						support tract-level linked selection.
+					</li>
+					<li>
+						<strong>MassBuilds development records:</strong> provide project-level unit counts, affordable-unit fields,
+						multifamily share, completion year, and tract assignment for the TOD / non-TOD tract grouping and project-dot
+						layer.
+					</li>
+					<li>
+						<strong>HUD LIHTC match where available:</strong> supplements affordability information for some development
+						records when affordable-unit data is not complete in the base project file.
+					</li>
+					<li>
+						<strong>MBTA stops and line geometry:</strong> provide the transit network used both for display and for
+						calculating project proximity to transit and tract-level stop access.
+					</li>
+				</ul>
 				<p>
 					This proof of concept also reflects substantial course feedback and repeated revision. The current page was shaped by
 					iteration on the story, layout, and interaction design so that the final experience would guide readers toward the
