@@ -447,7 +447,7 @@
 
 	let mapCanvasLeft = 0;
 	let mapW = 520;
-	const mapH = 400;
+	const mapH = 430;
 	/** ViewBox dimensions for anchoring HTML callouts to projection coordinates. */
 	let mapViewBox = $state(/** @type {{ svgW: number; mapW: number; mapH: number }} */ ({
 		svgW: 520 + CHORO_LEGEND_COL_W,
