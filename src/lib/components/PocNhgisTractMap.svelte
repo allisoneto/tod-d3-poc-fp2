@@ -319,10 +319,8 @@
 			{
 				kicker: 'Step 6',
 				title: 'Boston and Cambridge',
-				body: 'This zoom shifts from mismatch to tract grouping. The green and orange outlines show whether significant development in each tract has been more TOD-dominated or more non-TOD-dominated, while the choropleth underneath still shows housing growth.',
-				legend: 'Green outlines mark TOD-dominated tracts, and orange outlines mark non-TOD-dominated tracts. This lets the reader compare where growth happened with whether that growth was concentrated near transit.',
-				why: 'Boston and Cambridge work as the clearest reference case because they contain many transit-rich tracts, but even here the pattern is not uniform. Some tracts are more TOD-oriented than others despite sharing strong regional access.',
-				prompt: 'Use this as the reference case before the walkthrough moves to municipalities where the same orange-versus-green comparison looks less consistent.'
+				bodyHtml:
+					'This zoom focuses on Boston and Cambridge, shifting from the regional view to a closer look at how development is distributed within the most transit-rich part of the region. The same grouping carries through: green outlines mark tracts where significant development has been more transit-oriented, while orange outlines mark tracts where growth has leaned more toward non-TOD patterns. The choropleth underneath continues to show how much housing growth each tract experienced.<br><br>Most tracts here are TOD-dominated, which is what we would expect given the density and connectivity of the MBTA network. Development in many of these areas is closely tied to transit, reinforcing access to jobs and services. At the same time, the pattern is not uniform. There are areas with minimal development, with some tracts showing low or even negative housing growth. Strong transit access does not always translate into substantial new housing.<br><br>This makes Boston and Cambridge a useful reference point. If transit access alone determined how housing gets built, we would expect both consistent TOD patterns and consistently high growth across these tracts. Instead, we see that while development often aligns with transit, it does not happen evenly, and in some well-connected areas, it barely happens at all.<br><br>Steps 7 and 8 build on this baseline by moving to other municipalities, where the contrast between TOD and non-TOD patterns becomes even more pronounced.'
 			},
 			{
 				kicker: 'Step 7',
