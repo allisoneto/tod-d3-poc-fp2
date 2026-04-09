@@ -287,11 +287,11 @@
 		? [
 			{
 				kicker: 'Step 1',
-				title: 'Transit-rich places',
-				body: 'This first view establishes the geography of strong MBTA access across Greater Boston. These are the areas that are most often expected to absorb denser housing because they offer the clearest connection to the transit network.',
-				legend: 'At this stage, the point is simply to see where transit access is concentrated before we compare it to where housing growth actually appears.',
-				why: 'For the broader gentrification argument, these are the places where transit-linked housing opportunity would matter most if growth were aligning cleanly with access.',
-				prompt: 'Notice how strongly the network centers on places like Boston, Cambridge, Quincy, and Revere, because those become the main reference points for the rest of the story.'
+				title: 'Mapping transit access across Greater Boston',
+				body: 'This map shows how transit access across Greater Boston is organized around a dense, radial network anchored in the urban core. The Red, Orange, Blue, and Green lines cluster tightly around Boston and Cambridge, while commuter rail lines stretch outward along longer corridors into surrounding suburbs. Together they form a hub-and-spoke system where the most frequent and reliable transit, and therefore the easiest access to jobs, services, and daily life, is concentrated near the center and becomes more limited farther out.',
+				legend: 'Read this first step as a map of regional opportunity. It establishes where the strongest transit access is before we compare that geography to where housing growth has actually occurred.',
+				why: 'This geography helps frame what we should expect from housing growth. Areas with the strongest transit access are best positioned to support new housing and expand opportunity. When growth in these neighborhoods is not paired with enough affordable housing, they can become harder to stay in for the households that depend on that access most.',
+				prompt: 'Use this as the baseline for the rest of the story: the next steps ask whether new housing is reinforcing access or reshaping who gets to benefit from it.'
 			},
 			{
 				kicker: 'Step 2',
