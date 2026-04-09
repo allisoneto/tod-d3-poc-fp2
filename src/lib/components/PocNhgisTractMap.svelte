@@ -2239,104 +2239,119 @@
 		return guidedDevelopmentExamples ?? [];
 	});
 
-	const guidedStepTenExamples = $derived.by(() => [
-		{
-			id: 'assembly-row-block-2',
-			label: 'Assembly Row: Block 2',
-			categoryLabel: 'Strong TOD example',
-			categoryTone: 'tod',
-			note:
-				'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
-			dev: {
-				id: 'manual-assembly-row-block-2',
-				name: 'Assembly Row: Block 2',
-				municipal: 'Somerville',
-				hu: 123,
-				lon: -71.07819,
-				lat: 42.39287,
-				nearest_stop_dist_m: 89,
-				mixed_use: true,
-				rdv: true,
+	const guidedStepTenExamples = $derived.by(() => {
+		const realByName = new Map((developments ?? []).map((d) => [String(d.name || d.project_name || ''), d]));
+		const specs = [
+			{
+				id: 'assembly-row-block-2',
+				label: 'Assembly Row: Block 2',
+				sourceName: 'Assembly Row: Block 2',
+				categoryLabel: 'Strong TOD example',
+				categoryTone: 'tod',
+				note:
+					'Somerville. Assembly Row is a strong TOD case: dense mixed-use growth delivered right on top of rapid transit, which is the alignment pattern planners often hope to reproduce.',
+				fallback: {
+					id: 'manual-assembly-row-block-2',
+					name: 'Assembly Row: Block 2',
+					municipal: 'Somerville',
+					hu: 123,
+					lon: -71.08045,
+					lat: 42.39535,
+					nearest_stop_dist_m: 89.44,
+					mixed_use: true,
+					rdv: true
+				},
 				manualAffordableLabel: 'No affordable units listed',
 				manualAffordabilityNote: 'This filtered MassBuilds record does not list an affordable-unit count for the project.'
 			},
-			units: 123,
-			affordableUnits: null,
-			showOnMapDisabled: false
-		},
-		{
-			id: 'amaya-suffolk-downs',
-			label: 'Amaya Suffolk Downs',
-			categoryLabel: 'Large-scale TOD example',
-			categoryTone: 'tod',
-			note:
-				'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
-			dev: {
-				id: 'manual-amaya-suffolk-downs',
-				name: 'Amaya Suffolk Downs',
-				municipal: 'Revere',
-				hu: 475,
-				lon: -70.99348,
-				lat: 42.39752,
-				nearest_stop_dist_m: 76.3,
-				mixed_use: false,
-				rdv: false,
+			{
+				id: 'amaya-suffolk-downs',
+				label: 'Amaya Suffolk Downs',
+				sourceName: 'Amaya Suffolk Downs',
+				categoryLabel: 'Large-scale TOD example',
+				categoryTone: 'tod',
+				note:
+					'Revere. Suffolk Downs matters because it shows how very large transit-linked development can arrive with affordability promises that are real, but phased over time rather than immediately available.',
+				fallback: {
+					id: 'manual-amaya-suffolk-downs',
+					name: 'Amaya Suffolk Downs',
+					municipal: 'Revere',
+					hu: 475,
+					lon: -70.99348,
+					lat: 42.39752,
+					nearest_stop_dist_m: 76.3,
+					mixed_use: false,
+					rdv: false
+				},
 				manualAffordableLabel: 'Not listed in this record',
 				manualAffordabilityNote: 'Affordability commitments exist in the larger Suffolk Downs redevelopment, but this project-level record does not list a unit count here.'
 			},
-			units: 475,
-			affordableUnits: null,
-			showOnMapDisabled: false
-		},
-		{
-			id: 'allston-yards',
-			label: 'Allston Yards',
-			categoryLabel: 'Partial TOD example',
-			categoryTone: 'partial',
-			note:
-				'Boston. This Allston corridor example stands in for the Allston Yards pattern: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD cases.',
-			dev: {
-				id: 'manual-allston-yards',
-				name: 'Allston Yards',
-				municipal: 'Boston',
-				hu: 325,
-				lon: -71.13039,
-				lat: 42.36346,
-				nearest_stop_dist_m: 420,
-				mixed_use: true,
-				rdv: false,
+			{
+				id: 'allston-yards',
+				label: 'Allston Yards',
+				sourceName: 'Continuum Allston',
+				categoryLabel: 'Partial TOD example',
+				categoryTone: 'partial',
+				note:
+					'Boston. This Allston corridor example stands in for the Allston Yards pattern: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD cases.',
+				fallback: {
+					id: 'manual-allston-yards',
+					name: 'Continuum Allston',
+					municipal: 'Boston',
+					hu: 325,
+					lon: -71.13039,
+					lat: 42.36346,
+					nearest_stop_dist_m: 103.84,
+					mixed_use: true,
+					rdv: false
+				},
 				manualAffordableLabel: 'Not listed in this record',
 				manualAffordabilityNote: 'This stand-in Allston project illustrates the corridor pattern, but this record does not list an affordable-unit count.'
 			},
-			units: 325,
-			affordableUnits: null,
-			showOnMapDisabled: false
-		},
-		{
-			id: 'weymouth-landing',
-			label: 'Weymouth Landing',
-			categoryLabel: 'Non-TOD contrast',
-			categoryTone: 'nontod',
-			note:
-				'Weymouth. Weymouth Landing helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter-rail or weaker transit access than on the strongest rapid-transit geography.',
-			dev: {
-				id: 'manual-weymouth-landing',
-				name: 'Weymouth Landing - Weymouth Delagos block',
-				municipal: 'Weymouth',
-				hu: 81,
-				lon: -70.96819,
-				lat: 42.22008,
-				nearest_stop_dist_m: 650,
-				mixed_use: false,
-				rdv: false,
+			{
+				id: 'weymouth-landing',
+				label: 'Weymouth Landing',
+				sourceName: 'Weymouth Landing - Weymouth Delagos block',
+				categoryLabel: 'Non-TOD contrast',
+				categoryTone: 'nontod',
+				note:
+					'Weymouth. Weymouth Landing helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter-rail or weaker transit access than on the strongest rapid-transit geography.',
+				fallback: {
+					id: 'manual-weymouth-landing',
+					name: 'Weymouth Landing - Weymouth Delagos block',
+					municipal: 'Weymouth',
+					hu: 81,
+					lon: -70.96819,
+					lat: 42.22008,
+					nearest_stop_dist_m: 28.8,
+					mixed_use: false,
+					rdv: false
+				},
 				manualAffordableLabel: 'Not listed in this record',
 				manualAffordabilityNote: 'This record does not list an affordable-unit count, which is itself part of why project-level affordability can be hard to read consistently.'
-			},
-			units: 81,
-			affordableUnits: null,
-			showOnMapDisabled: false
-		}
-	]);
+			}
+		];
+		return specs.map((spec) => {
+			const real = realByName.get(spec.sourceName) || null;
+			const dev = {
+				...(real ?? spec.fallback),
+				manualAffordableLabel: spec.manualAffordableLabel,
+				manualAffordabilityNote: spec.manualAffordabilityNote
+			};
+			const affordableUnits = developmentAffordableUnitsCapped(dev);
+			return {
+				id: spec.id,
+				label: spec.label,
+				categoryLabel: spec.categoryLabel,
+				categoryTone: spec.categoryTone,
+				note: spec.note,
+				dev,
+				units: Number(dev.hu) || 0,
+				affordableUnits,
+				showOnMapDisabled: false
+			};
+		});
+	});
 
 	function inspectGuidedExample(id) {
 		if (!id) return;
