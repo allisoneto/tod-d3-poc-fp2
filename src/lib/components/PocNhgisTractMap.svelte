@@ -50,6 +50,7 @@
 	let containerEl = $state(null);
 	let tooltipEl = $state(null);
 	let stepEls = $state([]);
+	let focusWaypointEls = $state([]);
 	let tooltip = $state({
 		visible: false,
 		x: 0,
@@ -73,7 +74,8 @@
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
 	let guidedLowerIncomeOverlay = $state(/** @type {'cohort' | 'mismatch'} */ ('cohort'));
 	let pinnedTooltipStage = $state(/** @type {number | null} */ (null));
-	let lastAutoFocusedStage = $state(/** @type {number | null} */ (null));
+	let lastAutoFocusedStage = $state(/** @type {string | null} */ (null));
+	let guidedFocusDetail = $state(/** @type {string | null} */ (null));
 	let activeGuidedDevelopmentKey = $state(/** @type {string | null} */ (null));
 	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 10 : focusLowIncomeTracts);
 
@@ -397,6 +399,20 @@
 			destroy() {
 				stepEls[index] = null;
 				stepEls = [...stepEls];
+			}
+		};
+	}
+
+	function focusWaypointRef(node, meta) {
+		focusWaypointEls = [...focusWaypointEls.filter((item) => item.node !== node), { node, ...meta }];
+		return {
+			update(nextMeta) {
+				focusWaypointEls = focusWaypointEls.map((item) =>
+					item.node === node ? { node, ...nextMeta } : item
+				);
+			},
+			destroy() {
+				focusWaypointEls = focusWaypointEls.filter((item) => item.node !== node);
 			}
 		};
 	}
@@ -2446,6 +2462,19 @@
 		void tractList;
 		void tractGeo;
 		if (!guidedMode || !svgRef || !zoomBehaviorRef || !projectionRef) return;
+		if (revealStage === 0) {
+			if (guidedFocusDetail === 'core_access') {
+				const focus = tractFeatureByGeoFilter((t) => {
+					const lat = Number(t.centlat);
+					const lon = Number(t.centlon);
+					return Number.isFinite(lat) && Number.isFinite(lon) && lat >= 42.20 && lat <= 42.43 && lon >= -71.17 && lon <= -70.90;
+				});
+				zoomToFeatureGroup(focus, 7.8);
+				return;
+			}
+			recenterMap();
+			return;
+		}
 		if (revealStage <= 4 || revealStage === 8 || revealStage === 10) {
 			recenterMap();
 			return;
@@ -2496,6 +2525,7 @@
 	$effect(() => {
 		void revealStage;
 		void guidedMode;
+		void guidedFocusDetail;
 		void guidedContrastFeatured;
 		void guidedMismatchFeatured;
 		void guidedStepTenFeatured;
@@ -2503,23 +2533,24 @@
 			lastAutoFocusedStage = null;
 			return;
 		}
-		if (lastAutoFocusedStage === revealStage) return;
-		if (revealStage === 2 && guidedContrastFeatured?.id) {
-			lastAutoFocusedStage = revealStage;
+		const focusKey = `${revealStage}:${guidedFocusDetail ?? 'base'}`;
+		if (lastAutoFocusedStage === focusKey) return;
+		if (revealStage === 2 && guidedFocusDetail === 'contrast_example' && guidedContrastFeatured?.id) {
+			lastAutoFocusedStage = focusKey;
 			inspectGuidedExample(guidedContrastFeatured.id);
 			return;
 		}
-		if (revealStage === 3 && guidedMismatchFeatured?.id) {
-			lastAutoFocusedStage = revealStage;
+		if (revealStage === 3 && guidedFocusDetail === 'mismatch_example' && guidedMismatchFeatured?.id) {
+			lastAutoFocusedStage = focusKey;
 			inspectGuidedExample(guidedMismatchFeatured.id);
 			return;
 		}
-		if (revealStage === 9 && guidedStepTenFeatured?.dev) {
-			lastAutoFocusedStage = revealStage;
+		if (revealStage === 9 && guidedFocusDetail === 'project_example' && guidedStepTenFeatured?.dev) {
+			lastAutoFocusedStage = focusKey;
 			inspectGuidedDevelopment(guidedStepTenFeatured.dev);
 			return;
 		}
-		lastAutoFocusedStage = revealStage;
+		lastAutoFocusedStage = focusKey;
 	});
 
 	$effect(() => {
@@ -2564,7 +2595,14 @@
 				const rect = el.getBoundingClientRect();
 				if (rect.top <= triggerY) next = i;
 			}
+			let nextFocus = null;
+			for (const item of focusWaypointEls) {
+				if (!item || item.stage !== next) continue;
+				const rect = item.node.getBoundingClientRect();
+				if (rect.top <= triggerY) nextFocus = item.key;
+			}
 			revealStage = next;
+			guidedFocusDetail = nextFocus;
 		};
 		const scheduleUpdate = () => {
 			if (frame) return;
@@ -3191,6 +3229,14 @@
 										{step.body}
 									{/if}
 								</p>
+								{#if guidedMode && i === 0}
+									<div
+										use:focusWaypointRef={{ stage: 0, key: 'core_access' }}
+										class="poc-stepper-waypoint"
+									>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on Boston, Cambridge, Quincy, and Revere.</p>
+									</div>
+								{/if}
 								{#if guidedMode && step.legend}
 									<p class="poc-stepper-card-note"><strong>How to read it:</strong> {step.legend}</p>
 								{/if}
@@ -3198,6 +3244,12 @@
 									<p class="poc-stepper-card-note"><strong>Why it matters:</strong> {step.why}</p>
 								{/if}
 								{#if guidedMode && i === 2 && guidedContrastFeatured}
+									<div
+										use:focusWaypointRef={{ stage: 2, key: 'contrast_example' }}
+										class="poc-stepper-waypoint"
+									>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on a tract that already shows this contrast.</p>
+									</div>
 									<div class="poc-stepper-examples" aria-label="Example tracts that show the contrast">
 										<p class="poc-stepper-examples-title">A first tract example already showing this contrast</p>
 										<button
@@ -3221,6 +3273,12 @@
 									</div>
 								{/if}
 								{#if guidedMode && i === 3 && guidedMismatchFeatured}
+									<div
+										use:focusWaypointRef={{ stage: 3, key: 'mismatch_example' }}
+										class="poc-stepper-waypoint"
+									>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on a mismatch tract marked with a red insight marker.</p>
+									</div>
 									<div class="poc-stepper-examples" aria-label="Mismatch examples highlighted on the map">
 										<p class="poc-stepper-examples-title">Scroll to see examples of mismatch tracts like this one</p>
 										<div class="poc-stepper-example poc-stepper-example--static">
@@ -3254,6 +3312,12 @@
 									</div>
 								{/if}
 								{#if guidedMode && i === 9 && guidedStepTenFeatured}
+									<div
+										use:focusWaypointRef={{ stage: 9, key: 'project_example' }}
+										class="poc-stepper-waypoint"
+									>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on a featured development example.</p>
+									</div>
 									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
 										<p class="poc-stepper-examples-title">A first development example, already zoomed in on the map</p>
 										<div class="poc-stepper-example">
@@ -3540,6 +3604,22 @@
 	}
 
 	.poc-stepper-card-note strong {
+		color: var(--text);
+	}
+
+	.poc-stepper-waypoint {
+		margin-top: 0.85rem;
+		padding: 0.72rem 0.82rem;
+		border: 1px dashed color-mix(in srgb, var(--accent) 32%, var(--border));
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 6%, var(--bg-card));
+	}
+
+	.poc-stepper-waypoint__label {
+		margin: 0;
+		font-size: 0.78rem;
+		font-weight: 700;
+		line-height: 1.45;
 		color: var(--text);
 	}
 
