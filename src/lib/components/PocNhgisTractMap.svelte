@@ -3243,67 +3243,71 @@
 								{#if guidedMode && step.why}
 									<p class="poc-stepper-card-note"><strong>Why it matters:</strong> {step.why}</p>
 								{/if}
-								{#if guidedMode && i === 2 && guidedContrastFeatured}
+								{#if guidedMode && i === 2 && guidedContrastExamples.length}
 									<div
 										use:focusWaypointRef={{ stage: 2, key: 'contrast_example' }}
 										class="poc-stepper-waypoint"
 									>
-										<p class="poc-stepper-waypoint__label">Scroll to focus on a tract that already shows this contrast.</p>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on tract examples that already show this contrast.</p>
 									</div>
 									<div class="poc-stepper-examples" aria-label="Example tracts that show the contrast">
-										<p class="poc-stepper-examples-title">A first tract example already showing this contrast</p>
-										<button
-											type="button"
-											class="poc-stepper-example"
-											onclick={() => inspectGuidedExample(guidedContrastFeatured.id)}
-										>
-											<div class="poc-stepper-example__head">
-												<span class="poc-stepper-example__label">{guidedContrastFeatured.label}</span>
-												<span class="poc-stepper-example__cta">Show on map</span>
-											</div>
-											<p class="poc-stepper-example__note">{guidedContrastFeatured.note}</p>
-											<div class="poc-stepper-example__metrics">
-												<span><strong>Growth:</strong> {d3.format('.1f')(guidedContrastFeatured.growth)}%</span>
-												<span><strong>Transit access:</strong> {guidedContrastFeatured.stops === 0 ? '0 stops' : `${d3.format(',.0f')(guidedContrastFeatured.stops)} stops`}</span>
-												{#if guidedContrastFeatured.income != null}
-													<span><strong>Median income:</strong> {d3.format('$,.0f')(guidedContrastFeatured.income)}</span>
-												{/if}
-											</div>
-										</button>
+										<p class="poc-stepper-examples-title">Example tracts that make the contrast more concrete</p>
+										{#each guidedContrastExamples as example (example.id)}
+											<button
+												type="button"
+												class="poc-stepper-example"
+												onclick={() => inspectGuidedExample(example.id)}
+											>
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{example.label}</span>
+													<span class="poc-stepper-example__cta">Show on map</span>
+												</div>
+												<p class="poc-stepper-example__note">{example.note}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Growth:</strong> {d3.format('.1f')(example.growth)}%</span>
+													<span><strong>Transit access:</strong> {example.stops === 0 ? '0 stops' : `${d3.format(',.0f')(example.stops)} stops`}</span>
+													{#if example.income != null}
+														<span><strong>Median income:</strong> {d3.format('$,.0f')(example.income)}</span>
+													{/if}
+												</div>
+											</button>
+										{/each}
 									</div>
 								{/if}
-								{#if guidedMode && i === 3 && guidedMismatchFeatured}
+								{#if guidedMode && i === 3 && guidedMismatchExamples.length}
 									<div
 										use:focusWaypointRef={{ stage: 3, key: 'mismatch_example' }}
 										class="poc-stepper-waypoint"
 									>
-										<p class="poc-stepper-waypoint__label">Scroll to focus on a mismatch tract marked with a red insight marker.</p>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on mismatch tracts marked with red insight markers.</p>
 									</div>
 									<div class="poc-stepper-examples" aria-label="Mismatch examples highlighted on the map">
-										<p class="poc-stepper-examples-title">Scroll to see examples of mismatch tracts like this one</p>
-										<div class="poc-stepper-example poc-stepper-example--static">
-											<div class="poc-stepper-example__head">
-												<span class="poc-stepper-example__label">{guidedMismatchFeatured.label}</span>
-												<span class="poc-stepper-example__cta">{guidedMismatchFeatured.kind}</span>
+										<p class="poc-stepper-examples-title">Examples of tracts where access and growth pull apart</p>
+										{#each guidedMismatchExamples as example (example.id)}
+											<div class="poc-stepper-example poc-stepper-example--static">
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{example.label}</span>
+													<span class="poc-stepper-example__cta">{example.kind}</span>
+												</div>
+												<p class="poc-stepper-example__note">{example.note}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Growth:</strong> {d3.format('.1f')(example.growth)}%</span>
+													<span><strong>Transit access:</strong> {example.stops === 0 ? '0 stops' : `${d3.format(',.0f')(example.stops)} stops`}</span>
+													{#if example.income != null}
+														<span><strong>Median income:</strong> {d3.format('$,.0f')(example.income)}</span>
+													{/if}
+												</div>
+												<div class="poc-stepper-example__actions">
+													<button
+														type="button"
+														class="poc-stepper-example__button"
+														onclick={() => inspectGuidedExample(example.id)}
+													>
+														Show on map
+													</button>
+												</div>
 											</div>
-											<p class="poc-stepper-example__note">{guidedMismatchFeatured.note}</p>
-											<div class="poc-stepper-example__metrics">
-												<span><strong>Growth:</strong> {d3.format('.1f')(guidedMismatchFeatured.growth)}%</span>
-												<span><strong>Transit access:</strong> {guidedMismatchFeatured.stops === 0 ? '0 stops' : `${d3.format(',.0f')(guidedMismatchFeatured.stops)} stops`}</span>
-												{#if guidedMismatchFeatured.income != null}
-													<span><strong>Median income:</strong> {d3.format('$,.0f')(guidedMismatchFeatured.income)}</span>
-												{/if}
-											</div>
-											<div class="poc-stepper-example__actions">
-												<button
-													type="button"
-													class="poc-stepper-example__button"
-													onclick={() => inspectGuidedExample(guidedMismatchFeatured.id)}
-												>
-													Show on map
-												</button>
-											</div>
-										</div>
+										{/each}
 									</div>
 								{/if}
 								{#if guidedMode && i === 8 && guidedDevelopmentExamples.length}
@@ -3311,36 +3315,38 @@
 										<p class="poc-stepper-examples-title">Scroll to see examples of individual developments and how they fit this pattern</p>
 									</div>
 								{/if}
-								{#if guidedMode && i === 9 && guidedStepTenFeatured}
+								{#if guidedMode && i === 9 && guidedStepTenExamples.length}
 									<div
 										use:focusWaypointRef={{ stage: 9, key: 'project_example' }}
 										class="poc-stepper-waypoint"
 									>
-										<p class="poc-stepper-waypoint__label">Scroll to focus on a featured development example.</p>
+										<p class="poc-stepper-waypoint__label">Scroll to focus on featured development examples.</p>
 									</div>
 									<div class="poc-stepper-examples" aria-label="Important developments tied to the argument">
-										<p class="poc-stepper-examples-title">A first development example, already zoomed in on the map</p>
-										<div class="poc-stepper-example">
-											<div class="poc-stepper-example__head">
-												<span class="poc-stepper-example__label">{guidedStepTenFeatured.label}</span>
-												<span class="poc-stepper-example__cta" class:poc-stepper-example__cta--tod={guidedStepTenFeatured.categoryTone === 'tod'} class:poc-stepper-example__cta--partial={guidedStepTenFeatured.categoryTone === 'partial'} class:poc-stepper-example__cta--nontod={guidedStepTenFeatured.categoryTone === 'nontod'}>{guidedStepTenFeatured.categoryLabel}</span>
+										<p class="poc-stepper-examples-title">Important developments that help explain the pattern</p>
+										{#each guidedStepTenExamples as example (example.id)}
+											<div class="poc-stepper-example">
+												<div class="poc-stepper-example__head">
+													<span class="poc-stepper-example__label">{example.label}</span>
+													<span class="poc-stepper-example__cta" class:poc-stepper-example__cta--tod={example.categoryTone === 'tod'} class:poc-stepper-example__cta--partial={example.categoryTone === 'partial'} class:poc-stepper-example__cta--nontod={example.categoryTone === 'nontod'}>{example.categoryLabel}</span>
+												</div>
+												<p class="poc-stepper-example__note">{example.note}</p>
+												<div class="poc-stepper-example__metrics">
+													<span><strong>Total units:</strong> {example.units == null ? '—' : d3.format(',.0f')(example.units)}</span>
+													<span><strong>Affordable units:</strong> {example.affordableUnits == null ? 'Not listed' : d3.format(',.0f')(example.affordableUnits || 0)}</span>
+												</div>
+												<div class="poc-stepper-example__actions">
+													<button
+														type="button"
+														class="poc-stepper-example__button"
+														disabled={example.showOnMapDisabled}
+														onclick={() => example.dev && inspectGuidedDevelopment(example.dev)}
+													>
+														Show on map
+													</button>
+												</div>
 											</div>
-											<p class="poc-stepper-example__note">{guidedStepTenFeatured.note}</p>
-											<div class="poc-stepper-example__metrics">
-												<span><strong>Total units:</strong> {guidedStepTenFeatured.units == null ? '—' : d3.format(',.0f')(guidedStepTenFeatured.units)}</span>
-												<span><strong>Affordable units:</strong> {guidedStepTenFeatured.affordableUnits == null ? 'Not listed' : d3.format(',.0f')(guidedStepTenFeatured.affordableUnits || 0)}</span>
-											</div>
-											<div class="poc-stepper-example__actions">
-												<button
-													type="button"
-													class="poc-stepper-example__button"
-													disabled={guidedStepTenFeatured.showOnMapDisabled}
-													onclick={() => guidedStepTenFeatured.dev && inspectGuidedDevelopment(guidedStepTenFeatured.dev)}
-												>
-													Show on map
-												</button>
-											</div>
-										</div>
+										{/each}
 									</div>
 								{/if}
 								{#if guidedMode && i === 10}
