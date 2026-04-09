@@ -836,6 +836,131 @@ export function renderMuniAffordabilityComposition(el, projectRows, state) {
 		.attr('rx', 4);
 }
 
+export function renderMuniAffordableTrend(el, projectRows, state) {
+	const root = d3.select(el);
+	root.selectAll('*').remove();
+	if (!projectRows.length) {
+		root.append('div').attr('class', 'empty').text('Change filters to see affordable-share trends over time.');
+		return;
+	}
+
+	const baseSeries = d3.range(state.yearStart, state.yearEnd + 1).map((year) => {
+		const rows = projectRows.filter((d) => d.year === year);
+		const total = d3.sum(rows, (d) => d.units);
+		const affordableUnits = d3.sum(rows, (d) => d.affordableUnits);
+		return {
+			year,
+			total,
+			affordableShare: total ? affordableUnits / total : 0
+		};
+	});
+
+	const series = baseSeries.map((d, i, arr) => {
+		const window = arr.slice(Math.max(0, i - 1), Math.min(arr.length, i + 2)).filter((v) => v.total > 0);
+		return {
+			...d,
+			smoothedShare: window.length ? d3.mean(window, (v) => v.affordableShare) : d.affordableShare
+		};
+	});
+
+	const latest = [...series].reverse().find((d) => d.total > 0);
+	if (latest) {
+		root
+			.append('div')
+			.attr('class', 'chart-note')
+			.style('margin-bottom', '8px')
+			.text(`${latest.year}: ${d3.format('.0%')(latest.affordableShare)} of new units are listed as affordable`);
+	}
+
+	const width = root.node().clientWidth || 720;
+	const height = 320;
+	const margin = { top: 18, right: 28, bottom: 40, left: 54 };
+	const innerW = width - margin.left - margin.right;
+	const innerH = height - margin.top - margin.bottom;
+	const svg = root.append('svg').attr('viewBox', `0 0 ${width} ${height}`);
+	const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+	const x = d3.scaleLinear().domain(d3.extent(series, (d) => d.year)).range([0, innerW]);
+	const yMax = Math.max(0.4, d3.max(series, (d) => d.smoothedShare || 0) || 0.4);
+	const y = d3.scaleLinear().domain([0, yMax]).nice().range([innerH, 0]);
+
+	g.append('line')
+		.attr('x1', 0)
+		.attr('x2', innerW)
+		.attr('y1', y(0.2))
+		.attr('y2', y(0.2))
+		.attr('stroke', '#b8b2a7')
+		.attr('stroke-width', 1.2)
+		.attr('stroke-dasharray', '5 4');
+
+	g.append('text')
+		.attr('x', innerW)
+		.attr('y', y(0.2) - 8)
+		.attr('text-anchor', 'end')
+		.attr('fill', '#6b7280')
+		.attr('font-size', 11)
+		.text('20% reference line');
+
+	g.append('g')
+		.attr('transform', `translate(0,${innerH})`)
+		.call(d3.axisBottom(x).ticks(6).tickFormat(d3.format('d')));
+
+	g.append('g')
+		.call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('.0%')));
+
+	const area = d3
+		.area()
+		.x((d) => x(d.year))
+		.y0(innerH)
+		.y1((d) => y(d.smoothedShare))
+		.curve(d3.curveMonotoneX);
+
+	const line = d3
+		.line()
+		.x((d) => x(d.year))
+		.y((d) => y(d.smoothedShare))
+		.curve(d3.curveMonotoneX);
+
+	g.append('path')
+		.datum(series)
+		.attr('fill', '#d9d7f8')
+		.attr('opacity', 0.8)
+		.attr('d', area);
+
+	g.append('path')
+		.datum(series)
+		.attr('fill', 'none')
+		.attr('stroke', '#6f58c9')
+		.attr('stroke-width', 3)
+		.attr('d', line);
+
+	g.selectAll('.afford-dot')
+		.data(series.filter((d) => d.total > 0))
+		.join('circle')
+		.attr('class', 'afford-dot')
+		.attr('cx', (d) => x(d.year))
+		.attr('cy', (d) => y(d.affordableShare))
+		.attr('r', 3.25)
+		.attr('fill', '#6f58c9')
+		.attr('opacity', 0.45);
+
+	if (latest) {
+		g.append('circle')
+			.attr('cx', x(latest.year))
+			.attr('cy', y(latest.smoothedShare))
+			.attr('r', 5)
+			.attr('fill', '#6f58c9');
+
+		g.append('text')
+			.attr('x', x(latest.year))
+			.attr('y', y(latest.smoothedShare) - 12)
+			.attr('text-anchor', 'middle')
+			.attr('fill', '#1f2430')
+			.attr('font-size', 11)
+			.attr('font-weight', 700)
+			.text(d3.format('.0%')(latest.affordableShare));
+	}
+}
+
 /* ── Growth capture ──────────────────────────────────── */
 
 export function renderMuniGrowthCapture(el, projectRows, domainRows, state) {

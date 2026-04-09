@@ -11,9 +11,10 @@
 		renderMuniScatter,
 		renderMuniComposition,
 		renderMuniGrowthCapture,
+		renderMuniAffordableTrend,
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments, storyNhgisRows } from '$lib/stores/data.svelte.js';
-	import { loadAllData, loadStoryData } from '$lib/stores/data.svelte.js';
+	import { loadStoryData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
@@ -25,7 +26,6 @@
 	} from '$lib/utils/mainPocTractModel.js';
 	import { createPanelState } from '$lib/stores/panelState.svelte.js';
 	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
-	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
 
 	/* ═══════════════════════════════════════════════════════
 	   MUNICIPAL STATE (Part 1)
@@ -105,6 +105,7 @@
 	let elScatter = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elComposition = $state(/** @type {HTMLElement | undefined} */ (undefined));
 	let elGrowthCapture = $state(/** @type {HTMLElement | undefined} */ (undefined));
+	let elAffordableTrend = $state(/** @type {HTMLElement | undefined} */ (undefined));
 
 	function draw() {
 		if (!muniData) return;
@@ -112,6 +113,7 @@
 		if (elScatter) renderMuniScatter(elScatter, visibleRows, domainRows, muniState, cb);
 		if (elComposition) renderMuniComposition(elComposition, projectRows, muniState);
 		if (elGrowthCapture) renderMuniGrowthCapture(elGrowthCapture, projectRows, domainRows, muniState);
+		if (elAffordableTrend) renderMuniAffordableTrend(elAffordableTrend, projectRows, muniState);
 	}
 
 	// Debounce draw during playback via rAF
@@ -126,6 +128,7 @@
 		void elScatter;
 		void elComposition;
 		void elGrowthCapture;
+		void elAffordableTrend;
 		cancelAnimationFrame(rafId);
 		rafId = requestAnimationFrame(() => draw());
 	});
@@ -145,9 +148,6 @@
 	let tractLoading = $state(true);
 	let tractError = $state(/** @type {string | null} */ (null));
 	let tractReady = $state(false);
-	let exploreLoading = $state(false);
-	let exploreReady = $state(false);
-	let exploreError = $state(/** @type {string | null} */ (null));
 
 	// Tract analysis defaults (sensible, no user controls)
 	const tractTimePeriod = '00_20';
@@ -193,22 +193,6 @@
 			});
 	});
 
-	$effect(() => {
-		if (!tractReady || exploreReady || exploreLoading) return;
-		exploreLoading = true;
-		loadAllData()
-			.then(() => {
-				exploreReady = true;
-				exploreError = null;
-			})
-			.catch((e) => {
-				exploreError = e instanceof Error ? e.message : String(e);
-			})
-			.finally(() => {
-				exploreLoading = false;
-			});
-	});
-
 	const tractDevOpts = $derived({
 		minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
 		minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
@@ -248,7 +232,7 @@
 	);
 
 	const nhgisLikeRows = $derived.by(() => {
-		if (storyNhgisRows.length && !exploreReady) return storyNhgisRows;
+		if (storyNhgisRows.length) return storyNhgisRows;
 		return buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod);
 	});
 </script>
@@ -270,7 +254,7 @@
 			trends (though not causal proof) that can inform equity considerations and policy decisions.
 		</p>
 		<p class="hero-plan-note">
-			A separate writeup page includes our design decisions, processing notes, development overview, and final project plan:
+			A separate writeup page includes our design decisions, development overview, and final project plan:
 			<a href={`${base}/writeup`}>open the full writeup</a>.
 		</p>
 	</section>
@@ -328,10 +312,11 @@
 			<div class="story-chart-panel__chart">
 				<h3>Most new housing is still market-rate</h3>
 				<p class="chart-note">
-					The affordable share of new development has decreased significantly in recent years,
-					which likely indicates that lower-income residents are benefitting much less from this new development.
+					The affordable share of new development stays low for most of the timeline, with only a few short
+					spikes upward. Even in years when more housing is being added, most of those units are still
+					market-rate rather than affordable.
 				</p>
-				<img src={`${base}/afford-mix-chart.png`} alt="Stacked bar chart showing the affordable vs. market-rate share of new housing units per year from 1990 to 2026" class="afford-mix-chart-img" />
+				<div class="chart-wrap small-chart compact-side-chart" bind:this={elAffordableTrend}></div>
 			</div>
 		</div>
 	</section>
@@ -344,6 +329,11 @@
 					Although lower-income residents are the most at risk of displacement,
 					municipalities with more lower income households (&lt; $125k/year) are often the ones seeing the most new development.
 					This suggests that equitable implementation matters most in the places already under the most pressure.
+				</p>
+				<p>
+					Here, <strong>higher-vulnerability</strong> municipalities are the ones above the median share of households earning less than
+					$125k, while <strong>lower-vulnerability</strong> municipalities fall below that median. The comparison is meant to show
+					where new housing production is landing relative to that income pressure.
 				</p>
 			</div>
 			<div class="story-chart-panel__chart">
@@ -703,26 +693,15 @@
 	{#if muniLoaded && !tractLoading && !tractError}
 		<div class="explore-after-narrow">
 			<section class="explore-gate card full-width" aria-labelledby="explore-gate-heading">
-				<h2 id="explore-gate-heading">Explore the map</h2>
+				<h2 id="explore-gate-heading">Explore the map for yourself</h2>
 				<p>
-					How does this pattern look in other municipalities, or in other tracts within the same municipality? Use the full
-					explorer below to compare places, inspect tract detail, and test how transit access, housing growth, and
-					lower-income context interact across the region.
+					If you want to keep exploring after the guided story, the full interactive choropleth and toggleable map tools now
+					live on their own page.
+				</p>
+				<p class="explore-gate__cta">
+					<a class="explore-gate__button" href={`${base}/playground`}>Open the playground</a>
 				</p>
 			</section>
-			{#if exploreError}
-				<section class="loading-status loading-status--error">
-					<h3>Full explorer data failed to load</h3>
-					<p>{exploreError}</p>
-				</section>
-			{:else if !exploreReady}
-				<section class="loading-status">
-					<div class="spinner" aria-hidden="true"></div>
-					<p>Loading the full explorer…</p>
-				</section>
-			{:else}
-				<ExploreTractSection />
-			{/if}
 
 			<section class="story card full-width sources-card">
 				<h2>Data sources and acknowledgments</h2>
@@ -844,6 +823,27 @@
 		color: var(--muted);
 		line-height: 1.55;
 		max-width: 58rem;
+	}
+
+	.explore-gate__cta {
+		margin-top: 6px;
+	}
+
+	.explore-gate__button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 10px 16px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 6px 18px rgba(0, 132, 61, 0.18);
+	}
+
+	.explore-gate__button:hover {
+		background: #0a6a38;
 	}
 
 	* { box-sizing: border-box; }
