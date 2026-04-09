@@ -274,7 +274,7 @@
 			trends (though not causal proof) that can inform equity considerations and policy decisions.
 		</p>
 		<p class="hero-plan-note">
-			A separate writeup page includes our design decisions, processing notes, development overview, and final project plan:
+			A separate writeup page includes our design decisions, development overview, and final project plan:
 			<a href={`${base}/writeup`}>open the full writeup</a>.
 		</p>
 	</section>
@@ -348,6 +348,11 @@
 					Although lower-income residents are the most at risk of displacement,
 					municipalities with more lower income households (&lt; $125k/year) are often the ones seeing the most new development.
 					This suggests that equitable implementation matters most in the places already under the most pressure.
+				</p>
+				<p>
+					Here, <strong>higher-vulnerability</strong> municipalities are the ones above the median share of households earning less than
+					$125k, while <strong>lower-vulnerability</strong> municipalities fall below that median. The comparison is meant to show
+					where new housing production is landing relative to that income pressure.
 				</p>
 			</div>
 			<div class="story-chart-panel__chart">
