@@ -294,10 +294,7 @@
 			{
 				kicker: 'Step 2',
 				title: 'The geography of housing growth',
-				body: 'This map layers housing growth onto the transit network, showing how development has actually unfolded across the region. Each tract is shaded by change in housing units, with deeper blues indicating stronger growth, reds indicating weaker or negative growth, and lighter tones reflecting limited or less reliable data. The Seaport stands out as the clearest concentration of very strong growth within the urban core, but it is not the only place where growth is happening. Pockets of darker blue also appear farther out, including in parts of Plymouth County, Essex County, and even into Worcester County, pointing to meaningful growth beyond the most transit-rich areas.',
-				legend: 'Read this step by comparing the housing-growth choropleth to the access geography from Step 1. If growth were closely following transit access, the strongest blues would cluster tightly around the subway network and its immediate surroundings.',
-				why: 'Instead, the pattern is more uneven, with growth both in well-connected areas and in places that are more peripheral to the MBTA network. Growth in highly connected areas can expand opportunity, but without enough affordable housing it can also make those places harder to remain in. Growth farther from the network may add supply, but in locations that offer fewer connections to jobs and services.',
-				prompt: 'Taken together, these patterns begin to show that housing growth and transit access are not aligning as cleanly as we might expect.'
+				body: 'This map layers housing growth onto the transit network, showing how development has actually unfolded across the region. Each tract is shaded by change in housing units, with deeper blues indicating stronger growth, reds indicating weaker or negative growth, and lighter tones reflecting limited or less reliable data. The Seaport stands out as the clearest concentration of very strong growth within the urban core, but it is not the only place where growth is happening. Pockets of darker blue also appear farther out, including in parts of Plymouth County, Essex County, and even into Worcester County, pointing to meaningful growth beyond the most transit-rich areas.'
 			},
 			{
 				kicker: 'Step 3',
