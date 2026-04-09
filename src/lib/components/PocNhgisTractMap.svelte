@@ -299,10 +299,8 @@
 			{
 				kicker: 'Step 3',
 				title: 'Initial contrast',
-				body: 'At this point, the contrast becomes easier to read. Some tracts with substantial housing growth lie outside the strongest transit context. That does not mean transit is absent, but it does mean growth is not being pulled consistently toward the most accessible places.',
-				legend: 'Stay with the choropleth here. The important signal is that the growth pattern itself already begins to challenge the idea that transit access and housing production are moving together.',
-				why: 'This is the first sign of the reverse mismatch pattern: some places grow substantially even though they do not sit in the strongest MBTA geography.',
-				prompt: 'The tract examples below show what that contrast looks like in practice.'
+				body: 'Here, we focus on individual places to make the pattern easier to see. The same map now highlights a few tracts that help ground the broader regional story. Some areas are experiencing substantial housing growth even though they are not located within the strongest transit geography. Transit is often still present, but it is less dense, less frequent, or less connected than in the urban core. Across these examples, the relationship between growth and transit begins to diverge. One tract in Suffolk County shows extremely high growth alongside high incomes, even within a relatively transit-accessible context. A tract in Middlesex County shows transit-rich geography but negative housing growth, even along the Green Line corridor. Farther out, a tract in Worcester County shows very high housing growth despite sitting far from any MBTA line at all. Together, these examples complicate the idea that transit access alone determines where housing gets built. Growth is happening both in and beyond the strongest MBTA geography, and in some well-connected areas, it is not happening much at all.',
+				legend: 'Stay with the choropleth, but shift your attention to specific tracts. These examples are not meant to represent the whole region, but to make the broader pattern more concrete.'
 			},
 			{
 				kicker: 'Step 4',
@@ -1979,52 +1977,53 @@
 	const guidedContrastExamples = $derived.by(() => {
 		if (!guidedMode) return [];
 		const tractByGj = new Map((tractList ?? []).map((t) => [t.gisjoin, t]));
-		const seenCounties = new Set();
-		return (nhgisRows ?? [])
-			.map((row) => {
-				const id = row?.gisjoin;
-				if (!id) return null;
-				const tract = tractByGj.get(id);
+		const rowByGj = new Map((nhgisRows ?? []).map((r) => [r.gisjoin, r]));
+		const curated = [
+			{
+				id: 'G2500250060600',
+				label: 'Tract in Suffolk County',
+				note:
+					'This Suffolk County tract shows very strong housing growth in a high-income, transit-accessible part of the core, reminding us that growth can still be concentrated in places that already hold strong access advantages.'
+			},
+			{
+				id: 'G2500170373600',
+				label: 'Tract in Middlesex County',
+				note:
+					'This tract sits along the Green Line corridor but still shows negative housing growth, which helps show that strong transit access does not guarantee new housing production.'
+			},
+			{
+				id: 'G2500270732902',
+				label: 'Tract in Worcester County',
+				note:
+					'This tract is far from any MBTA line but still shows very high housing growth, making the reverse contrast especially clear.'
+			}
+		];
+		return curated
+			.map((item) => {
+				const tract = tractByGj.get(item.id);
+				const row = rowByGj.get(item.id);
+				if (!tract || !row) return null;
 				const growth = Number(row?.census_hu_pct_change);
 				const stops = Number(tract?.transit_stops);
-				if (!Number.isFinite(growth) || !Number.isFinite(stops)) return null;
-				const mismatch = mismatchFlagsByGj.get(id);
 				const county =
-					tract?.county && String(tract.county) !== 'County Name'
-						? String(tract.county)
-						: null;
+					tract?.county && String(tract.county) !== 'County Name' ? String(tract.county) : null;
 				const incomeRaw =
 					row?.median_household_income ??
-					mismatch?.medianHouseholdIncome ??
 					tract?.median_income_2020 ??
 					null;
 				const income = Number(incomeRaw);
+				if (!Number.isFinite(growth) || !Number.isFinite(stops)) return null;
 				return {
-					id,
+					id: item.id,
 					county,
-					label: county ? `Tract in ${county}` : `Tract ${id}`,
+					label: item.label,
 					growth,
 					stops,
 					income: Number.isFinite(income) ? income : null,
-					note:
-						stops === 0
-							? 'Strong growth appears here even without nearby MBTA stops counted in the tract.'
-							: `Strong growth appears here with only limited transit access nearby.`,
-					score:
-						(mismatch?.isHighGrowthLowAccess ? 100 : 0) +
-						growth * 2.5 -
-						stops * 8
+					note: item.note
 				};
 			})
-			.filter(Boolean)
-			.sort((a, b) => b.score - a.score)
-			.filter((item) => {
-				const key = item.county ?? item.id;
-				if (seenCounties.has(key)) return false;
-				seenCounties.add(key);
-				return true;
-			})
-			.slice(0, 2);
+			.filter(Boolean);
 	});
 
 	const guidedMismatchExamples = $derived.by(() => {
