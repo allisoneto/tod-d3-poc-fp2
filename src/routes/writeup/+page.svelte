@@ -45,11 +45,11 @@
 			already conceptually dense; once too many things compete for the same channel, the map becomes much harder to read.
 		</p>
 		<p>
-			We also chose a <strong>martini-glass structure</strong> on purpose. The top of the page simplifies the argument into a
-			few static views. The guided map then introduces one layer at a time: transit access, housing growth, mismatch, TOD
-			grouping, project dots, and finally lower-income context. Only after that do we turn the reader loose in the full
-			explorer. For policymakers and planners, we think that balance matters. They need a clear take-away, but they also want
-			to inspect the evidence themselves.
+			We also intentionally structured the page so it <strong>guides first and opens up later</strong>. The top of the page
+			simplifies the argument into a few static views. The guided map then introduces one layer at a time: transit access,
+			housing growth, mismatch, TOD grouping, project dots, and finally lower-income context. Only after that do we open the
+			full explorer. We made that choice because it helps readers understand the main pattern before they have to manage a lot
+			of controls at once. For this project, that matters more than giving total freedom immediately.
 		</p>
 		<h3>Alternatives we considered</h3>
 		<p>
