@@ -113,10 +113,10 @@
 		</p>
 		<h3>How we want to improve the process</h3>
 		<p>
-			The clearest lesson for us is that writing, interaction, and visual design all need to evolve together. Earlier on, we
-			sometimes improved one piece faster than the others, which created moments where the code worked but the story was weak,
-			or where the story was stronger but the interface still felt cluttered. For future milestones, we want to simplify
-			earlier and review the narrative and interface together more often.
+			The biggest lesson for us is that the writing, interaction, and visual design really have to move together. Earlier on, we
+			had moments where the code was working but the story still was not clear, and other moments where the story was getting
+			stronger but the interface still felt too busy. Next time, we want to simplify sooner and check the narrative and the
+			interface side by side more often instead of treating them like separate problems.
 		</p>
 	</section>
 
