@@ -18,6 +18,7 @@
 
 	<section class="writeup-section card">
 		<h2>Design Decisions</h2>
+		<h3>How we chose the visual encodings and interactions</h3>
 		<p>
 			We designed this proof of concept around one main question: <strong>where housing growth is happening, how that growth
 			relates to transit access, and who is most affected when those patterns do not line up</strong>. Earlier versions behaved
@@ -50,6 +51,7 @@
 			explorer. For policymakers and planners, we think that balance matters. They need a clear take-away, but they also want
 			to inspect the evidence themselves.
 		</p>
+		<h3>Alternatives we considered</h3>
 		<p>
 			Color was chosen deliberately rather than just for decoration. We grounded the palette in MBTA colors so the project feels
 			tied to the transit system it is analyzing. The core values are <strong>green</strong>
@@ -74,6 +76,14 @@
 			geography. An income choropleth competed too strongly with the housing-growth choropleth. The current design is not
 			minimal, but it is much more readable.
 		</p>
+		<h3>How the design fits our intended audience</h3>
+		<p>
+			Our intended audience is policymakers and planners. That is why we put so much emphasis on readable regional comparison,
+			clear step-by-step explanation, and the ability to inspect the evidence afterward. The guided story makes the main claim
+			explicit, while the open explorer still leaves room for policy audiences to test specific municipalities, tracts, and
+			developments themselves.
+		</p>
+		<h3>Critique and future improvements</h3>
 		<p>
 			What still does not work quite as well as we want is the sheer density of the system. Even in the improved version, there
 			is still a lot happening once outlines, dots, selections, and tooltips start to accumulate. We also think the guided
@@ -85,6 +95,7 @@
 
 	<section class="writeup-section card">
 		<h2>Process and Team Reflection</h2>
+		<h3>How the work was split</h3>
 		<p>
 			Our team split the work in a fairly collaborative way rather than in totally separate lanes. Allison and Krishna spent the
 			most time on the interactive tract visualization itself: layout, scrollytelling flow, map behavior, selection logic,
@@ -92,12 +103,14 @@
 			argument, feedback synthesis, and making sure the story stayed coherent as the interface changed. Supriya focused more on
 			the demographic framing and the broader question of who is affected by these patterns.
 		</p>
+		<h3>Time spent and what took the longest</h3>
 		<p>
 			Our estimate is roughly <strong>80–90 person-hours</strong> across the team. The biggest time sink was not any one chart
 			or one map layer. It was revision: changing the structure, rewriting the walkthrough, debugging loading and deployment
 			issues, fixing tooltips and sticky behavior, and repeatedly simplifying the project so the argument came through more
 			clearly.
 		</p>
+		<h3>How we want to improve the process</h3>
 		<p>
 			The clearest lesson for us is that writing, interaction, and visual design all need to evolve together. Earlier on, we
 			sometimes improved one piece faster than the others, which created moments where the code worked but the story was weak,
