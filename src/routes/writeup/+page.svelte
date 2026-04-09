@@ -106,7 +106,7 @@
 		</p>
 		<h3>Time spent and what took the longest</h3>
 		<p>
-			Our estimate is roughly <strong>80–90 person-hours</strong> across the team. The biggest time sink was not any one chart
+			We estimate having spent roughly <strong>80–90 person-hours</strong> across the team. The biggest time sink was not any one chart
 			or one map layer. It was revision: changing the structure, rewriting the walkthrough, debugging loading and deployment
 			issues, fixing tooltips and sticky behavior, and repeatedly simplifying the project so the argument came through more
 			clearly.
