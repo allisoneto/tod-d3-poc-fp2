@@ -73,6 +73,7 @@
 	let hoveredMismatchCluster = $state(/** @type {null | 'ha_lg' | 'hg_la'} */ (null));
 	let guidedLowerIncomeOverlay = $state(/** @type {'cohort' | 'mismatch'} */ ('cohort'));
 	let pinnedTooltipStage = $state(/** @type {number | null} */ (null));
+	let activeGuidedDevelopmentKey = $state(/** @type {string | null} */ (null));
 	const lowIncomeFocusOn = $derived(guidedMode ? revealStage === 10 : focusLowIncomeTracts);
 
 	const tooltipPosition = $derived.by(() => {
@@ -194,6 +195,17 @@
 			return 'These tracts had relatively little housing growth in the selected period.';
 		}
 		return '';
+	}
+
+	function developmentKey(d) {
+		if (!d) return null;
+		const name = String(d.name || d.project_name || '').trim();
+		const lon = Number(d.longitude ?? d.lon);
+		const lat = Number(d.latitude ?? d.lat);
+		const coordPart =
+			Number.isFinite(lon) && Number.isFinite(lat) ? `${lon.toFixed(5)},${lat.toFixed(5)}` : 'no-coords';
+		if (!name && coordPart === 'no-coords') return null;
+		return `${name || 'unnamed'}|${coordPart}`;
 	}
 
 	function isSpotlightMatch(row, spotlight) {
@@ -1161,9 +1173,9 @@
 		const invK = 1 / currentK;
 
 		const transitM = transitDistanceMiToMetres(panelState.transitDistanceMi ?? 0.5);
-		const featuredDevelopmentIds =
-			guidedMode && revealStage === 9 && importantDevelopmentExamples?.length
-				? new Set((importantDevelopmentExamples ?? []).map((d) => d?.id).filter(Boolean))
+		const featuredDevelopmentKeys =
+			guidedMode && revealStage === 9 && guidedStepTenExamples?.length
+				? new Set((guidedStepTenExamples ?? []).map((item) => developmentKey(item?.dev)).filter(Boolean))
 				: null;
 		const huVals = filteredDevs.map((d) => Number(d.hu) || 0).filter((h) => h > 0);
 		const huMin = huVals.length ? d3.min(huVals) : 1;
@@ -1188,7 +1200,9 @@
 				rBase,
 				strokeWBase: access ? 0.55 : 0.4,
 				transitAccessible: access,
-				isFeatured: featuredDevelopmentIds ? featuredDevelopmentIds.has(d.id) : false
+				isFeatured: featuredDevelopmentKeys ? featuredDevelopmentKeys.has(developmentKey(d)) : false,
+				isActiveGuidedDevelopment:
+					activeGuidedDevelopmentKey != null && developmentKey(d) === activeGuidedDevelopmentKey
 			};
 		});
 
@@ -1230,9 +1244,11 @@
 			)
 			.attr('fill-opacity', 0.78)
 			.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
-			.attr('stroke-width', (d) => ((d.strokeWBase + (d.isFeatured ? 0.18 : 0)) * invK))
+			.attr('stroke-width', (d) => ((d.strokeWBase + (d.isFeatured ? 0.18 : 0) + (d.isActiveGuidedDevelopment ? 0.55 : 0)) * invK))
+			.attr('r', (d) => (d.rBase * (d.isActiveGuidedDevelopment ? 1.22 : 1)) * invK)
 			.attr('opacity', (d) => {
-				if (!featuredDevelopmentIds) return 1;
+				if (!featuredDevelopmentKeys) return 1;
+				if (d.isActiveGuidedDevelopment) return 1;
 				return d.isFeatured ? 1 : 0.16;
 			})
 			.selection()
@@ -1726,6 +1742,7 @@
 		panelState.setHovered(null);
 		hoveredMismatchCluster = null;
 		pinnedTooltipStage = null;
+		activeGuidedDevelopmentKey = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -2288,47 +2305,47 @@
 			},
 			{
 				id: 'allston-yards',
-				label: 'Continuum Allston',
-				sourceName: 'Continuum Allston',
+				label: '16 Dyer',
+				sourceName: '16 Dyer',
 				categoryLabel: 'Partial TOD example',
 				categoryTone: 'partial',
 				note:
-					'Boston. Continuum Allston is a real Allston corridor project in the dataset. It helps show a partial-TOD case: substantial new housing near rail and bus service, but not with the same direct rapid-transit integration as the clearest TOD examples.',
+					'Boston. 16 Dyer is a real project in the dataset and works as a partial-TOD case: it is near transit, but not in the same way as the strongest flagship TOD examples.',
 				fallback: {
 					id: 'manual-allston-yards',
-					name: 'Continuum Allston',
+					name: '16 Dyer',
 					municipal: 'Boston',
-					hu: 325,
-					lon: -71.13039,
-					lat: 42.36346,
-					nearest_stop_dist_m: 103.84,
-					mixed_use: true,
-					rdv: false
-				},
-				manualAffordableLabel: 'Not listed in this record',
-				manualAffordabilityNote: 'This stand-in Allston project illustrates the corridor pattern, but this record does not list an affordable-unit count.'
-			},
-			{
-				id: 'weymouth-landing',
-				label: 'Weymouth Landing - Weymouth Delagos block',
-				sourceName: 'Weymouth Landing - Weymouth Delagos block',
-				categoryLabel: 'Non-TOD contrast',
-				categoryTone: 'nontod',
-				note:
-					'Weymouth. Weymouth Landing - Weymouth Delagos block is a real record in the dataset and helps show the contrast case: meaningful multifamily growth can still occur in places that depend more on commuter rail or weaker transit access than on the strongest rapid-transit geography.',
-				fallback: {
-					id: 'manual-weymouth-landing',
-					name: 'Weymouth Landing - Weymouth Delagos block',
-					municipal: 'Weymouth',
-					hu: 81,
-					lon: -70.96819,
-					lat: 42.22008,
-					nearest_stop_dist_m: 28.8,
+					hu: 40,
+					lon: -71.07988,
+					lat: 42.28356,
+					nearest_stop_dist_m: 141.91,
 					mixed_use: false,
 					rdv: false
 				},
 				manualAffordableLabel: 'Not listed in this record',
-				manualAffordabilityNote: 'This record does not list an affordable-unit count, which is itself part of why project-level affordability can be hard to read consistently.'
+				manualAffordabilityNote: 'This record does not list an affordable-unit count.'
+			},
+			{
+				id: 'weymouth-landing',
+				label: 'Mahoney Farm',
+				sourceName: 'Mahoney Farm',
+				categoryLabel: 'Non-TOD contrast',
+				categoryTone: 'nontod',
+				note:
+					'Sudbury. Mahoney Farm is a real record in the dataset and works as a stronger non-TOD contrast case: housing growth can still happen well outside the strongest transit geography.',
+				fallback: {
+					id: 'manual-weymouth-landing',
+					name: 'Mahoney Farm',
+					municipal: 'Sudbury',
+					hu: 33,
+					lon: -71.43477,
+					lat: 42.34893,
+					nearest_stop_dist_m: 8128.67,
+					mixed_use: false,
+					rdv: false
+				},
+				manualAffordableLabel: 'Not listed in this record',
+				manualAffordabilityNote: 'This record does not list an affordable-unit count.'
 			}
 		];
 		return specs.map((spec) => {
@@ -2371,6 +2388,7 @@
 
 	function inspectGuidedDevelopment(d) {
 		if (!d) return;
+		activeGuidedDevelopmentKey = developmentKey(d);
 		zoomToDevelopment(d);
 		window.setTimeout(() => {
 			const anchor = developmentScreenAnchor(d);
@@ -2473,6 +2491,7 @@
 		if (pinnedTooltipStage != null && revealStage !== pinnedTooltipStage) {
 			tooltip = { ...tooltip, visible: false, anchorX: null, anchorY: null };
 			pinnedTooltipStage = null;
+			activeGuidedDevelopmentKey = null;
 			panelState.setHovered(null);
 		}
 	});
