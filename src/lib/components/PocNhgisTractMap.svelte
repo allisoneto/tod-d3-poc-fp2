@@ -1172,7 +1172,7 @@
 
 		devSizeLegendTicks = filteredDevs.length ? computeDevSizeLegendTicks(lo, hi, rScale) : [];
 
-		const mfColor = d3.scaleSequential((t) => interpolateOrangeGreen(t)).domain([0, 1]).clamp(true);
+		const mfColor = d3.scaleLinear().domain([0, 1]).range(['#ffffff', '#334155']).clamp(true);
 
 		const glyphData = filteredDevs.map((d) => {
 			const hu = Number(d.hu) || 0;
@@ -1204,10 +1204,10 @@
 						.attr('cy', (d) => projection([d.lon, d.lat])?.[1] ?? -9999)
 						.attr('r', (d) => d.rBase * invK)
 						.attr('fill', (d) =>
-							d.mfShare == null || !Number.isFinite(d.mfShare) ? '#475569' : mfColor(d.mfShare)
+							d.mfShare == null || !Number.isFinite(d.mfShare) ? '#cbd5e1' : mfColor(d.mfShare)
 						)
-						.attr('fill-opacity', 0.78)
-						.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
+						.attr('fill-opacity', 0.92)
+						.attr('stroke', (d) => (d.transitAccessible ? MBTA_GREEN : MBTA_ORANGE))
 						.attr('stroke-width', (d) => d.strokeWBase * invK)
 						.attr('opacity', 0)
 						.style('cursor', 'pointer')
@@ -1226,10 +1226,10 @@
 			.attr('cy', (d) => projection([d.lon, d.lat])?.[1] ?? -9999)
 			.attr('r', (d) => d.rBase * invK)
 			.attr('fill', (d) =>
-				d.mfShare == null || !Number.isFinite(d.mfShare) ? '#475569' : mfColor(d.mfShare)
+				d.mfShare == null || !Number.isFinite(d.mfShare) ? '#cbd5e1' : mfColor(d.mfShare)
 			)
-			.attr('fill-opacity', 0.78)
-			.attr('stroke', (d) => (d.transitAccessible ? '#ffffff' : 'rgba(15, 23, 42, 0.55)'))
+			.attr('fill-opacity', 0.92)
+			.attr('stroke', (d) => (d.transitAccessible ? MBTA_GREEN : MBTA_ORANGE))
 			.attr('stroke-width', (d) => ((d.strokeWBase + (d.isFeatured ? 0.18 : 0) + (d.isActiveGuidedDevelopment ? 0.55 : 0)) * invK))
 			.attr('r', (d) => (d.rBase * (d.isActiveGuidedDevelopment ? 1.22 : 1)) * invK)
 			.attr('opacity', (d) => {
@@ -2333,6 +2333,28 @@
 				},
 				manualAffordableLabel: 'Not listed in this record',
 				manualAffordabilityNote: 'This record does not list an affordable-unit count.'
+			},
+			{
+				id: 'pinehills-phase-1',
+				label: 'The Pinehills: Phase 1',
+				sourceName: 'The Pinehills: Phase 1',
+				categoryLabel: 'Non-TOD contrast',
+				categoryTone: 'nontod',
+				note:
+					'Plymouth. The Pinehills: Phase 1 shows very large-scale housing growth far from strong MBTA access, making the non-TOD side of the regional pattern especially clear.',
+				fallback: {
+					id: 'manual-pinehills-phase-1',
+					name: 'The Pinehills: Phase 1',
+					municipal: 'Plymouth',
+					hu: 1500,
+					lon: -70.59676,
+					lat: 41.89025,
+					nearest_stop_dist_m: 14196.92,
+					mixed_use: false,
+					rdv: false
+				},
+				manualAffordableLabel: '0 listed',
+				manualAffordabilityNote: 'This record lists no affordable units.'
 			}
 		];
 		return specs.map((spec) => {
@@ -2988,13 +3010,13 @@
 										<strong>Developments</strong>
 										<span class="poc-key-tract-fill-body">
 											<span class="poc-key-tract-fill-line">
-												Fill = share of new units that are multi-family. Full scale on map colorbar.
+												Fill = share of new units that are multi-family. Darker fill means a higher multi-family share.
 											</span>
 											<span
 												class="poc-key-tract-bar"
-												style="background: linear-gradient(to right, {MBTA_ORANGE}, {MBTA_GREEN});"
+												style="background: linear-gradient(to right, #ffffff, #334155);"
 												role="img"
-												aria-label="Share of new units that are multi-family: lower toward orange, higher toward green"
+												aria-label="Share of new units that are multi-family: lower toward white, higher toward dark slate"
 											></span>
 										</span>
 									</p>
@@ -4693,16 +4715,16 @@
 	/* Dev outline swatches: grey fill so stroke semantics stay visible (map dots stay orange–green by MF). */
 	.poc-k-ring--dev-access,
 	.poc-k-ring--dev-noaccess {
-		background: #94a3b8;
+		background: #ffffff;
 	}
 
 	.poc-k-ring--dev-access {
-		border-color: #ffffff;
-		box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.38);
+		border-color: #00843d;
+		box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.18);
 	}
 
 	.poc-k-ring--dev-noaccess {
-		border-color: rgba(15, 23, 42, 0.55);
+		border-color: #ed8b00;
 	}
 
 	.map-wrap {
