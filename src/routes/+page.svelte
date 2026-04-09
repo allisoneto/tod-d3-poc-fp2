@@ -331,7 +331,7 @@
 					The affordable share of new development has decreased significantly in recent years,
 					which likely indicates that lower-income residents are benefitting much less from this new development.
 				</p>
-				<img src="/afford-mix-chart.png" alt="Stacked bar chart showing the affordable vs. market-rate share of new housing units per year from 1990 to 2026" class="afford-mix-chart-img" />
+				<img src={`${base}/afford-mix-chart.png`} alt="Stacked bar chart showing the affordable vs. market-rate share of new housing units per year from 1990 to 2026" class="afford-mix-chart-img" />
 			</div>
 		</div>
 	</section>
@@ -613,7 +613,7 @@
 						Each point is a tract; color = TOD share of new units; size = population.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<img src="/tod-intensity-scatter.png" alt="Scatter plot of median income change (%) vs. % housing stock increase, colored by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="tod-intensity-scatter-img" />
+						<img src={`${base}/tod-intensity-scatter.png`} alt="Scatter plot of median income change (%) vs. % housing stock increase, colored by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="tod-intensity-scatter-img" />
 					</div>
 				</section>
 			</div>
@@ -643,7 +643,7 @@
 						of residents with bachelor's degrees or higher — a useful proxy for neighborhood change, but not direct causal proof of displacement.
 					</p>
 					<div class="scatter-container scatter-container--compact">
-						<img src="/tod-edu-scatter.png" alt="Scatter plot of Bachelor's Degree Share Change (pp) vs % housing stock increase, coloured by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="scatter-img" />
+						<img src={`${base}/tod-edu-scatter.png`} alt="Scatter plot of Bachelor's Degree Share Change (pp) vs % housing stock increase, coloured by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="scatter-img" />
 					</div>
 				</section>
 			</div>
