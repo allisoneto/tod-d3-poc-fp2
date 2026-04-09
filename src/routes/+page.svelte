@@ -14,7 +14,7 @@
 		renderMuniAffordableTrend,
 	} from '$lib/utils/municipalCharts.js';
 	import { tractData, developments, storyNhgisRows } from '$lib/stores/data.svelte.js';
-	import { loadAllData, loadStoryData } from '$lib/stores/data.svelte.js';
+	import { loadStoryData } from '$lib/stores/data.svelte.js';
 	import {
 		DEFAULT_MAIN_POC_DEV_OPTS,
 		DEFAULT_MAIN_POC_UNIVERSE,
@@ -26,7 +26,6 @@
 	} from '$lib/utils/mainPocTractModel.js';
 	import { createPanelState } from '$lib/stores/panelState.svelte.js';
 	import PocNhgisTractMap from '$lib/components/PocNhgisTractMap.svelte';
-	import ExploreTractSection from '$lib/components/ExploreTractSection.svelte';
 
 	/* ═══════════════════════════════════════════════════════
 	   MUNICIPAL STATE (Part 1)
@@ -149,9 +148,6 @@
 	let tractLoading = $state(true);
 	let tractError = $state(/** @type {string | null} */ (null));
 	let tractReady = $state(false);
-	let exploreLoading = $state(false);
-	let exploreReady = $state(false);
-	let exploreError = $state(/** @type {string | null} */ (null));
 
 	// Tract analysis defaults (sensible, no user controls)
 	const tractTimePeriod = '00_20';
@@ -197,22 +193,6 @@
 			});
 	});
 
-	$effect(() => {
-		if (!tractReady || exploreReady || exploreLoading) return;
-		exploreLoading = true;
-		loadAllData()
-			.then(() => {
-				exploreReady = true;
-				exploreError = null;
-			})
-			.catch((e) => {
-				exploreError = e instanceof Error ? e.message : String(e);
-			})
-			.finally(() => {
-				exploreLoading = false;
-			});
-	});
-
 	const tractDevOpts = $derived({
 		minUnitsPerProject: DEFAULT_MAIN_POC_DEV_OPTS.minUnitsPerProject,
 		minDevMultifamilyRatioPct: DEFAULT_MAIN_POC_DEV_OPTS.minDevMultifamilyRatioPct,
@@ -252,7 +232,7 @@
 	);
 
 	const nhgisLikeRows = $derived.by(() => {
-		if (storyNhgisRows.length && !exploreReady) return storyNhgisRows;
+		if (storyNhgisRows.length) return storyNhgisRows;
 		return buildNhgisLikeRows(tractListFiltered, tractDevClassByGj, tractTimePeriod);
 	});
 </script>
@@ -712,26 +692,15 @@
 	{#if muniLoaded && !tractLoading && !tractError}
 		<div class="explore-after-narrow">
 			<section class="explore-gate card full-width" aria-labelledby="explore-gate-heading">
-				<h2 id="explore-gate-heading">Explore the map</h2>
+				<h2 id="explore-gate-heading">Explore the map for yourself</h2>
 				<p>
-					How does this pattern look in other municipalities, or in other tracts within the same municipality? Use the full
-					explorer below to compare places, inspect tract detail, and test how transit access, housing growth, and
-					lower-income context interact across the region.
+					If you want to keep exploring after the guided story, the full interactive choropleth and toggleable map tools now
+					live on their own page.
+				</p>
+				<p class="explore-gate__cta">
+					<a class="explore-gate__button" href={`${base}/playground`}>Open the playground</a>
 				</p>
 			</section>
-			{#if exploreError}
-				<section class="loading-status loading-status--error">
-					<h3>Full explorer data failed to load</h3>
-					<p>{exploreError}</p>
-				</section>
-			{:else if !exploreReady}
-				<section class="loading-status">
-					<div class="spinner" aria-hidden="true"></div>
-					<p>Loading the full explorer…</p>
-				</section>
-			{:else}
-				<ExploreTractSection />
-			{/if}
 
 			<section class="story card full-width sources-card">
 				<h2>Data sources and acknowledgments</h2>
@@ -853,6 +822,27 @@
 		color: var(--muted);
 		line-height: 1.55;
 		max-width: 58rem;
+	}
+
+	.explore-gate__cta {
+		margin-top: 6px;
+	}
+
+	.explore-gate__button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 10px 16px;
+		border-radius: 999px;
+		background: var(--accent);
+		color: #fff;
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 6px 18px rgba(0, 132, 61, 0.18);
+	}
+
+	.explore-gate__button:hover {
+		background: #0a6a38;
 	}
 
 	* { box-sizing: border-box; }
