@@ -88,7 +88,9 @@
 			What still does not work quite as well as we want is the sheer density of the system. Even in the improved version, there
 			is still a lot happening once outlines, dots, selections, and tooltips start to accumulate. We also think the guided
 			narrative is stronger than the open exploration section. To improve, we would make the explorer feel more polished,
-			simplify the walkthrough even further, and deepen the demographic side of the story. The clearest next step there is to
+			simplify the walkthrough even further, and deepen the demographic side of the story. One interaction change we would like
+			to make next is to let the choropleth scrollytelling progress paragraph by paragraph instead of section by section, so the
+			reader can move through the argument more gradually and with less cognitive load. The clearest next demographic step is to
 			push beyond income alone and bring race in more directly, so the project can say more about who is affected by these
 			patterns and not just where they appear.
 		</p>
