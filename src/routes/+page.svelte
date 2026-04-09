@@ -258,12 +258,16 @@
 	<div class="poc-pre-explore">
 	<section class="hero-full card">
 		<div class="eyebrow">Guided Story</div>
-		<h1>Transit Access and Housing Growth Are Not Aligned Across Greater Boston</h1>
+		<h1>Massachusetts is expanding TOD--how can equity be protected?</h1>
 		<p class="subtitle">
-			This visualization shows where housing growth does—and does not—occur relative to transit access.
-		</p>
-		<p class="subtitle subtitle--compact">
-			Start with the short guided walkthrough below. After that, the full explorer opens up so you can test the patterns for yourself.
+			Transit-oriented development is widely viewed as a robust and highly beneficial planning strategy: it can support housing growth,
+			reduce car dependence, and create higher-density neighborhoods with closer access to jobs and services. 
+			However, debate remains about <strong>whether the benefits of TOD are being shared with lower-income residents</strong>, and <strong>whether this development contributes
+			to gentrification and displacement</strong>.<br><br>
+		<p class="subtitle">
+			To answer this question, we analyze the current geographic distribution of TOD across Massachusetts, and analyze
+			the correlations between increased TOD and demographic changes in TOD areas in the hope of identifying possible
+			trends (though not causal proof) that can inform equity considerations and policy decisions.
 		</p>
 		<p class="hero-plan-note">
 			A separate writeup page includes our design decisions, processing notes, development overview, and final project plan:
@@ -273,11 +277,14 @@
 
 	<section class="story card story--signal">
 		<h2>The central takeaway</h2>
-		<p class="signal-line">Transit access and housing growth do not move together consistently across the region.</p>
-		<p class="signal-line">Some transit-rich places see limited housing growth, while some faster-growing places remain less connected to strong transit.</p>
-		<p class="signal-line">That mismatch matters most when lower-income tracts are part of the pattern.</p>
-		<p class="chart-note">
-			The rest of the page is designed to walk you from that claim, to the evidence behind it, and then into a full interactive explorer where you can test the pattern yourself.
+		<p class="signal-line">Many transit-rich places see limited housing growth, which indicates further opportunities
+			for transit-oriented development.</p>
+		<p class="signal-line">Some of these high-opportunity areas are lower-income, and therefore more at risk of
+			displacement due to rising costs.
+		</p>
+		<p class="signal-line">TOD is associated with rising income and education levels, which signals a possible
+			pressure pushing lower-income households out of these areas. Incorporating affordable housing requirements into TOD
+			development can help mitigate this pressure.
 		</p>
 	</section>
 
@@ -288,16 +295,92 @@
 		</div>
 	{:else}
 	<section class="story card">
-		<h2>How the TOD pattern starts to break apart</h2>
+		<h2>What is the status of TOD in Massachusetts?</h2>
+		<p>
+			Despite policy efforts, most new housing being built in Massachusetts consists of non-TOD units. However, total development has increased over time,
+			so the volume of TOD units has also been increasing. With the passage of the MBTA Communities Act, TOD is expected to become even more widespread,
+			so it is important to understand the effects TOD has already had on the state.
+		</p>
+
+		<section class="chart-card card">
+			<h3>TOD vs non-TOD mix by year</h3>
+			<div class="chart-wrap small-chart" bind:this={elComposition}></div>
+		</section>
+	</section>
+
+	<section class="card story-chart-panel story-chart-panel--stacked">
+		<div class="story-chart-panel__grid">
+			<div class="story-chart-panel__text">
+				<h2>Who benefits from TOD?</h2>
+				<p>
+					For many residents, a primary concern with TOD is the gap between housing supply and genuine affordability.
+					Although TOD projects often increase the total number of housing units, if these units are
+					market-rate, they are usually significantly more expensive than existing units in the neighborhood.
+					This does not mean that low-to-moderate income households cannot afford to move into these homes,
+					and more importantly, it often raises rents for those already living in the area.
+				</p>
+
+				<p>
+					Encouraging TOD projects that include affordable housing units can help mitigate this issue, but recent
+					trends show that affordability is not currently keeping pace with total production.
+				</p>
+			</div>
+			<div class="story-chart-panel__chart">
+				<h3>Most new housing is still market-rate</h3>
+				<p class="chart-note">
+					The affordable share of new development has decreased significantly in recent years,
+					which likely indicates that lower-income residents are benefitting much less from this new development.
+				</p>
+				<img src="/afford-mix-chart.png" alt="Stacked bar chart showing the affordable vs. market-rate share of new housing units per year from 1990 to 2026" class="afford-mix-chart-img" />
+			</div>
+		</div>
+	</section>
+
+	<section class="card story-chart-panel story-chart-panel--stacked">
+		<div class="story-chart-panel__grid">
+			<div class="story-chart-panel__text">
+				<h2>Where is development most concentrated?</h2>
+				<p>
+					Although lower-income residents are the most at risk of displacement,
+					municipalities with more lower income households (&lt; $125k/year) are often the ones seeing the most new development.
+					This suggests that equitable implementation matters most in the places already under the most pressure.
+				</p>
+			</div>
+			<div class="story-chart-panel__chart">
+				<h3>New development is often concentrated in higher-vulnerability municipalities</h3>
+				<div class="chart-wrap small-chart compact-side-chart" bind:this={elGrowthCapture}></div>
+			</div>
+		</div>
+	</section>
+
+	<section class="story card">
+		<h2>What is the impact of TOD?</h2>
+		<p>
+			Lower-income communities are at higher risk for displacement due to TOD, so it is all the more important
+			to understand what demographic changes are associated with TOD, and determine how they might be mitigated.
+			These proxy indicators are often associated with (though not always solely caused by) gentrification pressure:
+		</p>
+		<ul class="story-list">
+			<li>Sharp increases in median income, often used as a <strong>risk indicator for rising housing costs</strong></li>
+			<li>Rapid increases in the percentage of residents with bachelor's degrees or higher</li>
+			<li>Shift from owner-occupied housing to high-turnover rental units [analysis of this metric will be added soon]</li>
+		</ul>
+		<p>
+			Changes in these measures will not necessarily establish that TOD causes gentrification, but they can be interpreted as
+			warning signals that can help identify where neighborhood change may be happening
+			alongside new development and transit access.
+		</p>
+	</section>
+	<!-- <section class="story card">
+		<h2>What is the status of TOD in Massachusetts?	</h2>
 		<p class="chart-note">
-			Before we move to the tract map, it helps to make the TOD pattern visible in simpler regional views. These charts are not
-			meant to replace the map. They establish the core relationships the rest of the story builds on: housing growth is uneven,
-			transit access does not automatically attract that growth, and the mismatch matters more when lower-income households are
-			already part of the places under pressure.
+			Despite policy efforts, most new housing being built in Massachusetts consists of non-TOD units. However, total development has increased over time,
+			so the volume of TOD units has also been increasing. With the passage of the MBTA Communities Act, TOD is expected to become even more widespread,
+			so it is important to understand the effects TOD has already had on the state.
 		</p>
 		<div class="guide-figures">
 			<figure class="guide-figure card">
-				<h3>Transit-oriented development is growing, but it still does not absorb most new housing</h3>
+				<h3>Transit-oriented development is growing, but not always at the same pace as total housing growth</h3>
 				<div class="chart-wrap small-chart" bind:this={elComposition}></div>
 				<figcaption>
 					We start here because it prevents an easy misunderstanding. The question is not whether TOD exists in Greater
@@ -334,12 +417,33 @@
 			where transit is, or where growth is, but where those patterns stop lining up neatly, especially in places where lower-income
 			households may have the most to gain from living near strong transit access.
 		</p>
-	</section>
+	</section> -->
 	{/if}
 
 	<!-- ═══════════════════════════════════════════════════════
 	     PART 2 — TRACT ANALYSIS
 	     ═══════════════════════════════════════════════════════ -->
+
+	
+	<section class="story card full-width">
+		<h2>How can we analyze the effects of TOD holisitically?</h2>
+		<p>
+			Different regions in Massachusetts have different characteristics, and have undergone different levels of development.
+			In order to analyze the varying intensity of TOD and other development, we can consider decennial census tracts
+			as a regional unit of analysis.
+		</p>
+		<p>
+			Before we can analyze the demographic changes associated with TOD, we need a broad framework for understanding
+			and comparing different regions of the state based on their development intensity and type. To do this, we answer
+			several key questions:
+		</p>
+		<ul class="story-list">
+			<li>Where is transit accessible?</li>
+			<li>Which regions have seen the most development, and which present the most opportunity for TOD?</li>
+			<li>Where has TOD already occured, and where has it not?</li>
+		</ul>
+	</section>
+	
 	<section class="tract-section">
 		<section class="story card full-width story--framing">
 			<div class="framing-grid">
@@ -369,7 +473,8 @@
 			</div>
 		</section>
 
-		<section class="story card full-width">
+
+		<!-- <section class="story card full-width">
 			<h2>Guided walkthrough: where the mismatch appears</h2>
 			<p>
 				The map below is the guided part of the story. It introduces one layer at a time so the reader can see how transit
@@ -383,7 +488,7 @@
 				<li><strong>Then:</strong> isolate the mismatch layer, which is the core analytical claim.</li>
 				<li><strong>Finally:</strong> bring in lower-income context to show why the mismatch matters beyond a purely spatial planning question.</li>
 			</ul>
-		</section>
+		</section> -->
 
 		{#if tractLoading}
 			<div class="loading-status">
@@ -444,46 +549,151 @@
 				</div>
 			</section>
 
+
 			<section class="story card">
-				<h2>Why these demographic proxies appear here</h2>
+				<h2>How can we identify demographic changes associated with TOD?</h2>
 				<p>
-					Income and education are used here as <strong>warning-signal proxies</strong> for neighborhood change, not as
-					stand-alone proof of displacement. They help us ask whether the places where transit access and housing growth pull
-					apart also show signs of social change that matter for a gentrification argument.
+					Development, transit-oriented or otherwise, often results in demographic change. In order to
+					isolate the influence of TOD from the influence of development generally, we use three of the
+					census tract groups defined in the previous section.
 				</p>
-				<ul class="story-list">
-					<li>Sharp increases in median income can signal rising housing costs or stronger market pressure.</li>
-					<li>Rapid increases in the share of residents with bachelor’s degrees can signal selective in-migration and neighborhood turnover.</li>
-					<li>Future versions will add more explicit tenure and ownership-change measures so the demographic story is not carried by income and education alone.</li>
+				<ul class="story-list story-list--nested">
+					<li>
+						<strong>Minimal development tracts</strong> (less than 2% increase in housing stock): These are
+						likely to show different demographic changes than high-development tracts and are filtered out of
+						the demographic analysis.
+					</li>
+					<li>
+						High-development tracts: Census tracts with at least 2% increase in housing
+						stock. These tracts are divided into two groups to differentiate between the effects of TOD and
+						non-TOD development:
+						<ul>
+							<li>
+								<strong>TOD-dominated tracts</strong>: High-development tracts where TOD units make up at
+								least 50% of new development.
+							</li>
+							<li>
+								<strong>Non-TOD-dominated tracts</strong>: High-development tracts where TOD units make up
+								less than 50% of new development.
+							</li>
+						</ul>
+					</li>
 				</ul>
+			</section>
+
+			<!-- Income / education tract analysis (reinstated from earlier POC story layout) -->
+			<div class="story-chart-row story-chart-row--tract full-width">
+				<section class="story card story-chart-text">
+					<h2>Income analysis</h2>
+					<p>
+						We can get a sense of the socioeconomic distribution of people by looking at the median income
+						of a neighborhood.
+						<!-- {#if incomeRow}
+							In census tracts dominated by TOD, the median income changes by
+							<strong>{incomeRow.fmtTod}</strong>, while in non-TOD dominated tracts it changes by
+							<strong>{incomeRow.fmtCtrl}</strong>, and in minimal development tracts by
+							<strong>{incomeRow.fmtMinimal}</strong>.
+						{/if} -->
+						In census tracts dominated by TOD, the median income changes by <strong>84.92%</strong>, while in non-TOD dominated 
+						tracts it changes by <strong>62.58%</strong>, and in minimal development tracts by <strong>64.29%</strong>
+						This is one proxy for neighborhood change and possible market pressure, though it should not be
+						read as direct evidence that TOD itself caused these shifts.
+					</p>
+					<p>
+						If TOD-dominated tracts show larger income increases, that is consistent with stronger
+						socioeconomic sorting or housing-market pressure, though other urban factors may also contribute.
+					</p>
+				</section>
+
+				<section class="chart-card card story-chart-plot">
+					<h3>TOD intensity vs median income change</h3>
+					<p class="chart-note">
+						This plot shows that not only does TOD correspond to greater income jumps than non-TOD,
+						but also that higher TOD intensity is associated with larger income changes within the observed tract sample.
+						Each point is a tract; color = TOD share of new units; size = population.
+					</p>
+					<div class="scatter-container scatter-container--compact">
+						<img src="/tod-intensity-scatter.png" alt="Scatter plot of median income change (%) vs. % housing stock increase, colored by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="tod-intensity-scatter-img" />
+					</div>
+				</section>
+			</div>
+
+			<div class="story-chart-row story-chart-row--tract full-width">
+				<section class="story card story-chart-text">
+					<h2>Education analysis</h2>
+					<p>
+						Another indicator of socioeconomic change is the percentage of people who are college-educated.
+						<!-- {#if eduRow}
+							In TOD-dominated tracts, the bachelor's degree share changes by
+							<strong>{eduRow.fmtTod}</strong>, compared to
+							<strong>{eduRow.fmtCtrl}</strong> in non-TOD dominated tracts and
+							<strong>{eduRow.fmtMinimal}</strong> in minimal development tracts.
+						{/if} -->
+						In TOD-dominated tracts, the bachelor's degree share changes by <strong>15.71 pp</strong>, compared to <strong>11.39 pp</strong> 
+						in non-TOD dominated tracts and <strong>9.86 pp</strong> in minimal development tracts.
+						This is another proxy for neighborhood change. Because most adults do not gain bachelor's degrees
+						rapidly within a decade, changes often reflect turnover, replacement, or selective in-migration.
+					</p>
+				</section>
+
+				<section class="chart-card card story-chart-plot">
+					<h3>TOD intensity vs bachelor's degree share change</h3>
+					<p class="chart-note">
+						The same pattern holds for education: tracts with more TOD see larger increases in the share
+						of residents with bachelor's degrees or higher — a useful proxy for neighborhood change, but not direct causal proof of displacement.
+					</p>
+					<div class="scatter-container scatter-container--compact">
+						<img src="/tod-edu-scatter.png" alt="Scatter plot of Bachelor's Degree Share Change (pp) vs % housing stock increase, coloured by TOD share and sized by population, with best-fit lines for TOD-dominated, non-TOD, and all significant tracts" class="scatter-img" />
+					</div>
+				</section>
+			</div>
+
+			<!-- <section class="chart-card card full-width">
+				<h3>Income & education summary</h3>
+				<p class="chart-note">
+					Population-weighted means of income and education changes in the three groups of census tracts.
+				</p>
+				<div class="chart-wrap chart-wrap--tract-edu" bind:this={elTractEdu}></div>
+			</section> -->
+
+			<section class="story card full-width">
+				<h2>How affordability could help</h2>
+				<!-- <p>
+					Among TOD-dominated tracts, we can compare those where <strong>at least half</strong> of new
+					development is affordable (≥{(affSplitCohorts.affSplitThreshold * 100).toFixed(0)}% affordable share)
+					to those where <strong>less than half</strong> is affordable.
+					Comparing these two groups reveals whether affordability moderates
+					the demographic changes associated with TOD.
+				</p>
+				{#if affIncomeRow && affEduRow}
+					<p>
+						In TOD tracts with a higher affordable share, median income changes by
+						<strong>{affIncomeRow.fmtHi}</strong> (vs. <strong>{affIncomeRow.fmtLo}</strong> in
+						low-affordable TOD tracts). For education, the bachelor's share changes by
+						<strong>{affEduRow.fmtHi}</strong> vs. <strong>{affEduRow.fmtLo}</strong>.
+						This suggests that TOD tracts with more affordability may experience smaller socioeconomic shifts
+						on average, though the comparison is still descriptive rather than causal.
+					</p>
+				{/if} -->
 				<p>
-					These comparisons are descriptive. They help identify where neighborhood change may be happening alongside
-					development and transit access, but they do not by themselves prove a causal TOD effect. What they do offer is a
-					way to connect the spatial mismatch on the map to a broader gentrification question: if growth and transit access
-					are misaligned, who is more likely to lose out on the benefits of living near transit?
+					Among TOD-dominated tracts, we compare those where at least half of new development is affordable (≥50% affordable share) to those where less than half is affordable. Comparing these two groups reveals whether affordability moderates the demographic changes associated with TOD.
+				</p>
+				<p>
+					In TOD tracts with a higher affordable share, median income changes by <strong>69.33%</strong> (vs. <strong>88.11%</strong> in low-affordable TOD tracts). For education, the bachelor's share changes by <strong>12.56 pp</strong> vs. <strong>16.36 pp</strong>. This suggests that TOD tracts with more affordability may experience smaller socioeconomic shifts on average, though the comparison is still descriptive rather than causal.
+				</p>
+				<p>
+					More figures will be added soon.
 				</p>
 			</section>
 
 			<section class="story card">
 				<h2>What does this tell us?</h2>
 				<p>
-					The main takeaway from this analysis is that the relationship between transit access and housing growth varies
-					significantly across Greater Boston. Some places follow the expected pattern, where strong access and meaningful
-					growth appear together. But other places do not. Some transit-rich tracts have seen limited housing growth, while
-					some faster-growing tracts sit outside the strongest transit context.
-				</p>
-				<p>
-					That matters for planners and policymakers because it suggests that transit-oriented growth is not happening evenly
-					or automatically. Transit access creates opportunity, but it does not guarantee housing production. At the same
-					time, growth outside the strongest transit geography raises a different planning question: if new housing is being
-					added in weaker-access areas, then the benefits of living near strong transit may not be reaching households in the
-					same way across the region.
-				</p>
-				<p>
-					The lower-income context makes that pattern more consequential. Once we shift from asking “where is growth?” to
-					asking “who is most affected by where growth is or is not happening?”, the mismatch becomes more than a spatial
-					oddity. It becomes a distributional question about access to transit-linked housing opportunity.
-				</p>
+					Transit-oriented development is a powerful tool for addressing the housing crisis, and there are many regions
+					particularly ripe for TOD. However, the current patterns of TOD are associated with demographic changes
+					that suggest increased displacement pressure, particularly for lower-income households. In order to mitigate
+					these issues, it is important to ensure that TOD projects include a substantial number of affordable housing units--
+					particularly in lower-income and more at-risk communities.
 			</section>
 		{/if}
 	</section>
